@@ -1,0 +1,667 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Clock, DollarSign, Building2, Save, Users, Plus, Pencil, Trash2, Shield, ShieldCheck, Loader2, UserCircle, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuthStore } from '@/store/auth-store';
+
+interface SettingsData {
+  business_name: string;
+  operating_hours_start: string;
+  operating_hours_end: string;
+  hourly_rate: string;
+  monthly_rate: string;
+}
+
+interface UserRecord {
+  id: string;
+  username: string;
+  name: string;
+  role: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const defaultSettings: SettingsData = {
+  business_name: 'Lamka Coaching Center',
+  operating_hours_start: '07:00',
+  operating_hours_end: '22:00',
+  hourly_rate: '100',
+  monthly_rate: '3000',
+};
+
+function useSettingsState() {
+  const [settings, setSettings] = useState<SettingsData>(defaultSettings);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings');
+      const json = await res.json();
+      if (json.settings) {
+        setSettings({
+          business_name: json.settings.business_name || defaultSettings.business_name,
+          operating_hours_start: json.settings.operating_hours_start || defaultSettings.operating_hours_start,
+          operating_hours_end: json.settings.operating_hours_end || defaultSettings.operating_hours_end,
+          hourly_rate: json.settings.hourly_rate || defaultSettings.hourly_rate,
+          monthly_rate: json.settings.monthly_rate || defaultSettings.monthly_rate,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to save settings');
+        return;
+      }
+      toast.success('Settings saved successfully');
+      fetchSettings();
+    } catch {
+      toast.error('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return { settings, setSettings, loading, saving, handleSave };
+}
+
+export default function SettingsViewWrapper() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
+  const { settings, setSettings, loading, saving, handleSave } = useSettingsState();
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-2xl">
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      {/* Business Information */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-orange-600" />
+            Business Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="business_name">Business Name</Label>
+            <Input
+              id="business_name"
+              value={settings.business_name}
+              onChange={(e) => setSettings({ ...settings, business_name: e.target.value })}
+              placeholder="Your business name"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Operating Hours */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Clock className="h-5 w-5 text-orange-600" />
+            Operating Hours
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="op_start">Opening Time</Label>
+              <Input
+                id="op_start"
+                type="time"
+                value={settings.operating_hours_start}
+                onChange={(e) =>
+                  setSettings({ ...settings, operating_hours_start: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="op_end">Closing Time</Label>
+              <Input
+                id="op_end"
+                type="time"
+                value={settings.operating_hours_end}
+                onChange={(e) =>
+                  setSettings({ ...settings, operating_hours_end: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <p className="text-xs text-gray-400">
+            These hours are used for reference when creating bookings.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Pricing */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-orange-600" />
+            Pricing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="hourly_rate">Hourly Rate (₹)</Label>
+              <Input
+                id="hourly_rate"
+                type="number"
+                value={settings.hourly_rate}
+                onChange={(e) => setSettings({ ...settings, hourly_rate: e.target.value })}
+                min={1}
+              />
+              <p className="text-xs text-gray-400">Rate per hour for hourly bookings</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="monthly_rate">Monthly Rate (₹)</Label>
+              <Input
+                id="monthly_rate"
+                type="number"
+                value={settings.monthly_rate}
+                onChange={(e) => setSettings({ ...settings, monthly_rate: e.target.value })}
+                min={1}
+              />
+              <p className="text-xs text-gray-400">Rate per month for exclusive bookings</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-orange-600 hover:bg-orange-700 px-8"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          {saving ? 'Saving...' : 'Save Settings'}
+        </Button>
+      </div>
+
+      {/* User Management - Admin only */}
+      {isAdmin && (
+        <>
+          <Separator className="my-2" />
+          <UserManagement />
+        </>
+      )}
+    </div>
+  );
+}
+
+function UserManagement() {
+  const { user: currentUser } = useAuthStore();
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
+  const [deleteUser, setDeleteUser] = useState<UserRecord | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Form state
+  const [formUsername, setFormUsername] = useState('');
+  const [formName, setFormName] = useState('');
+  const [formRole, setFormRole] = useState<'admin' | 'staff'>('staff');
+  const [formPassword, setFormPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/users');
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users || []);
+      }
+    } catch {
+      toast.error('Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const resetForm = () => {
+    setFormUsername('');
+    setFormName('');
+    setFormRole('staff');
+    setFormPassword('');
+    setShowPassword(false);
+    setEditingUser(null);
+  };
+
+  const openCreateDialog = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (user: UserRecord) => {
+    setEditingUser(user);
+    setFormUsername(user.username);
+    setFormName(user.name);
+    setFormRole(user.role as 'admin' | 'staff');
+    setFormPassword('');
+    setShowPassword(false);
+    setDialogOpen(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!formName.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+
+    if (!editingUser && !formUsername.trim()) {
+      toast.error('Username is required');
+      return;
+    }
+
+    if (!editingUser && formPassword.length < 4) {
+      toast.error('Password must be at least 4 characters');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingUser) {
+        const body: Record<string, unknown> = {
+          id: editingUser.id,
+          name: formName.trim(),
+          role: formRole,
+        };
+        if (formPassword.length >= 4) {
+          body.password = formPassword;
+        }
+
+        const res = await fetch('/api/auth/users', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data.error || 'Failed to update user');
+          return;
+        }
+        toast.success('User updated successfully');
+      } else {
+        const res = await fetch('/api/auth/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: formUsername.trim(),
+            password: formPassword,
+            name: formName.trim(),
+            role: formRole,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data.error || 'Failed to create user');
+          return;
+        }
+        toast.success('User created successfully');
+      }
+      setDialogOpen(false);
+      resetForm();
+      fetchUsers();
+    } catch {
+      toast.error('Failed to save user');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (u: UserRecord) => {
+    try {
+      const res = await fetch('/api/auth/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: u.id, active: !u.active }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to update user');
+        return;
+      }
+      toast.success(`User ${u.active ? 'disabled' : 'enabled'} successfully`);
+      fetchUsers();
+    } catch {
+      toast.error('Failed to update user');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteUser) return;
+    try {
+      const res = await fetch(`/api/auth/users?id=${deleteUser.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to delete user');
+        return;
+      }
+      toast.success('User deleted successfully');
+      setDeleteUser(null);
+      fetchUsers();
+    } catch {
+      toast.error('Failed to delete user');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5 text-orange-600" />
+            User Management
+          </h2>
+          <p className="text-sm text-gray-500">Manage system access and roles</p>
+        </div>
+        <Button
+          onClick={openCreateDialog}
+          size="sm"
+          className="bg-orange-600 hover:bg-orange-700"
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add User
+        </Button>
+      </div>
+
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-14 rounded-lg" />
+              ))}
+            </div>
+          ) : users.length === 0 ? (
+            <div className="p-8 text-center text-gray-400">
+              <Users className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p>No users found</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {users.map((u) => (
+                <div
+                  key={u.id}
+                  className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                    !u.active ? 'opacity-50' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div
+                    className={`flex items-center justify-center h-10 w-10 rounded-full shrink-0 ${
+                      u.role === 'admin'
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {u.role === 'admin' ? (
+                      <ShieldCheck className="h-5 w-5" />
+                    ) : (
+                      <UserCircle className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 ${
+                          u.role === 'admin'
+                            ? 'border-orange-200 text-orange-700'
+                            : 'border-gray-200 text-gray-500'
+                        }`}
+                      >
+                        {u.role}
+                      </Badge>
+                      {!u.active && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-200 text-red-500">
+                          disabled
+                        </Badge>
+                      )}
+                      {u.id === currentUser?.id && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-200 text-amber-600">
+                          you
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">@{u.username}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleToggleActive(u)}
+                      title={u.active ? 'Disable user' : 'Enable user'}
+                    >
+                      {u.active ? (
+                        <Shield className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Shield className="h-4 w-4 text-red-400" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => openEditDialog(u)}
+                    >
+                      <Pencil className="h-4 w-4 text-gray-400" />
+                    </Button>
+                    {u.id !== currentUser?.id && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setDeleteUser(u)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-400" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingUser ? 'Edit User' : 'Create New User'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="form_username">Username</Label>
+              <Input
+                id="form_username"
+                value={formUsername}
+                onChange={(e) => setFormUsername(e.target.value)}
+                placeholder="e.g. john"
+                disabled={!!editingUser}
+                autoComplete="off"
+              />
+              {editingUser && (
+                <p className="text-xs text-gray-400">Username cannot be changed</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="form_name">Full Name</Label>
+              <Input
+                id="form_name"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="e.g. John Doe"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={formRole} onValueChange={(v) => setFormRole(v as 'admin' | 'staff')}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-orange-600" />
+                      <span>Admin — Full access, user management</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="staff">
+                    <div className="flex items-center gap-2">
+                      <UserCircle className="h-4 w-4 text-gray-500" />
+                      <span>Staff — Limited access, no settings</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="form_password">
+                Password {editingUser ? '(leave blank to keep current)' : ''}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="form_password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formPassword}
+                  onChange={(e) => setFormPassword(e.target.value)}
+                  placeholder={editingUser ? 'Leave blank to keep current password' : 'Min 4 characters'}
+                  autoComplete="new-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {!editingUser && formPassword.length > 0 && formPassword.length < 4 && (
+                <p className="text-xs text-red-500">Password must be at least 4 characters</p>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveUser}
+              disabled={saving}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : editingUser ? (
+                'Update User'
+              ) : (
+                'Create User'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteUser?.name}</strong> (@{deleteUser?.username})?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
