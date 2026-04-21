@@ -45,7 +45,7 @@ import PaymentReceipt from './payment-receipt';
 
 interface Payment {
   id: string;
-  bookingId: string;
+  type: 'booking' | 'enrollment';
   studentId: string;
   amount: number;
   mode: string;
@@ -57,13 +57,17 @@ interface Payment {
     name: string;
     phone: string;
   };
-  booking: {
+  booking?: {
     id: string;
     type: string;
     totalAmount: number;
     cabin: {
       cabinNum: number;
     };
+  };
+  enrollment?: {
+    id: string;
+    course: { name: string; department: { name: string } };
   };
 }
 
@@ -381,12 +385,17 @@ export default function PaymentsView() {
   const filteredPayments = payments.filter((p) => {
     if (!search) return true;
     const q = search.toLowerCase();
+    const label = p.type === 'booking' && p.booking
+      ? `Cabin ${p.booking.cabin.cabinNum}`
+      : p.enrollment
+        ? p.enrollment.course.name
+        : '';
     return (
       p.student.name.toLowerCase().includes(q) ||
       p.student.phone.includes(q) ||
-      p.booking.cabin.cabinNum.toString().includes(q) ||
+      label.toLowerCase().includes(q) ||
       p.mode.toLowerCase().includes(q) ||
-      p.id.toLowerCase().includes(q)
+      p.type.toLowerCase().includes(q)
     );
   });
 
@@ -520,22 +529,19 @@ export default function PaymentsView() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <Badge
-                    variant="secondary"
-                    className="bg-orange-100 text-orange-700"
-                  >
-                    Cabin {payment.booking.cabin.cabinNum}
+                  {payment.type === 'booking' && payment.booking ? (
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                      Cabin {payment.booking.cabin.cabinNum}
+                    </Badge>
+                  ) : payment.enrollment ? (
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                      {payment.enrollment.course.name}
+                    </Badge>
+                  ) : null}
+                  <Badge variant="secondary" className={payment.type === 'booking' ? 'capitalize bg-amber-50 text-amber-700' : 'bg-purple-50 text-purple-700'}>
+                    {payment.type === 'booking' ? payment.booking?.type || 'Booking' : 'Course'}
                   </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="capitalize bg-amber-50 text-amber-700"
-                  >
-                    {payment.booking.type}
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="uppercase bg-gray-100 text-gray-600"
-                  >
+                  <Badge variant="secondary" className="uppercase bg-gray-100 text-gray-600">
                     {payment.mode}
                   </Badge>
                 </div>

@@ -14,7 +14,10 @@ interface DashboardStats {
   totalStudents: number;
   activeBookingsCount: number;
   todayRevenue: number;
+  todayEnrollmentRevenue: number;
   totalPending: number;
+  totalEnrollments: number;
+  enrollmentOutstanding: number;
   todayHourlyCount: number;
 }
 
@@ -42,12 +45,23 @@ interface Payment {
   booking: { type: string; totalAmount: number; cabin: { cabinNum: number } };
 }
 
+interface EnrollmentPayment {
+  id: string;
+  amount: number;
+  mode: string;
+  receivedAt: string;
+  notes: string | null;
+  student: { name: string; phone: string };
+  enrollment: { course: { name: string; department: { name: string } } };
+}
+
 interface DashboardData {
   stats: DashboardStats;
   todayBookings: Booking[];
   exclusiveBookings: Booking[];
   expiringSoon: Booking[];
   recentPayments: Payment[];
+  recentEnrollmentPayments: EnrollmentPayment[];
 }
 
 function StatCard({
@@ -169,18 +183,18 @@ export default function DashboardView() {
     );
   }
 
-  const { stats, todayBookings, exclusiveBookings, expiringSoon, recentPayments } = data;
+  const { stats, todayBookings, exclusiveBookings, expiringSoon, recentPayments, recentEnrollmentPayments } = data;
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards - 2x2 on mobile, 4 cols on sm+ */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      {/* Stats Cards - 2x2 on mobile, 6 cols on sm+ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <StatCard
           title="Total Cabins"
           value={String(stats.totalCabins)}
           icon={<DoorOpen className="h-5 w-5 text-orange-600" />}
           color="bg-orange-50"
-          subtitle={`${stats.availableCabins} available, ${stats.occupiedCabins} occupied`}
+          subtitle={`${stats.availableCabins} available`}
         />
         <StatCard
           title="Active Bookings"
@@ -190,17 +204,31 @@ export default function DashboardView() {
           subtitle={`${stats.todayHourlyCount} hourly today`}
         />
         <StatCard
-          title="Today's Revenue"
-          value={formatCurrency(stats.todayRevenue)}
-          icon={<Banknote className="h-5 w-5 text-orange-600" />}
-          color="bg-orange-50"
+          title="Course Enrollments"
+          value={String(stats.totalEnrollments)}
+          icon={<Users className="h-5 w-5 text-purple-600" />}
+          color="bg-purple-50"
+          subtitle="Active students"
         />
         <StatCard
-          title="Pending Fees"
+          title="Today's Revenue"
+          value={formatCurrency(stats.todayRevenue + (stats.todayEnrollmentRevenue || 0))}
+          icon={<Banknote className="h-5 w-5 text-green-600" />}
+          color="bg-green-50"
+        />
+        <StatCard
+          title="Cabin Pending"
           value={formatCurrency(stats.totalPending)}
           icon={<AlertCircle className="h-5 w-5 text-red-500" />}
           color="bg-red-50"
-          subtitle="Across all active bookings"
+          subtitle="Booking dues"
+        />
+        <StatCard
+          title="Course Pending"
+          value={formatCurrency(stats.enrollmentOutstanding || 0)}
+          icon={<AlertCircle className="h-5 w-5 text-amber-500" />}
+          color="bg-amber-50"
+          subtitle="Enrollment dues"
         />
       </div>
 
@@ -384,6 +412,49 @@ export default function DashboardView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Enrollment Payments */}
+      {recentEnrollmentPayments && recentEnrollmentPayments.length > 0 && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-purple-600" />
+                Recent Course Payments
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {recentEnrollmentPayments.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-purple-50/50 hover:bg-purple-100/60 transition-colors border border-purple-100"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 truncate">{p.student.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {p.enrollment.course.name} &bull; {p.enrollment.course.department.name} &bull;{' '}
+                      {formatDate(p.receivedAt)}
+                    </p>
+                  </div>
+                  <div className="text-right flex items-center gap-2 ml-3 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${p.mode === 'cash' ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}
+                    >
+                      {p.mode.toUpperCase()}
+                    </Badge>
+                    <p className="text-sm font-semibold text-purple-600">
+                      {formatCurrency(p.amount)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

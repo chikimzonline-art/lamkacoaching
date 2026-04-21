@@ -17,6 +17,9 @@ import {
   Shield,
   UserCircle,
   MoreHorizontal,
+  Building2,
+  GraduationCap,
+  UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -61,17 +64,29 @@ const ReportsView = dynamic(() => import('@/components/reports/reports-view'), {
 const SettingsView = dynamic(() => import('@/components/settings/settings-view'), {
   loading: () => <PageSkeleton />,
 });
+const DepartmentsView = dynamic(() => import('@/components/departments/departments-view'), {
+  loading: () => <PageSkeleton />,
+});
+const CoursesView = dynamic(() => import('@/components/courses/courses-view'), {
+  loading: () => <PageSkeleton />,
+});
+const EnrollmentsView = dynamic(() => import('@/components/enrollments/enrollments-view'), {
+  loading: () => <PageSkeleton />,
+});
 
 // Bottom nav items (5 primary + More)
 const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
   { view: 'dashboard', label: 'Home', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { view: 'cabins', label: 'Cabins', icon: <DoorOpen className="h-5 w-5" /> },
+  { view: 'enrollments', label: 'Courses', icon: <GraduationCap className="h-5 w-5" /> },
   { view: 'bookings', label: 'Bookings', icon: <Calendar className="h-5 w-5" /> },
   { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" /> },
   { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" /> },
 ];
 
 const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; adminOnly: boolean }[] = [
+  { view: 'cabins', label: 'Cabins', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
+  { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
+  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: false },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
@@ -82,6 +97,9 @@ const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; a
   { view: 'bookings', label: 'Bookings', icon: <Calendar className="h-5 w-5" />, adminOnly: false },
   { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" />, adminOnly: false },
   { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" />, adminOnly: false },
+  { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
+  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: false },
+  { view: 'enrollments', label: 'Enrollments', icon: <UserPlus className="h-5 w-5" />, adminOnly: false },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
@@ -132,6 +150,9 @@ function PageHeader() {
     bookings: 'Bookings',
     students: 'Students',
     payments: 'Payments',
+    departments: 'Departments',
+    courses: 'Courses',
+    enrollments: 'Enrollments',
     reports: 'Reports',
     settings: 'Settings',
   };
@@ -189,6 +210,9 @@ function renderView(view: ViewType) {
     case 'bookings': return <BookingsView />;
     case 'students': return <StudentsView />;
     case 'payments': return <PaymentsView />;
+    case 'departments': return <DepartmentsView />;
+    case 'courses': return <CoursesView />;
+    case 'enrollments': return <EnrollmentsView />;
     case 'reports': return <ReportsView />;
     case 'settings': return <SettingsView />;
     default: return <DashboardView />;

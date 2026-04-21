@@ -11,7 +11,7 @@ async function getAuthUser() {
   return verifyToken(token);
 }
 
-// GET /api/payments - List payments
+// GET /api/payments - List payments (both booking and enrollment)
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser();
@@ -27,7 +27,8 @@ export async function GET(request: Request) {
     if (studentId) where.studentId = studentId;
     if (bookingId) where.bookingId = bookingId;
 
-    const payments = await db.payment.findMany({
+    // Fetch booking payments
+    const bookingPayments = await db.payment.findMany({
       where: Object.keys(where).length > 0 ? where : undefined,
       orderBy: { receivedAt: 'desc' },
       include: {
@@ -42,6 +43,52 @@ export async function GET(request: Request) {
         },
       },
     });
+
+    // Fetch enrollment payments
+    const enrollmentWhere: Record<string, unknown> = {};
+    if (studentId) enrollmentWhere.studentId = studentId;
+
+    const enrollmentPayments = await db.enrollmentPayment.findMany({
+      where: Object.keys(enrollmentWhere).length > 0 ? enrollmentWhere : undefined,
+      orderBy: { receivedAt: 'desc' },
+      include: {
+        student: { select: { id: true, name: true, phone: true } },
+        enrollment: {
+          select: {
+            id: true,
+            course: { select: { name: true, department: { select: { name: true } } } },
+          },
+        },
+      },
+    });
+
+    // Normalize into unified format
+    const payments = [
+      ...bookingPayments.map((p) => ({
+        id: p.id,
+        type: 'booking' as const,
+        studentId: p.studentId,
+        amount: p.amount,
+        mode: p.mode,
+        status: p.status,
+        receivedAt: p.receivedAt,
+        notes: p.notes,
+        student: p.student,
+        booking: p.booking,
+      })),
+      ...enrollmentPayments.map((p) => ({
+        id: p.id,
+        type: 'enrollment' as const,
+        studentId: p.studentId,
+        amount: p.amount,
+        mode: p.mode,
+        status: p.status,
+        receivedAt: p.receivedAt,
+        notes: p.notes,
+        student: p.student,
+        enrollment: p.enrollment,
+      })),
+    ].sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
 
     return NextResponse.json({ payments });
   } catch (error) {

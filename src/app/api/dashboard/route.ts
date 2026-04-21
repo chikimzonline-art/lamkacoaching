@@ -55,7 +55,7 @@ export async function GET() {
     // Total students
     const totalStudents = await db.student.count();
 
-    // Today's revenue
+    // Today's revenue (from booking payments)
     const todayPayments = await db.payment.findMany({
       where: {
         receivedAt: { gte: today, lt: tomorrow },
@@ -63,6 +63,15 @@ export async function GET() {
       },
     });
     const todayRevenue = todayPayments.reduce((sum, p) => sum + p.amount, 0);
+
+    // Today's enrollment payment revenue
+    const todayEnrollmentPayments = await db.enrollmentPayment.findMany({
+      where: {
+        receivedAt: { gte: today, lt: tomorrow },
+        status: 'completed',
+      },
+    });
+    const todayEnrollmentRevenue = todayEnrollmentPayments.reduce((sum, p) => sum + p.amount, 0);
 
     // Total pending amount (across all active bookings)
     const activeBookings = await db.booking.findMany({
@@ -102,6 +111,25 @@ export async function GET() {
       },
     });
 
+    // Enrollment stats
+    const totalEnrollments = await db.enrollment.count({ where: { status: 'active' } });
+    const enrollmentFees = await db.enrollment.aggregate({
+      where: { status: 'active' },
+      _sum: { totalFee: true, paidAmount: true },
+    });
+    const enrollmentOutstanding = (enrollmentFees._sum.totalFee || 0) - (enrollmentFees._sum.paidAmount || 0);
+
+    // Recent enrollment payments (last 5)
+    const recentEnrollmentPayments = await db.enrollmentPayment.findMany({
+      where: { status: 'completed' },
+      orderBy: { receivedAt: 'desc' },
+      take: 5,
+      include: {
+        student: { select: { name: true, phone: true } },
+        enrollment: { select: { course: { select: { name: true, department: { select: { name: true } } } } } },
+      },
+    });
+
     return NextResponse.json({
       stats: {
         totalCabins,
@@ -110,13 +138,17 @@ export async function GET() {
         totalStudents,
         activeBookingsCount,
         todayRevenue,
+        todayEnrollmentRevenue,
         totalPending,
+        totalEnrollments,
+        enrollmentOutstanding,
         todayHourlyCount: todayHourlyBookings.length,
       },
       todayBookings: todayHourlyBookings,
       exclusiveBookings,
       expiringSoon,
       recentPayments,
+      recentEnrollmentPayments,
     });
   } catch (error) {
     console.error('Error fetching dashboard:', error);
