@@ -27,7 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Plus, CalendarIcon, Check, X, ChevronRight, ChevronLeft, RefreshCw, Receipt, UserPlus, Banknote } from 'lucide-react';
 import PaymentReceipt from '@/components/payments/payment-receipt';
 import { toast } from 'sonner';
-import { formatCurrency, formatDate, formatTime, calculateHours, calculateMonths } from '@/lib/helpers';
+import { formatCurrency, formatDate, formatTime, calculateHours, calculateMonths, addMonths } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 
 interface BookingPayment {
@@ -92,7 +92,7 @@ export default function BookingsView() {
   const [wizardDate, setWizardDate] = useState<Date>(new Date());
   const [wizardStartTime, setWizardStartTime] = useState('09:00');
   const [wizardEndTime, setWizardEndTime] = useState('12:00');
-  const [wizardEndDate, setWizardEndDate] = useState<Date | undefined>(undefined);
+  const [wizardEndDate, setWizardEndDate] = useState<Date | undefined>(addMonths(new Date(), 1));
   const [wizardAmount, setWizardAmount] = useState('');
   const [wizardNotes, setWizardNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -230,6 +230,13 @@ export default function BookingsView() {
     }
   }, [step, wizardType, wizardStartTime, wizardEndTime, wizardDate, wizardEndDate, hourlyRate, monthlyRate]);
 
+  // Auto-set end date to 1 month from start date when start date changes (exclusive bookings)
+  useEffect(() => {
+    if (wizardType === 'exclusive') {
+      setWizardEndDate(addMonths(wizardDate, 1));
+    }
+  }, [wizardDate, wizardType]);
+
   const resetWizard = () => {
     setStep('type');
     setWizardType('hourly');
@@ -239,7 +246,7 @@ export default function BookingsView() {
     setWizardDate(new Date());
     setWizardStartTime('09:00');
     setWizardEndTime('12:00');
-    setWizardEndDate(undefined);
+    setWizardEndDate(addMonths(new Date(), 1));
     setWizardAmount('');
     setWizardNotes('');
     setShowNewStudentForm(false);
@@ -968,7 +975,7 @@ export default function BookingsView() {
                         </Popover>
                       </div>
                       <div className="space-y-2">
-                        <Label>End Date</Label>
+                        <Label>End Date <span className="text-xs font-normal text-gray-400">(auto: 1 month from start)</span></Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button variant="outline" className="w-full justify-start text-left font-normal">

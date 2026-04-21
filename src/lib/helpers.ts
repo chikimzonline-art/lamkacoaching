@@ -47,6 +47,12 @@ export function calculateHours(startTime: string, endTime: string): number {
   return (eh * 60 + em - sh * 60 - sm) / 60;
 }
 
+export function addMonths(date: Date, months: number): Date {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+}
+
 export function calculateMonths(startDate: Date, endDate: Date): number {
   const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 +
     (endDate.getMonth() - startDate.getMonth());

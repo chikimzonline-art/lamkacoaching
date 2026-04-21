@@ -18,16 +18,70 @@ model Cabin {
 }
 
 model Student {
+  id          String        @id @default(cuid())
+  name        String
+  phone       String        @unique
+  email       String?
+  address     String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  bookings    Booking[]
+  payments    Payment[]
+  enrollments Enrollment[]
+}
+
+model Department {
   id        String   @id @default(cuid())
-  name      String
-  phone     String   @unique
-  email     String?
-  address   String?
-  notes     String?
+  name      String   @unique
+  status    String   @default("active")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  bookings  Booking[]
-  payments  Payment[]
+  courses   Course[]
+}
+
+model Course {
+  id           String   @id @default(cuid())
+  name         String
+  departmentId String
+  duration     String?
+  totalFee     Int
+  description  String?
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  enrollments  Enrollment[]
+}
+
+model Enrollment {
+  id          String              @id @default(cuid())
+  studentId   String
+  courseId    String
+  startDate   DateTime
+  endDate     DateTime?
+  totalFee    Int
+  paidAmount  Int                 @default(0)
+  status      String              @default("active")
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  student     Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course      Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  payments    EnrollmentPayment[]
+}
+
+model EnrollmentPayment {
+  id           String      @id @default(cuid())
+  enrollmentId String
+  studentId    String
+  amount       Int
+  mode         String
+  status       String      @default("completed")
+  receivedAt   DateTime    @default(now())
+  notes        String?
+  enrollment   Enrollment  @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  student      Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model Booking {
