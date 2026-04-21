@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, CalendarIcon, Check, X, ChevronRight, ChevronLeft, RefreshCw, Receipt, UserPlus } from 'lucide-react';
+import { Plus, CalendarIcon, Check, X, ChevronRight, ChevronLeft, RefreshCw, Receipt, UserPlus, Banknote } from 'lucide-react';
 import PaymentReceipt from '@/components/payments/payment-receipt';
 import { toast } from 'sonner';
 import { formatCurrency, formatDate, formatTime, calculateHours, calculateMonths } from '@/lib/helpers';
@@ -107,7 +107,7 @@ export default function BookingsView() {
   const [studentOptions, setStudentOptions] = useState<StudentOption[]>([]);
   const [cabinOptions, setCabinOptions] = useState<CabinOption[]>([]);
 
-  // Payment dialog
+  // Payment dialog (for existing bookings)
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentBookingId, setPaymentBookingId] = useState('');
   const [paymentStudentId, setPaymentStudentId] = useState('');
@@ -115,6 +115,11 @@ export default function BookingsView() {
   const [paymentMode, setPaymentMode] = useState<'cash' | 'upi'>('cash');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+
+  // Inline payment during booking wizard (Step 5)
+  const [wizardPayNow, setWizardPayNow] = useState(false);
+  const [wizardPayAmount, setWizardPayAmount] = useState('');
+  const [wizardPayMode, setWizardPayMode] = useState<'cash' | 'upi'>('cash');
 
   // Settings for rate calculation
   const [hourlyRate, setHourlyRate] = useState(100);
@@ -241,6 +246,9 @@ export default function BookingsView() {
     setNewStudentName('');
     setNewStudentPhone('');
     setCreatingStudent(false);
+    setWizardPayNow(false);
+    setWizardPayAmount('');
+    setWizardPayMode('cash');
   };
 
   const openWizard = () => {
@@ -259,6 +267,13 @@ export default function BookingsView() {
         totalAmount: Number(wizardAmount),
         notes: wizardNotes || undefined,
       };
+
+      // Include payment info if Pay Now is enabled
+      if (wizardPayNow && wizardPayAmount && Number(wizardPayAmount) > 0) {
+        body.payNow = true;
+        body.payAmount = Number(wizardPayAmount);
+        body.payMode = wizardPayMode;
+      }
 
       if (wizardType === 'hourly') {
         body.startDate = wizardDate.toISOString().split('T')[0];
@@ -281,7 +296,12 @@ export default function BookingsView() {
         return;
       }
 
-      toast.success('Booking created successfully!');
+      // Show success with payment info if applicable
+      if (wizardPayNow && wizardPayAmount && Number(wizardPayAmount) > 0) {
+        toast.success(`Booking created with payment of ${formatCurrency(Number(wizardPayAmount) * 100)} recorded!`);
+      } else {
+        toast.success('Booking created successfully!');
+      }
       setWizardOpen(false);
       resetWizard();
       fetchBookings();
@@ -1050,6 +1070,119 @@ export default function BookingsView() {
                     </span>
                   </div>
                 </div>
+
+                {/* Pay Now Section */}
+                <div className="rounded-xl border-2 border-dashed border-orange-200 bg-orange-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Banknote className="h-5 w-5 text-orange-600" />
+                      <span className="text-sm font-semibold text-gray-800">Payment at Admission</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWizardPayNow(!wizardPayNow);
+                        if (wizardPayNow) {
+                          setWizardPayAmount('');
+                          setWizardPayMode('cash');
+                        }
+                      }}
+                      className={cn(
+                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                        wizardPayNow ? 'bg-orange-600' : 'bg-gray-300'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
+                          wizardPayNow ? 'translate-x-6' : 'translate-x-1'
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  {wizardPayNow && (
+                    <div className="space-y-3 pt-1">
+                      <p className="text-xs text-gray-500">Record the amount paid by the student at the time of admission.</p>
+                      <div className="space-y-2">
+                        <Label>Amount Paid (₹)</Label>
+                        <Input
+                          type="number"
+                          placeholder="Enter amount paid"
+                          value={wizardPayAmount}
+                          onChange={(e) => setWizardPayAmount(e.target.value)}
+                          min={0}
+                          max={Number(wizardAmount)}
+                        />
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">
+                            Total: {formatCurrency(Number(wizardAmount) * 100)}
+                          </span>
+                          {wizardPayAmount && Number(wizardPayAmount) > 0 && (
+                            <span className={cn(
+                              'font-medium',
+                              Number(wizardPayAmount) >= Number(wizardAmount)
+                                ? 'text-emerald-600'
+                                : 'text-red-600'
+                            )}>
+                              {Number(wizardPayAmount) >= Number(wizardAmount)
+                                ? 'Fully paid'
+                                : `Due: ${formatCurrency((Number(wizardAmount) - Number(wizardPayAmount)) * 100)}`
+                              }
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Payment Mode</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setWizardPayMode('cash')}
+                            className={cn(
+                              'flex items-center justify-center gap-2 p-2.5 rounded-lg border-2 text-sm font-medium transition-all',
+                              wizardPayMode === 'cash'
+                                ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                            )}
+                          >
+                            <Banknote className="h-4 w-4" />
+                            Cash
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setWizardPayMode('upi')}
+                            className={cn(
+                              'flex items-center justify-center gap-2 p-2.5 rounded-lg border-2 text-sm font-medium transition-all',
+                              wizardPayMode === 'upi'
+                                ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                            )}
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="2" y="4" width="20" height="16" rx="2" />
+                              <path d="M12 10v4" />
+                              <path d="M10 12h4" />
+                            </svg>
+                            UPI
+                          </button>
+                        </div>
+                      </div>
+                      {wizardPayAmount && Number(wizardPayAmount) > 0 && (
+                        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white border border-orange-200">
+                          <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                          <p className="text-xs text-gray-600">
+                            <span className="font-semibold text-emerald-700">{formatCurrency(Number(wizardPayAmount) * 100)}</span> will be recorded as <span className="uppercase font-medium">{wizardPayMode}</span> payment upon booking creation.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!wizardPayNow && (
+                    <p className="text-xs text-gray-400">Toggle on to record payment received from the student at admission.</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1094,7 +1227,12 @@ export default function BookingsView() {
                   disabled={submitting}
                   className="bg-orange-600 hover:bg-orange-700"
                 >
-                  {submitting ? 'Creating...' : 'Create Booking'}
+                  {submitting
+                    ? 'Creating...'
+                    : wizardPayNow && wizardPayAmount && Number(wizardPayAmount) > 0
+                      ? `Book & Pay ${formatCurrency(Number(wizardPayAmount) * 100)}`
+                      : 'Create Booking'
+                  }
                 </Button>
               )}
             </div>

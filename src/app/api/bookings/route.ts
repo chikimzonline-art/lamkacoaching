@@ -86,11 +86,19 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { action, id, studentId, cabinId, type, startDate, endDate, startTime, endTime, totalAmount, notes } = body;
+    const { action, id, studentId, cabinId, type, startDate, endDate, startTime, endTime, totalAmount, notes, payNow, payAmount, payMode } = body;
 
     if (action === 'create') {
       if (!studentId || !cabinId || !type || !totalAmount) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      }
+
+      // Validate payNow params if provided
+      if (payNow && (!payAmount || Number(payAmount) <= 0 || !payMode)) {
+        return NextResponse.json({ error: 'Payment amount and mode are required when recording payment' }, { status: 400 });
+      }
+      if (payNow && Number(payAmount) > Number(totalAmount)) {
+        return NextResponse.json({ error: 'Payment amount cannot exceed total booking amount' }, { status: 400 });
       }
 
       if (type === 'hourly') {
@@ -124,6 +132,9 @@ export async function POST(request: Request) {
           }
         }
 
+        const bookingTotalAmount = Math.round(Number(totalAmount) * 100); // convert to paise
+        const bookingPaidAmount = payNow ? Math.round(Number(payAmount) * 100) : 0;
+
         const booking = await db.booking.create({
           data: {
             studentId,
@@ -133,7 +144,8 @@ export async function POST(request: Request) {
             startDate: bookingDate,
             startTime,
             endTime,
-            totalAmount: Math.round(Number(totalAmount) * 100), // convert to paise
+            totalAmount: bookingTotalAmount,
+            paidAmount: bookingPaidAmount,
             notes: notes || null,
           },
           include: {
@@ -141,7 +153,23 @@ export async function POST(request: Request) {
             cabin: { select: { id: true, cabinNum: true } },
           },
         });
-        return NextResponse.json({ booking });
+
+        // Create payment record if payNow is enabled
+        let payment = null;
+        if (payNow && bookingPaidAmount > 0) {
+          payment = await db.payment.create({
+            data: {
+              bookingId: booking.id,
+              studentId,
+              amount: bookingPaidAmount,
+              mode: payMode,
+              status: 'completed',
+              notes: 'Payment at admission',
+            },
+          });
+        }
+
+        return NextResponse.json({ booking, payment });
 
       } else if (type === 'exclusive') {
         if (!startDate || !endDate) {
@@ -173,6 +201,9 @@ export async function POST(request: Request) {
           }, { status: 409 });
         }
 
+        const bookingTotalAmount = Math.round(Number(totalAmount) * 100); // convert to paise
+        const bookingPaidAmount = payNow ? Math.round(Number(payAmount) * 100) : 0;
+
         const booking = await db.booking.create({
           data: {
             studentId,
@@ -181,7 +212,8 @@ export async function POST(request: Request) {
             status: 'active',
             startDate: start,
             endDate: end,
-            totalAmount: Math.round(Number(totalAmount) * 100), // convert to paise
+            totalAmount: bookingTotalAmount,
+            paidAmount: bookingPaidAmount,
             notes: notes || null,
           },
           include: {
@@ -189,7 +221,23 @@ export async function POST(request: Request) {
             cabin: { select: { id: true, cabinNum: true } },
           },
         });
-        return NextResponse.json({ booking });
+
+        // Create payment record if payNow is enabled
+        let payment = null;
+        if (payNow && bookingPaidAmount > 0) {
+          payment = await db.payment.create({
+            data: {
+              bookingId: booking.id,
+              studentId,
+              amount: bookingPaidAmount,
+              mode: payMode,
+              status: 'completed',
+              notes: 'Payment at admission',
+            },
+          });
+        }
+
+        return NextResponse.json({ booking, payment });
       }
 
     } else if (action === 'update') {
