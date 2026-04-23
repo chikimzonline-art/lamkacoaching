@@ -13,9 +13,16 @@ interface ReceiptData {
   receiptNo: string;
   studentName: string;
   studentPhone: string;
-  cabinNum: number;
-  bookingType: string;
-  bookingPeriod: string;
+  // Booking-specific
+  cabinNum?: number;
+  bookingType?: string;
+  bookingPeriod?: string;
+  // Enrollment-specific
+  courseName?: string;
+  departmentName?: string;
+  enrollmentPeriod?: string;
+  // Common
+  paymentType: 'booking' | 'enrollment';
   amount: number;
   mode: string;
   paidAt: string;
@@ -58,6 +65,34 @@ export default function PaymentReceipt({
 }: PaymentReceiptProps) {
   const handlePrint = () => {
     if (!data) return;
+
+    const isBooking = data.paymentType === 'booking';
+
+    const detailRows = isBooking
+      ? `
+    <div class="row">
+      <span class="label">Cabin:</span>
+      <span class="value">${data.cabinNum || '—'}</span>
+    </div>
+    <div class="divider"></div>
+    <div class="row">
+      <span class="label">Booking Type:</span>
+      <span class="value" style="text-transform:capitalize;">${data.bookingType || '—'}</span>
+    </div>
+    <div class="row">
+      <span class="label">Period:</span>
+      <span class="value">${data.bookingPeriod || '—'}</span>
+    </div>`
+      : `
+    <div class="row">
+      <span class="label">Course:</span>
+      <span class="value">${data.courseName || '—'}</span>
+    </div>
+    <div class="row">
+      <span class="label">Department:</span>
+      <span class="value">${data.departmentName || '—'}</span>
+    </div>
+    ${data.enrollmentPeriod ? `<div class="row"><span class="label">Period:</span><span class="value">${data.enrollmentPeriod}</span></div>` : ''}`;
 
     const printContent = `
 <!DOCTYPE html>
@@ -161,21 +196,10 @@ export default function PaymentReceipt({
       <span class="label">Phone:</span>
       <span class="value">${data.studentPhone}</span>
     </div>
-    <div class="row">
-      <span class="label">Cabin:</span>
-      <span class="value">${data.cabinNum}</span>
-    </div>
 
     <div class="divider"></div>
 
-    <div class="row">
-      <span class="label">Booking Type:</span>
-      <span class="value" style="text-transform:capitalize;">${data.bookingType}</span>
-    </div>
-    <div class="row">
-      <span class="label">Period:</span>
-      <span class="value">${data.bookingPeriod}</span>
-    </div>
+    ${detailRows}
 
     <div class="divider"></div>
 
@@ -211,6 +235,8 @@ export default function PaymentReceipt({
   };
 
   if (!data) return null;
+
+  const isBooking = data.paymentType === 'booking';
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -254,25 +280,44 @@ export default function PaymentReceipt({
               <span className="text-gray-500">Phone:</span>
               <span>{data.studentPhone}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Cabin:</span>
-              <span>{data.cabinNum}</span>
-            </div>
           </div>
 
           <div className="border-t border-dashed border-gray-300 my-3" />
 
-          {/* Booking Details */}
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Booking Type:</span>
-              <span className="capitalize">{data.bookingType}</span>
+          {/* Type-specific Details */}
+          {isBooking ? (
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Cabin:</span>
+                <span>{data.cabinNum || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Booking Type:</span>
+                <span className="capitalize">{data.bookingType || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Period:</span>
+                <span>{data.bookingPeriod || '—'}</span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Period:</span>
-              <span>{data.bookingPeriod}</span>
+          ) : (
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Course:</span>
+                <span>{data.courseName || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Department:</span>
+                <span>{data.departmentName || '—'}</span>
+              </div>
+              {data.enrollmentPeriod && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Period:</span>
+                  <span>{data.enrollmentPeriod}</span>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           <div className="border-t border-dashed border-gray-300 my-3" />
 

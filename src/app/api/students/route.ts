@@ -43,21 +43,32 @@ export async function GET(request: Request) {
       } : undefined,
     });
 
-    // Get balance due for each student
+    // Get balance due for each student (both bookings and enrollments)
     const studentsWithBalance = await Promise.all(students.map(async (student) => {
       const bookings = await db.booking.findMany({
         where: { studentId: student.id, status: 'active' },
         select: { totalAmount: true, paidAmount: true },
       });
-      const totalDue = bookings.reduce((sum, b) => sum + (b.totalAmount - b.paidAmount), 0);
-      const totalPaid = bookings.reduce((sum, b) => sum + b.paidAmount, 0);
-      const totalAmount = bookings.reduce((sum, b) => sum + b.totalAmount, 0);
+      const enrollments = await db.enrollment.findMany({
+        where: { studentId: student.id, status: 'active' },
+        select: { totalFee: true, paidAmount: true },
+      });
+
+      const bookingDue = bookings.reduce((sum, b) => sum + (b.totalAmount - b.paidAmount), 0);
+      const bookingPaid = bookings.reduce((sum, b) => sum + b.paidAmount, 0);
+      const bookingTotal = bookings.reduce((sum, b) => sum + b.totalAmount, 0);
+
+      const enrollmentDue = enrollments.reduce((sum, e) => sum + (e.totalFee - e.paidAmount), 0);
+      const enrollmentPaid = enrollments.reduce((sum, e) => sum + e.paidAmount, 0);
+      const enrollmentTotal = enrollments.reduce((sum, e) => sum + e.totalFee, 0);
+
       return {
         ...student,
-        totalDue,
-        totalPaid,
-        totalAmount,
+        totalDue: bookingDue + enrollmentDue,
+        totalPaid: bookingPaid + enrollmentPaid,
+        totalAmount: bookingTotal + enrollmentTotal,
         activeBookingCount: bookings.length,
+        activeEnrollmentCount: enrollments.length,
       };
     }));
 
@@ -115,8 +126,11 @@ export async function POST(request: Request) {
       const activeBookings = await db.booking.count({
         where: { studentId: id, status: 'active' },
       });
-      if (activeBookings > 0) {
-        return NextResponse.json({ error: 'Cannot delete student with active bookings' }, { status: 400 });
+      const activeEnrollments = await db.enrollment.count({
+        where: { studentId: id, status: 'active' },
+      });
+      if (activeBookings > 0 || activeEnrollments > 0) {
+        return NextResponse.json({ error: `Cannot delete student with active bookings (${activeBookings}) or enrollments (${activeEnrollments})` }, { status: 400 });
       }
       await db.student.delete({ where: { id } });
       return NextResponse.json({ success: true });

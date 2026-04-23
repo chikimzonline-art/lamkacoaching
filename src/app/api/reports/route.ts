@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 
     rangeStart.setHours(0, 0, 0, 0);
 
-    // Fetch all payments in the range
+    // Fetch all payments in the range (both booking and enrollment)
     const payments = await db.payment.findMany({
       where: {
         status: 'completed',
@@ -82,6 +82,48 @@ export async function GET(request: Request) {
       },
     });
 
+    const enrollmentPayments = await db.enrollmentPayment.findMany({
+      where: {
+        status: 'completed',
+        receivedAt: {
+          gte: rangeStart,
+          lte: rangeEnd,
+        },
+      },
+      include: {
+        student: true,
+        enrollment: {
+          select: { course: { select: { name: true } } },
+        },
+      },
+      orderBy: {
+        receivedAt: 'asc',
+      },
+    });
+
+    // Combine all payments into a unified list for grouping
+    type UnifiedPayment = {
+      amount: number;
+      receivedAt: Date;
+      studentId: string;
+      studentName: string;
+    };
+
+    const allPayments: UnifiedPayment[] = [
+      ...payments.map((p) => ({
+        amount: p.amount,
+        receivedAt: p.receivedAt,
+        studentId: p.studentId,
+        studentName: p.student.name,
+      })),
+      ...enrollmentPayments.map((p) => ({
+        amount: p.amount,
+        receivedAt: p.receivedAt,
+        studentId: p.studentId,
+        studentName: p.student.name,
+      })),
+    ];
+
     // Group payments by period
     const grouped: Record<string, number> = {};
 
@@ -95,7 +137,7 @@ export async function GET(request: Request) {
           current.setDate(current.getDate() + 1);
         }
         // Fill in payment data
-        for (const payment of payments) {
+        for (const payment of allPayments) {
           const key = new Date(payment.receivedAt).toISOString().split('T')[0];
           grouped[key] = (grouped[key] || 0) + payment.amount;
         }
@@ -119,7 +161,7 @@ export async function GET(request: Request) {
           const weekEndDay = new Date(current);
           weekEndDay.setDate(weekEndDay.getDate() + 6);
           weekEndDay.setHours(23, 59, 59, 999);
-          for (const payment of payments) {
+          for (const payment of allPayments) {
             const paymentDate = new Date(payment.receivedAt);
             if (paymentDate >= weekStart && paymentDate <= weekEndDay) {
               grouped[label] = (grouped[label] || 0) + payment.amount;
@@ -139,7 +181,7 @@ export async function GET(request: Request) {
           current.setMonth(current.getMonth() + 1);
         }
         // Fill in payment data
-        for (const payment of payments) {
+        for (const payment of allPayments) {
           const paymentDate = new Date(payment.receivedAt);
           const key = paymentDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
           grouped[key] = (grouped[key] || 0) + payment.amount;
@@ -152,13 +194,13 @@ export async function GET(request: Request) {
     const revenue = Object.values(grouped).map((v) => v / 100); // Convert paise to rupees
 
     // Calculate totals
-    const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0) / 100;
-    const paymentCount = payments.length;
+    const totalRevenue = allPayments.reduce((sum, p) => sum + p.amount, 0) / 100;
+    const paymentCount = allPayments.length;
 
     // Top students
     const studentTotals: Record<string, { name: string; totalPaid: number }> = {};
-    for (const payment of payments) {
-      const studentName = payment.student.name;
+    for (const payment of allPayments) {
+      const studentName = payment.studentName;
       if (!studentTotals[payment.studentId]) {
         studentTotals[payment.studentId] = { name: studentName, totalPaid: 0 };
       }

@@ -49,6 +49,7 @@ interface Student {
   totalPaid: number;
   totalAmount: number;
   activeBookingCount: number;
+  activeEnrollmentCount: number;
 }
 
 interface StudentFormData {
@@ -207,7 +208,7 @@ export default function StudentsView() {
 
   // Summary stats
   const totalStudents = students.length;
-  const activeStudents = students.filter((s) => s.activeBookingCount > 0).length;
+  const activeStudents = students.filter((s) => s.activeBookingCount > 0 || (s.activeEnrollmentCount ?? 0) > 0).length;
   const withPendingFees = students.filter((s) => s.totalDue > 0).length;
   const totalPending = students.reduce((sum, s) => sum + s.totalDue, 0);
 
@@ -361,9 +362,13 @@ export default function StudentsView() {
                         : 'bg-gray-100 text-gray-500'
                     }
                   >
-                    {student.activeBookingCount} Active Booking
-                    {student.activeBookingCount !== 1 ? 's' : ''}
+                    {student.activeBookingCount} Booking{student.activeBookingCount !== 1 ? 's' : ''}
                   </Badge>
+                  {(student.activeEnrollmentCount ?? 0) > 0 && (
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                      {student.activeEnrollmentCount} Course{(student.activeEnrollmentCount ?? 0) !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
                   {student.totalDue > 0 && (
                     <Badge variant="secondary" className="bg-amber-100 text-amber-700">
                       Due: {formatCurrency(student.totalDue)}
@@ -397,6 +402,7 @@ export default function StudentsView() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead className="text-center">Bookings</TableHead>
+                <TableHead className="text-center">Courses</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Paid</TableHead>
                 <TableHead className="text-right">Due</TableHead>
@@ -433,6 +439,18 @@ export default function StudentsView() {
                       }
                     >
                       {student.activeBookingCount}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      variant="secondary"
+                      className={
+                        (student.activeEnrollmentCount ?? 0) > 0
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-gray-100 text-gray-500'
+                      }
+                    >
+                      {student.activeEnrollmentCount ?? 0}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

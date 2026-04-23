@@ -41,3 +41,34 @@ Stage Summary:
 - Database seeded with sample Lamka data
 - All 7 views working: Dashboard, Cabins, Bookings, Students, Payments, Reports, Settings
 - Login: admin/admin123 or staff/staff123
+---
+Task ID: 1
+Agent: Main Agent
+Task: Add Departments, Courses, and Enrollments feature to Lamka Coaching Center app
+
+Work Log:
+- Verified Prisma schema already has Department, Course, Enrollment, EnrollmentPayment models
+- Confirmed database is in sync with schema (prisma db push)
+- Verified all API routes exist: /api/departments, /api/courses, /api/enrollments
+- Verified all UI components exist: departments-view, courses-view, enrollments-view
+- Verified navigation includes departments, courses, enrollments in sidebar and bottom nav
+- Verified dashboard includes enrollment stats and recent enrollment payments
+- Fixed Students API to include enrollment data in balance calculations (totalDue, totalPaid, totalAmount now include both bookings and enrollments)
+- Fixed Students API delete check to include active enrollments
+- Fixed Students view to show enrollment count in mobile cards and desktop table
+- Fixed Reports API to include enrollment payments in revenue calculations (unified payment list)
+- Fixed Payments view desktop table to handle enrollment payment types (was crashing before)
+- Fixed Payment receipt component to handle both booking and enrollment payment types
+- Fixed Payments API delete handler to support deleting enrollment payments too
+- Fixed Payments view "Total Pending" stat to include enrollment outstanding
+- Created seed script and seeded default departments: SSC, Banking, UPSC, Railway
+- Verified all features work via API testing
+
+Stage Summary:
+- All core features implemented and working: Departments, Courses, Enrollments with fee tracking
+- Unified payment flow: Payments page shows both booking and enrollment payments
+- Students view shows combined balance from bookings + enrollments
+- Reports include enrollment payment revenue
+- Dashboard shows enrollment stats and course pending amounts
+- Default departments seeded: SSC, Banking, UPSC, Railway
+- Build passes cleanly with no errors

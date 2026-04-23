@@ -75,9 +75,16 @@ interface ReceiptData {
   receiptNo: string;
   studentName: string;
   studentPhone: string;
-  cabinNum: number;
-  bookingType: string;
-  bookingPeriod: string;
+  // Booking-specific
+  cabinNum?: number;
+  bookingType?: string;
+  bookingPeriod?: string;
+  // Enrollment-specific
+  courseName?: string;
+  departmentName?: string;
+  enrollmentPeriod?: string;
+  // Common
+  paymentType: 'booking' | 'enrollment';
   amount: number;
   mode: string;
   paidAt: string;
@@ -202,7 +209,7 @@ export default function PaymentsView() {
       const res = await fetch('/api/dashboard');
       const data = await res.json();
       if (data.stats) {
-        setTotalPending(data.stats.totalPending);
+        setTotalPending(data.stats.totalPending + (data.stats.enrollmentOutstanding || 0));
       }
     } catch {
       // silently fail
@@ -359,25 +366,42 @@ export default function PaymentsView() {
   };
 
   const viewReceipt = (payment: Payment) => {
-    const booking = payment.booking;
-    const period =
-      booking.type === 'hourly'
-        ? formatDate(payment.receivedAt)
-        : formatDate(payment.receivedAt);
+    if (payment.type === 'booking' && payment.booking) {
+      const booking = payment.booking;
+      const period =
+        booking.type === 'hourly'
+          ? formatDate(payment.receivedAt)
+          : formatDate(payment.receivedAt);
 
-    setReceiptData({
-      receiptNo: payment.id.slice(-8).toUpperCase(),
-      studentName: payment.student.name,
-      studentPhone: payment.student.phone,
-      cabinNum: booking.cabin.cabinNum,
-      bookingType: booking.type,
-      bookingPeriod: period,
-      amount: payment.amount,
-      mode: payment.mode,
-      paidAt: payment.receivedAt,
-      notes: payment.notes || undefined,
-      businessName,
-    });
+      setReceiptData({
+        receiptNo: payment.id.slice(-8).toUpperCase(),
+        studentName: payment.student.name,
+        studentPhone: payment.student.phone,
+        paymentType: 'booking',
+        cabinNum: booking.cabin.cabinNum,
+        bookingType: booking.type,
+        bookingPeriod: period,
+        amount: payment.amount,
+        mode: payment.mode,
+        paidAt: payment.receivedAt,
+        notes: payment.notes || undefined,
+        businessName,
+      });
+    } else if (payment.enrollment) {
+      setReceiptData({
+        receiptNo: payment.id.slice(-8).toUpperCase(),
+        studentName: payment.student.name,
+        studentPhone: payment.student.phone,
+        paymentType: 'enrollment',
+        courseName: payment.enrollment.course.name,
+        departmentName: payment.enrollment.course.department.name,
+        amount: payment.amount,
+        mode: payment.mode,
+        paidAt: payment.receivedAt,
+        notes: payment.notes || undefined,
+        businessName,
+      });
+    }
     setReceiptOpen(true);
   };
 
@@ -604,20 +628,40 @@ export default function PaymentsView() {
                   </TableCell>
                   <TableCell>{payment.student.phone}</TableCell>
                   <TableCell className="text-center">
-                    <Badge
-                      variant="secondary"
-                      className="bg-orange-100 text-orange-700"
-                    >
-                      {payment.booking.cabin.cabinNum}
-                    </Badge>
+                    {payment.type === 'booking' && payment.booking ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-orange-100 text-orange-700"
+                      >
+                        Cabin {payment.booking.cabin.cabinNum}
+                      </Badge>
+                    ) : payment.enrollment ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-purple-100 text-purple-700"
+                      >
+                        {payment.enrollment.course.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge
-                      variant="secondary"
-                      className="capitalize bg-amber-50 text-amber-700"
-                    >
-                      {payment.booking.type}
-                    </Badge>
+                    {payment.type === 'booking' && payment.booking ? (
+                      <Badge
+                        variant="secondary"
+                        className="capitalize bg-amber-50 text-amber-700"
+                      >
+                        {payment.booking.type}
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="bg-purple-50 text-purple-700"
+                      >
+                        Course
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-semibold text-orange-600">
                     {formatCurrency(payment.amount)}

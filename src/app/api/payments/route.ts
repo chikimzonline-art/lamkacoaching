@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { action, id, bookingId, studentId, amount, mode, notes } = body;
+    const { action, id, paymentType, bookingId, studentId, amount, mode, notes } = body;
 
     if (action === 'create') {
       if (!bookingId || !studentId || !amount || !mode) {
@@ -152,19 +152,31 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
       }
 
-      const payment = await db.payment.findUnique({ where: { id } });
-      if (!payment) {
-        return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
+      // Try booking payment first
+      const bookingPayment = await db.payment.findUnique({ where: { id } });
+      if (bookingPayment) {
+        // Update booking paid amount
+        await db.booking.update({
+          where: { id: bookingPayment.bookingId },
+          data: { paidAmount: { decrement: bookingPayment.amount } },
+        });
+        await db.payment.delete({ where: { id } });
+        return NextResponse.json({ success: true, type: 'booking' });
       }
 
-      // Update booking paid amount
-      await db.booking.update({
-        where: { id: payment.bookingId },
-        data: { paidAmount: { decrement: payment.amount } },
-      });
+      // Try enrollment payment
+      const enrollmentPayment = await db.enrollmentPayment.findUnique({ where: { id } });
+      if (enrollmentPayment) {
+        // Update enrollment paid amount
+        await db.enrollment.update({
+          where: { id: enrollmentPayment.enrollmentId },
+          data: { paidAmount: { decrement: enrollmentPayment.amount } },
+        });
+        await db.enrollmentPayment.delete({ where: { id } });
+        return NextResponse.json({ success: true, type: 'enrollment' });
+      }
 
-      await db.payment.delete({ where: { id } });
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
