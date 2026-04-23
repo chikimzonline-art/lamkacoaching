@@ -1,475 +1,363 @@
 'use client';
 
-import { useAppStore, type ViewType } from '@/store/app-store';
-import { useAuthStore } from '@/store/auth-store';
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import {
-  LayoutDashboard,
-  DoorOpen,
-  Calendar,
-  Users,
-  Banknote,
-  Settings,
-  Menu,
-  BookOpen,
-  BarChart3,
-  LogOut,
-  Shield,
-  UserCircle,
-  MoreHorizontal,
-  Building2,
-  GraduationCap,
-  UserPlus,
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import PublicLayout from '@/components/public/public-layout';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import dynamic from 'next/dynamic';
-import LoginPage from '@/components/auth/login-page';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+  BookOpen,
+  GraduationCap,
+  DoorOpen,
+  Users,
+  Clock,
+  Award,
+  ArrowRight,
+  Megaphone,
+  Pin,
+  Star,
+  TrendingUp,
+  CheckCircle2,
+  Loader2,
+} from 'lucide-react';
 
-const DashboardView = dynamic(() => import('@/components/dashboard/dashboard-view'), {
-  loading: () => <PageSkeleton />,
-});
-const CabinsView = dynamic(() => import('@/components/cabins/cabins-view'), {
-  loading: () => <PageSkeleton />,
-});
-const StudentsView = dynamic(() => import('@/components/students/students-view'), {
-  loading: () => <PageSkeleton />,
-});
-const BookingsView = dynamic(() => import('@/components/bookings/bookings-view'), {
-  loading: () => <PageSkeleton />,
-});
-const PaymentsView = dynamic(() => import('@/components/payments/payments-view'), {
-  loading: () => <PageSkeleton />,
-});
-const ReportsView = dynamic(() => import('@/components/reports/reports-view'), {
-  loading: () => <PageSkeleton />,
-});
-const SettingsView = dynamic(() => import('@/components/settings/settings-view'), {
-  loading: () => <PageSkeleton />,
-});
-const DepartmentsView = dynamic(() => import('@/components/departments/departments-view'), {
-  loading: () => <PageSkeleton />,
-});
-const CoursesView = dynamic(() => import('@/components/courses/courses-view'), {
-  loading: () => <PageSkeleton />,
-});
-const EnrollmentsView = dynamic(() => import('@/components/enrollments/enrollments-view'), {
-  loading: () => <PageSkeleton />,
-});
-
-// Bottom nav items (5 primary + More)
-const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
-  { view: 'dashboard', label: 'Home', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { view: 'enrollments', label: 'Courses', icon: <GraduationCap className="h-5 w-5" /> },
-  { view: 'bookings', label: 'Bookings', icon: <Calendar className="h-5 w-5" /> },
-  { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" /> },
-  { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" /> },
-];
-
-const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; adminOnly: boolean }[] = [
-  { view: 'cabins', label: 'Cabins', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
-  { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
-  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: false },
-  { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
-  { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
-];
-
-const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; adminOnly: boolean }[] = [
-  { view: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: false },
-  { view: 'cabins', label: 'Cabins', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
-  { view: 'bookings', label: 'Bookings', icon: <Calendar className="h-5 w-5" />, adminOnly: false },
-  { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" />, adminOnly: false },
-  { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" />, adminOnly: false },
-  { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
-  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: false },
-  { view: 'enrollments', label: 'Enrollments', icon: <UserPlus className="h-5 w-5" />, adminOnly: false },
-  { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
-  { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
-];
-
-function PageSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
-        <div className="h-10 w-32 bg-gray-200 rounded animate-pulse" />
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-28 bg-gray-100 rounded-xl animate-pulse" />
-        ))}
-      </div>
-      <div className="h-64 bg-gray-100 rounded-xl animate-pulse" />
-    </div>
-  );
+interface Department {
+  id: string;
+  name: string;
+  courses: {
+    id: string;
+    name: string;
+    duration: string | null;
+    totalFee: number;
+    description: string | null;
+  }[];
 }
 
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50">
-      <div className="text-center">
-        <Skeleton className="h-16 w-16 rounded-2xl mx-auto mb-4" />
-        <Skeleton className="h-6 w-48 mx-auto mb-2" />
-        <Skeleton className="h-4 w-32 mx-auto" />
-      </div>
-    </div>
-  );
+interface Notice {
+  id: string;
+  title: string;
+  content: string;
+  pinned: boolean;
+  createdAt: string;
 }
 
-function PageHeader() {
-  const { activeView } = useAppStore();
-  const { user } = useAuthStore();
-  const currentDate = useMemo(() =>
-    new Date().toLocaleDateString('en-IN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }), []);
+function formatCurrency(paise: number): string {
+  return `₹${(paise / 100).toLocaleString('en-IN')}`;
+}
 
-  const viewTitles: Record<ViewType, string> = {
-    dashboard: 'Dashboard',
-    cabins: 'Cabins',
-    bookings: 'Bookings',
-    students: 'Students',
-    payments: 'Payments',
-    departments: 'Departments',
-    courses: 'Courses',
-    enrollments: 'Enrollments',
-    reports: 'Reports',
-    settings: 'Settings',
-  };
+function formatDate(date: string): string {
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+export default function HomePage() {
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/public/courses').then((r) => r.json()),
+      fetch('/api/public/notices').then((r) => r.json()),
+    ])
+      .then(([coursesData, noticesData]) => {
+        setDepartments(coursesData.departments || []);
+        setNotices((noticesData.notices || []).slice(0, 3));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const totalCourses = departments.reduce((sum, d) => sum + d.courses.length, 0);
 
   return (
-    <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{viewTitles[activeView]}</h1>
-        <p className="text-sm text-gray-500">{currentDate}</p>
-      </div>
-      {user && (
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className={
-              user.role === 'admin'
-                ? 'border-orange-200 bg-orange-50 text-orange-700'
-                : 'border-blue-200 bg-blue-50 text-blue-700'
-            }
-          >
-            <Shield className="h-3 w-3 mr-1" />
-            {user.role === 'admin' ? 'Admin' : 'Staff'}
-          </Badge>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2 h-9">
-                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-orange-100 text-orange-700">
-                  <UserCircle className="h-4 w-4" />
+    <PublicLayout>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500">
+        {/* Decorative circles */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 -right-24 h-72 w-72 bg-white/5 rounded-full" />
+          <div className="absolute top-1/2 -left-16 h-48 w-48 bg-white/5 rounded-full" />
+          <div className="absolute bottom-0 right-1/3 h-36 w-36 bg-white/5 rounded-full" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-32">
+          <div className="max-w-2xl">
+            <Badge className="mb-4 bg-white/20 text-white border-white/30 hover:bg-white/30">
+              <Star className="h-3 w-3 mr-1" />
+              Admissions Open for 2025-26
+            </Badge>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
+              Welcome to{' '}
+              <span className="text-amber-200">Lamka Coaching Center</span>
+            </h1>
+            <p className="mt-4 text-lg sm:text-xl text-orange-100 leading-relaxed max-w-xl">
+              Your gateway to success in competitive exams. Expert coaching for SSC, Banking, and more — with dedicated study cabins and personalized guidance.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/courses">
+                <Button size="lg" className="bg-white text-orange-700 hover:bg-orange-50 font-semibold shadow-lg shadow-orange-700/20 h-12 px-6">
+                  Explore Courses
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button size="lg" variant="outline" className="border-2 border-white/40 text-white hover:bg-white/10 h-12 px-6 font-semibold">
+                  Register Now
+                </Button>
+              </Link>
+            </div>
+
+            {/* Stats row */}
+            <div className="mt-10 flex flex-wrap gap-6 sm:gap-10">
+              {[
+                { label: 'Courses', value: totalCourses || '10+' },
+                { label: 'Departments', value: departments.length || '3+' },
+                { label: 'Study Cabins', value: '20+' },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <div className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</div>
+                  <div className="text-xs sm:text-sm text-orange-200 mt-0.5">{stat.label}</div>
                 </div>
-                <span className="hidden sm:inline text-sm">{user.name}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-gray-500">@{user.username}</p>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => useAuthStore.getState().logout()}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
-    </header>
-  );
-}
-
-function renderView(view: ViewType) {
-  switch (view) {
-    case 'dashboard': return <DashboardView />;
-    case 'cabins': return <CabinsView />;
-    case 'bookings': return <BookingsView />;
-    case 'students': return <StudentsView />;
-    case 'payments': return <PaymentsView />;
-    case 'departments': return <DepartmentsView />;
-    case 'courses': return <CoursesView />;
-    case 'enrollments': return <EnrollmentsView />;
-    case 'reports': return <ReportsView />;
-    case 'settings': return <SettingsView />;
-    default: return <DashboardView />;
-  }
-}
-
-function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
-  const { activeView, setActiveView } = useAppStore();
-  const { user } = useAuthStore();
-  const isAdmin = user?.role === 'admin';
-
-  const visibleItems = allSidebarItems.filter(
-    (item) => !item.adminOnly || isAdmin
-  );
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-6 py-5">
-        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-orange-600 text-white">
-          <BookOpen className="h-6 w-6" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-white tracking-tight">Lamka Coaching</h1>
-          <p className="text-xs text-gray-400">Center Management</p>
-        </div>
-      </div>
-      <Separator className="bg-gray-700" />
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {visibleItems.map((item) => (
-          <button
-            key={item.view}
-            onClick={() => {
-              setActiveView(item.view);
-              onItemClick?.();
-            }}
-            className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              activeView === item.view
-                ? 'bg-orange-600 text-white shadow-sm'
-                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-            )}
-          >
-            {item.icon}
-            {item.label}
-          </button>
-        ))}
-      </nav>
-
-      {user && (
-        <>
-          <Separator className="bg-gray-700" />
-          <div className="px-3 py-3 space-y-1">
-            <div className="flex items-center gap-3 px-3 py-2">
-              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-orange-600/20 text-orange-400">
-                <UserCircle className="h-5 w-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-200 truncate">{user.name}</p>
-                <p className="text-xs text-gray-500 truncate">@{user.username}</p>
-              </div>
+              ))}
             </div>
           </div>
-        </>
-      )}
-
-      <div className="px-4 py-4 border-t border-gray-700">
-        <p className="text-xs text-gray-500 text-center">
-          Lamka Coaching Center v1.0
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// Bottom Navigation Bar for mobile
-function BottomNav() {
-  const { activeView, setActiveView } = useAppStore();
-  const { user } = useAuthStore();
-  const isAdmin = user?.role === 'admin';
-  const [moreOpen, setMoreOpen] = useState(false);
-
-  const visibleMoreItems = moreNavItems.filter(
-    (item) => !item.adminOnly || isAdmin
-  );
-
-  return (
-    <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden safe-area-bottom">
-        <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
-          {primaryNavItems.map((item) => (
-            <button
-              key={item.view}
-              onClick={() => setActiveView(item.view)}
-              className={cn(
-                'flex flex-col items-center justify-center flex-1 py-1 transition-colors min-h-[44px]',
-                activeView === item.view
-                  ? 'text-orange-600'
-                  : 'text-gray-400 hover:text-gray-600'
-              )}
-            >
-              {item.icon}
-              <span className="text-[10px] mt-1 font-medium">{item.label}</span>
-            </button>
-          ))}
-          <button
-            onClick={() => setMoreOpen(true)}
-            className={cn(
-              'flex flex-col items-center justify-center flex-1 py-1 transition-colors min-h-[44px]',
-              moreNavItems.some((item) => item.view === activeView)
-                ? 'text-orange-600'
-                : 'text-gray-400 hover:text-gray-600'
-            )}
-          >
-            <MoreHorizontal className="h-5 w-5" />
-            <span className="text-[10px] mt-1 font-medium">More</span>
-          </button>
         </div>
-      </nav>
+      </section>
 
-      <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>More Options</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-1 py-2">
-            {visibleMoreItems.map((item) => (
-              <button
-                key={item.view}
-                onClick={() => {
-                  setActiveView(item.view);
-                  setMoreOpen(false);
-                }}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
-                  activeView === item.view
-                    ? 'bg-orange-50 text-orange-700'
-                    : 'text-gray-700 hover:bg-gray-50'
-                )}
-              >
-                {item.icon}
-                {item.label}
-              </button>
+      {/* Services Section */}
+      <section className="py-16 sm:py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Our Services</h2>
+            <p className="mt-2 text-gray-500 max-w-2xl mx-auto">
+              Everything you need under one roof — from competitive exam coaching to quiet study spaces
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                icon: <GraduationCap className="h-7 w-7" />,
+                title: 'SSC Coaching',
+                desc: 'Comprehensive preparation for SSC CGL, CHSL, MTS, and other government exams with experienced faculty and proven results.',
+                color: 'bg-orange-100 text-orange-700',
+              },
+              {
+                icon: <TrendingUp className="h-7 w-7" />,
+                title: 'Banking Coaching',
+                desc: 'Expert guidance for IBPS PO, Clerk, SBI, RBI, and other banking exams with regular mock tests and practice sessions.',
+                color: 'bg-blue-100 text-blue-700',
+              },
+              {
+                icon: <DoorOpen className="h-7 w-7" />,
+                title: 'Study Cabins',
+                desc: 'Dedicated quiet study spaces available on hourly or monthly basis. Comfortable, well-lit cabins with flexible timings.',
+                color: 'bg-green-100 text-green-700',
+              },
+              {
+                icon: <Users className="h-7 w-7" />,
+                title: 'Personal Mentoring',
+                desc: 'One-on-one doubt clearing sessions, personalized study plans, and regular progress tracking to keep you on track.',
+                color: 'bg-purple-100 text-purple-700',
+              },
+            ].map((service) => (
+              <Card key={service.title} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className={`inline-flex items-center justify-center h-12 w-12 rounded-xl ${service.color} mb-4`}>
+                    {service.icon}
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">{service.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{service.desc}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
+        </div>
+      </section>
 
-function AuthenticatedApp() {
-  const { activeView, sidebarOpen } = useAppStore();
-  const { user } = useAuthStore();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (user && user.role !== 'admin' && activeView === 'settings') {
-      useAppStore.getState().setActiveView('dashboard');
-    }
-  }, [user, activeView]);
-
-  return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Mobile Top Bar */}
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-200 lg:hidden">
-        <div className="flex items-center justify-between h-14 px-4">
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64 bg-gray-900 border-gray-700">
-              <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <SidebarContent onItemClick={() => setMobileMenuOpen(false)} />
-            </SheetContent>
-          </Sheet>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-orange-600 text-white">
-              <BookOpen className="h-4 w-4" />
+      {/* Featured Courses Section */}
+      {!loading && departments.length > 0 && (
+        <section className="py-16 sm:py-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Featured Courses</h2>
+                <p className="mt-1 text-gray-500">Explore our coaching programs</p>
+              </div>
+              <Link href="/courses">
+                <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 hidden sm:flex">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <span className="font-semibold text-gray-900 text-sm">Lamka Coaching</span>
+            {departments.map((dept) => (
+              <div key={dept.id} className="mb-10 last:mb-0">
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                    {dept.name}
+                  </Badge>
+                  <span className="text-xs text-gray-400">{dept.courses.length} course{dept.courses.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {dept.courses.slice(0, 3).map((course) => (
+                    <Card key={course.id} className="border border-gray-100 hover:border-orange-200 transition-colors group">
+                      <CardContent className="p-5">
+                        <h3 className="font-semibold text-gray-900 group-hover:text-orange-700 transition-colors">
+                          {course.name}
+                        </h3>
+                        <div className="flex items-center gap-3 mt-2">
+                          {course.duration && (
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <Clock className="h-3 w-3" />
+                              {course.duration}
+                            </span>
+                          )}
+                          <span className="text-sm font-bold text-orange-700">
+                            {formatCurrency(course.totalFee)}
+                          </span>
+                        </div>
+                        {course.description && (
+                          <p className="mt-2 text-sm text-gray-500 line-clamp-2">{course.description}</p>
+                        )}
+                        <Link href={`/register?courseId=${course.id}`}>
+                          <Button size="sm" variant="ghost" className="mt-3 text-orange-700 hover:text-orange-800 hover:bg-orange-50 p-0 h-auto font-medium">
+                            Enroll Now <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="mt-8 text-center sm:hidden">
+              <Link href="/courses">
+                <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50">
+                  View All Courses <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
-          <div className="w-10" /> {/* Spacer for centering */}
+        </section>
+      )}
+
+      {/* Loading state for courses */}
+      {loading && (
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <Loader2 className="h-8 w-8 text-orange-600 animate-spin mx-auto" />
+            <p className="mt-2 text-sm text-gray-500">Loading courses...</p>
+          </div>
+        </section>
+      )}
+
+      {/* Latest Notices Section */}
+      {!loading && notices.length > 0 && (
+        <section className="py-16 sm:py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-2">
+                <Megaphone className="h-5 w-5 text-orange-600" />
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Latest Notices</h2>
+              </div>
+              <Link href="/notices">
+                <Button variant="outline" size="sm" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {notices.map((notice) => (
+                <Card key={notice.id} className={`border-0 shadow-sm ${notice.pinned ? 'ring-2 ring-orange-200' : ''}`}>
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      {notice.pinned && (
+                        <Badge className="bg-orange-100 text-orange-700 text-[10px] px-1.5">
+                          <Pin className="h-2.5 w-2.5 mr-0.5" /> Pinned
+                        </Badge>
+                      )}
+                      <span className="text-xs text-gray-400">{formatDate(notice.createdAt)}</span>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">{notice.title}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-3">{notice.content}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Why Choose Us Section */}
+      <section className="py-16 sm:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Why Choose Us</h2>
+            <p className="mt-2 text-gray-500 max-w-2xl mx-auto">
+              We go the extra mile to ensure every student gets the support they need
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                icon: <Award className="h-6 w-6" />,
+                title: 'Experienced Faculty',
+                desc: 'Our teachers bring years of experience in competitive exam coaching with proven track records of student success.',
+              },
+              {
+                icon: <CheckCircle2 className="h-6 w-6" />,
+                title: 'Affordable Fees',
+                desc: 'Quality education at prices that work for everyone. Transparent fee structure with no hidden charges whatsoever.',
+              },
+              {
+                icon: <Clock className="h-6 w-6" />,
+                title: 'Flexible Timings',
+                desc: 'Morning, afternoon, and evening batches available. Choose what fits your schedule and study at your own pace.',
+              },
+              {
+                icon: <Users className="h-6 w-6" />,
+                title: 'Small Batch Sizes',
+                desc: 'Limited students per batch ensures personal attention, better interaction, and faster doubt resolution for everyone.',
+              },
+            ].map((feature) => (
+              <div key={feature.title} className="text-center p-6">
+                <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-orange-100 text-orange-700 mb-4">
+                  {feature.icon}
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </header>
+      </section>
 
-      {/* Desktop Sidebar */}
-      <aside
-        className={cn(
-          'hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 bg-gray-900 transition-all duration-300',
-          sidebarOpen ? 'lg:w-64' : 'lg:w-0 lg:overflow-hidden'
-        )}
-      >
-        {sidebarOpen && <SidebarContent />}
-      </aside>
-
-      {/* Main Content */}
-      <main
-        className={cn(
-          'flex-1 transition-all duration-300 pb-20 lg:pb-0',
-          sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'
-        )}
-      >
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-          <PageHeader />
-          {renderView(activeView)}
+      {/* CTA Section */}
+      <section className="bg-gradient-to-r from-orange-600 to-amber-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">Ready to Start Your Journey?</h2>
+          <p className="mt-3 text-orange-100 text-lg max-w-xl mx-auto">
+            Join hundreds of successful students who have achieved their goals with Lamka Coaching Center.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link href="/register">
+              <Button size="lg" className="bg-white text-orange-700 hover:bg-orange-50 font-semibold shadow-lg h-12 px-8">
+                Register Now
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+            <Link href="/courses">
+              <Button size="lg" variant="outline" className="border-2 border-white/40 text-white hover:bg-white/10 h-12 px-8 font-semibold">
+                Browse Courses
+              </Button>
+            </Link>
+          </div>
         </div>
-      </main>
-
-      {/* Footer - desktop only */}
-      <footer
-        className={cn(
-          'hidden lg:block border-t border-gray-200 bg-white py-4 px-6 transition-all duration-300',
-          sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'
-        )}
-      >
-        <p className="text-center text-sm text-gray-400">
-          &copy; {new Date().getFullYear()} Lamka Coaching Center. All rights reserved.
-        </p>
-      </footer>
-
-      {/* Bottom Navigation - mobile only */}
-      <BottomNav />
-    </div>
+      </section>
+    </PublicLayout>
   );
-}
-
-export default function Home() {
-  const { user, isLoading, setUser, setLoading } = useAuthStore();
-
-  const checkAuth = useCallback(async () => {
-    try {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-      if (res.ok && data.user) {
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
-    } catch {
-      setUser(null);
-    }
-  }, [setUser]);
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
-  if (!user) {
-    return <LoginPage />;
-  }
-
-  return <AuthenticatedApp />;
 }

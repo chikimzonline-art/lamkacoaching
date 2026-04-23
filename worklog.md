@@ -1,74 +1,39 @@
-# Lamka Coaching Center - Work Log
-
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Clone and examine GitHub repository, analyze studyspace features
+Task: Build public-facing frontend for Lamka Coaching Center
 
 Work Log:
-- Cloned repo from https://github.com/chikimzonline-art/studyspace.git
-- Examined all source files: page.tsx, layout.tsx, auth, dashboard, cabins, bookings, students, payments, reports, settings
-- Analyzed Prisma schema: Cabin, Student, Booking, Payment, Attendance, Setting, User models
-- Identified all features: auth (admin/staff), dashboard stats, cabin management, booking wizard, student CRUD, payment recording, reports with charts, settings with user management
-- Noted the original used PostgreSQL, emerald/green brand colors, "StudySpace" branding
+- Explored full project structure (Next.js 16, React 19, SQLite/Prisma, Tailwind 4, shadcn/ui)
+- Updated Prisma schema: Added Notice model, added `source` field to Student model
+- Ran Prisma migration (db push) successfully
+- Created 4 public API routes (no auth required):
+  - GET /api/public/courses - Active departments with courses
+  - GET /api/public/notices - Published notices
+  - GET /api/public/settings - Business info settings
+  - POST /api/public/register - Student self-registration
+- Created admin API route for notices CRUD (auth required):
+  - GET /api/notices - List all notices
+  - POST /api/notices - Create/update/delete notices
+- Moved admin SPA from / to /admin route
+- Updated ViewType to include 'notices'
+- Updated admin page with notices nav item + NoticesView dynamic import
+- Built public shared components:
+  - public-header.tsx (sticky header with desktop/mobile nav + Admin Login button)
+  - public-footer.tsx (4-column footer with contact info, quick links, hours)
+  - public-layout.tsx (wrapper with header + footer)
+- Built public landing page (/) with hero, services, featured courses, notices, why-choose-us, CTA
+- Built public courses page (/courses) with department filters, search, course cards
+- Built public notices page (/notices) with pinned/recent sections
+- Built public registration page (/register) with form validation, course selection, success state
+- Created notices admin view component (notices-view.tsx) with CRUD, pin/publish toggle
+- Seeded 3 test notices into database
+- Verified all routes return 200 and APIs work correctly
 
 Stage Summary:
-- Complete understanding of the studyspace app architecture
-- Identified all components needing white-label customization
-
----
-Task ID: 2
-Agent: Main Agent
-Task: Initialize fullstack project and build Lamka Coaching Center white-labeled version
-
-Work Log:
-- Initialized fullstack-dev environment
-- Verified existing project already has studyspace code with some Lamka branding started
-- Confirmed all "StudySpace" references replaced with "Lamka Coaching Center"
-- Confirmed all emerald brand colors replaced with orange theme
-- Confirmed mobile-first design with bottom navigation bar already implemented
-- Pushed database schema (SQLite)
-- Seeded database with sample data (Lamka-specific names, addresses)
-- Generated new logo using AI image generation
-- Verified all API routes working (login, dashboard, etc.)
-- Ran lint check - no errors in src/
-- Tested full app flow successfully
-
-Stage Summary:
-- App fully white-labeled for "Lamka Coaching Center"
-- Orange/amber color scheme throughout
-- Mobile-first with bottom nav bar, responsive design
-- Database seeded with sample Lamka data
-- All 7 views working: Dashboard, Cabins, Bookings, Students, Payments, Reports, Settings
-- Login: admin/admin123 or staff/staff123
----
-Task ID: 1
-Agent: Main Agent
-Task: Add Departments, Courses, and Enrollments feature to Lamka Coaching Center app
-
-Work Log:
-- Verified Prisma schema already has Department, Course, Enrollment, EnrollmentPayment models
-- Confirmed database is in sync with schema (prisma db push)
-- Verified all API routes exist: /api/departments, /api/courses, /api/enrollments
-- Verified all UI components exist: departments-view, courses-view, enrollments-view
-- Verified navigation includes departments, courses, enrollments in sidebar and bottom nav
-- Verified dashboard includes enrollment stats and recent enrollment payments
-- Fixed Students API to include enrollment data in balance calculations (totalDue, totalPaid, totalAmount now include both bookings and enrollments)
-- Fixed Students API delete check to include active enrollments
-- Fixed Students view to show enrollment count in mobile cards and desktop table
-- Fixed Reports API to include enrollment payments in revenue calculations (unified payment list)
-- Fixed Payments view desktop table to handle enrollment payment types (was crashing before)
-- Fixed Payment receipt component to handle both booking and enrollment payment types
-- Fixed Payments API delete handler to support deleting enrollment payments too
-- Fixed Payments view "Total Pending" stat to include enrollment outstanding
-- Created seed script and seeded default departments: SSC, Banking, UPSC, Railway
-- Verified all features work via API testing
-
-Stage Summary:
-- All core features implemented and working: Departments, Courses, Enrollments with fee tracking
-- Unified payment flow: Payments page shows both booking and enrollment payments
-- Students view shows combined balance from bookings + enrollments
-- Reports include enrollment payment revenue
-- Dashboard shows enrollment stats and course pending amounts
-- Default departments seeded: SSC, Banking, UPSC, Railway
-- Build passes cleanly with no errors
+- All 5 public pages created and functional (/, /courses, /notices, /register, /admin)
+- 4 public API endpoints + 1 admin API endpoint created
+- Student self-registration creates student record with source="website" and optional enrollment
+- Notice model with CRUD, pin/publish/draft functionality
+- Production build successful, standalone server verified working
+- No existing code broken - admin app moved to /admin route intact
