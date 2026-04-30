@@ -37,3 +37,30 @@ Stage Summary:
 - Notice model with CRUD, pin/publish/draft functionality
 - Production build successful, standalone server verified working
 - No existing code broken - admin app moved to /admin route intact
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix Computer Training dark section, seed data, and comprehensive feature review
+
+Work Log:
+- Audited database: found no Computer Training department, missing courses, missing settings, no pending bookings
+- Updated prisma/seed.ts with comprehensive seed data:
+  - Computer Training department with 6 courses (CCC, Tally, Excel, Web Design, Python, Typing)
+  - Banking (3), SSC (3), UPSC (2), Railway (2) courses
+  - 13 settings including hero_badge_text, hero_banner_text, footer_cta_title, footer_cta_subtitle, contact info
+  - 4 notices (2 pinned), 8 students, 25 cabins
+  - 3 active bookings + 2 pending bookings (for approve/reject demo)
+  - 3 sample enrollments
+- Fixed critical bug: public settings API used camelCase keys but DB stores snake_case
+  - Added keyMap to convert snake_case DB keys to camelCase for frontend
+- Cleaned up 2 duplicate SSC CGL courses
+- Ran comprehensive 16-feature audit (all PASS)
+- End-to-end tested all pages and APIs (all return HTTP 200)
+- Committed to git: 4285b73
+
+Stage Summary:
+- Computer Training dark section now shows with 6 courses and skill badges
+- All dynamic content (hero badge, banner, footer CTA) works via settings API
+- Pending bookings feature fully demonstrable with 2 pending requests
+- All 16 features verified and passing
