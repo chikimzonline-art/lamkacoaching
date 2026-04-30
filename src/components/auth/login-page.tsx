@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { BookOpen, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -119,6 +119,16 @@ export default function LoginPage() {
                 ) : (
                   'Sign in'
                 )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.location.href = '/'}
+                className="w-full h-11 font-medium border-gray-300 text-gray-600 hover:text-cyan-600 hover:border-cyan-300 hover:bg-cyan-50"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Site
               </Button>
             </form>
           </CardContent>
