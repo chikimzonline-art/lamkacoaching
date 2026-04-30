@@ -39,9 +39,12 @@ import {
   Trash2,
   Receipt,
   Loader2,
+  Filter,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentReceipt from './payment-receipt';
+import { cn } from '@/lib/utils';
 
 interface Payment {
   id: string;
@@ -146,6 +149,24 @@ export default function PaymentsView() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'completed' | 'pending'>('all');
+
+  // Pending dues data
+  const [pendingDues, setPendingDues] = useState<{
+    id: string;
+    studentId: string;
+    studentName: string;
+    studentPhone: string;
+    type: string;
+    cabinNum?: number;
+    courseName?: string;
+    departmentName?: string;
+    totalAmount: number;
+    paidAmount: number;
+    pendingAmount: number;
+    startDate: string;
+    endDate: string | null;
+  }[]>([]);
 
   // Stats
   const [todayCollected, setTodayCollected] = useState(0);
@@ -216,6 +237,53 @@ export default function PaymentsView() {
     }
   }, []);
 
+  const fetchPendingDues = useCallback(async () => {
+    try {
+      // Fetch active bookings with pending amounts
+      const bookingsRes = await fetch('/api/bookings?status=active');
+      const bookingsData = await bookingsRes.json();
+      const bookingDues = (bookingsData.bookings || [])
+        .filter((b: { totalAmount: number; paidAmount: number }) => b.totalAmount - b.paidAmount > 0)
+        .map((b: { id: string; student: { id: string; name: string; phone: string }; type: string; cabin: { cabinNum: number }; totalAmount: number; paidAmount: number; startDate: string; endDate: string | null }) => ({
+          id: b.id,
+          studentId: b.student.id,
+          studentName: b.student.name,
+          studentPhone: b.student.phone,
+          type: b.type === 'hourly' ? 'Hourly Cabin' : 'Exclusive Cabin',
+          cabinNum: b.cabin.cabinNum,
+          totalAmount: b.totalAmount,
+          paidAmount: b.paidAmount,
+          pendingAmount: b.totalAmount - b.paidAmount,
+          startDate: b.startDate,
+          endDate: b.endDate,
+        }));
+
+      // Fetch enrollments with pending amounts
+      const enrollmentsRes = await fetch('/api/enrollments?status=active');
+      const enrollmentsData = await enrollmentsRes.json();
+      const enrollmentDues = (enrollmentsData.enrollments || [])
+        .filter((e: { totalFee: number; paidAmount: number }) => e.totalFee - e.paidAmount > 0)
+        .map((e: { id: string; student: { id: string; name: string; phone: string }; course: { name: string; department: { name: string } }; totalFee: number; paidAmount: number; startDate: string; endDate: string | null }) => ({
+          id: e.id,
+          studentId: e.student.id,
+          studentName: e.student.name,
+          studentPhone: e.student.phone,
+          type: 'Course',
+          courseName: e.course.name,
+          departmentName: e.course.department.name,
+          totalAmount: e.totalFee,
+          paidAmount: e.paidAmount,
+          pendingAmount: e.totalFee - e.paidAmount,
+          startDate: e.startDate,
+          endDate: e.endDate,
+        }));
+
+      setPendingDues([...bookingDues, ...enrollmentDues]);
+    } catch {
+      // silently fail
+    }
+  }, []);
+
   const fetchSettings = useCallback(async () => {
     try {
       const res = await fetch('/api/settings');
@@ -233,6 +301,12 @@ export default function PaymentsView() {
     fetchDashboardStats();
     fetchSettings();
   }, [fetchPayments, fetchDashboardStats, fetchSettings]);
+
+  useEffect(() => {
+    if (paymentFilter === 'pending') {
+      fetchPendingDues();
+    }
+  }, [paymentFilter, fetchPendingDues]);
 
   const fetchStudentsList = async () => {
     setFetchingStudents(true);
@@ -501,15 +575,63 @@ export default function PaymentsView() {
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Search by name, phone, cabin, or mode..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search by name, phone, cabin, or mode..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setPaymentFilter('all')}
+            className={cn(
+              'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              paymentFilter === 'all'
+                ? 'bg-white text-cyan-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setPaymentFilter('completed')}
+            className={cn(
+              'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              paymentFilter === 'completed'
+                ? 'bg-white text-cyan-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            Completed
+          </button>
+          <button
+            onClick={() => setPaymentFilter('pending')}
+            className={cn(
+              'px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5',
+              paymentFilter === 'pending'
+                ? 'bg-white text-red-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            <AlertCircle className="h-3.5 w-3.5" />
+            Pending Dues
+            {pendingDues.length > 0 && (
+              <span className={cn(
+                'flex items-center justify-center h-4 min-w-4 px-1 rounded-full text-[10px] font-bold',
+                paymentFilter === 'pending'
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-gray-200 text-gray-600'
+              )}>
+                {pendingDues.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Loading */}
@@ -519,8 +641,143 @@ export default function PaymentsView() {
         </div>
       )}
 
-      {/* Empty */}
-      {!loading && filteredPayments.length === 0 && (
+      {/* Pending Dues View */}
+      {!loading && paymentFilter === 'pending' && (
+        <>
+          {pendingDues.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Check className="h-12 w-12 mx-auto mb-3 text-green-300" />
+              <p className="text-lg font-medium">No pending dues</p>
+              <p className="text-sm">All payments are up to date!</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary */}
+              <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Total Pending Amount</p>
+                    <p className="text-xs text-red-600">{pendingDues.length} record{pendingDues.length !== 1 ? 's' : ''} with dues</p>
+                  </div>
+                  <p className="text-2xl font-bold text-red-700">
+                    {formatCurrency(pendingDues.reduce((sum, d) => sum + d.pendingAmount, 0))}
+                  </p>
+                </div>
+              </div>
+
+              {/* Mobile Card Layout */}
+              <div className="md:hidden space-y-3 max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin">
+                {pendingDues
+                  .filter((d) => {
+                    if (!search) return true;
+                    const q = search.toLowerCase();
+                    return (
+                      d.studentName.toLowerCase().includes(q) ||
+                      d.studentPhone.includes(q) ||
+                      d.type.toLowerCase().includes(q) ||
+                      (d.cabinNum && String(d.cabinNum).includes(q)) ||
+                      (d.courseName && d.courseName.toLowerCase().includes(q))
+                    );
+                  })
+                  .map((due) => (
+                  <Card key={due.id} className="overflow-hidden border-red-100">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{due.studentName}</h3>
+                          <p className="text-sm text-gray-500">{due.studentPhone}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-red-600">{formatCurrency(due.pendingAmount)}</p>
+                          <p className="text-xs text-gray-400">pending</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {due.cabinNum ? (
+                          <Badge variant="secondary" className="bg-cyan-100 text-cyan-700">
+                            Cabin {due.cabinNum}
+                          </Badge>
+                        ) : due.courseName ? (
+                          <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                            {due.courseName}
+                          </Badge>
+                        ) : null}
+                        <Badge variant="secondary" className={due.type.includes('Cabin') ? 'bg-sky-50 text-sky-700' : 'bg-purple-50 text-purple-700'}>
+                          {due.type}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="text-green-600 font-medium">Paid: {formatCurrency(due.paidAmount)}</span>
+                          <span className="text-gray-400">of {formatCurrency(due.totalAmount)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden md:block rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-red-50/50">
+                      <TableHead>Student</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead className="text-center">Type</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Pending</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingDues
+                      .filter((d) => {
+                        if (!search) return true;
+                        const q = search.toLowerCase();
+                        return (
+                          d.studentName.toLowerCase().includes(q) ||
+                          d.studentPhone.includes(q) ||
+                          d.type.toLowerCase().includes(q) ||
+                          (d.cabinNum && String(d.cabinNum).includes(q)) ||
+                          (d.courseName && d.courseName.toLowerCase().includes(q))
+                        );
+                      })
+                      .map((due) => (
+                      <TableRow key={due.id}>
+                        <TableCell className="font-medium">{due.studentName}</TableCell>
+                        <TableCell>{due.studentPhone}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {due.cabinNum ? (
+                              <Badge variant="secondary" className="bg-cyan-100 text-cyan-700">
+                                Cabin {due.cabinNum}
+                              </Badge>
+                            ) : due.courseName ? (
+                              <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                {due.courseName}
+                              </Badge>
+                            ) : null}
+                            <Badge variant="secondary" className={due.type.includes('Cabin') ? 'bg-sky-50 text-sky-700' : 'bg-purple-50 text-purple-700'}>
+                              {due.type}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-gray-500">{formatCurrency(due.totalAmount)}</TableCell>
+                        <TableCell className="text-right text-green-600 font-medium">{formatCurrency(due.paidAmount)}</TableCell>
+                        <TableCell className="text-right font-bold text-red-600">{formatCurrency(due.pendingAmount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* Empty - completed filter */}
+      {!loading && paymentFilter !== 'pending' && filteredPayments.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <Banknote className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p className="text-lg font-medium">No payments found</p>
@@ -533,7 +790,7 @@ export default function PaymentsView() {
       )}
 
       {/* Mobile Card Layout */}
-      {!loading && filteredPayments.length > 0 && (
+      {!loading && paymentFilter !== 'pending' && filteredPayments.length > 0 && (
         <div className="md:hidden space-y-3 max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin">
           {filteredPayments.map((payment) => (
             <Card key={payment.id} className="overflow-hidden">
@@ -605,7 +862,7 @@ export default function PaymentsView() {
       )}
 
       {/* Desktop Table Layout */}
-      {!loading && filteredPayments.length > 0 && (
+      {!loading && paymentFilter !== 'pending' && filteredPayments.length > 0 && (
         <div className="hidden md:block rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>

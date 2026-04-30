@@ -90,7 +90,7 @@ const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[
 const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; adminOnly: boolean }[] = [
   { view: 'cabins', label: 'Cabins', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
   { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
-  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: false },
+  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
   { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
@@ -103,7 +103,7 @@ const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; a
   { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" />, adminOnly: false },
   { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" />, adminOnly: false },
   { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
-  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: false },
+  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
   { view: 'enrollments', label: 'Enrollments', icon: <UserPlus className="h-5 w-5" />, adminOnly: false },
   { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
@@ -405,7 +405,7 @@ function AuthenticatedApp() {
   }, []);
 
   useEffect(() => {
-    if (user && user.role !== 'admin' && activeView === 'settings') {
+    if (user && user.role !== 'admin' && (activeView === 'settings' || activeView === 'courses')) {
       useAppStore.getState().setActiveView('dashboard');
     }
   }, [user, activeView]);
