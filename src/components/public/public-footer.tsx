@@ -17,6 +17,8 @@ interface BusinessSettings {
 const baseQuickLinks = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'Our Courses' },
+  { href: '/computer-training', label: 'Computer Training' },
+  { href: '/about', label: 'About Us' },
   { href: '/notices', label: 'Notices' },
   { href: '/admin', label: 'Admin Portal' },
 ];

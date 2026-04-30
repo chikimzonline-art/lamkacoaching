@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Menu, LogIn, GraduationCap, DoorOpen, ChevronDown, Monitor } from 'lucide-react';
+import { BookOpen, Menu, LogIn, GraduationCap, DoorOpen, ChevronDown, Monitor, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import {
@@ -24,6 +24,7 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'Courses' },
   { href: '/computer-training', label: 'Computer Training', icon: Monitor },
+  { href: '/about', label: 'About', icon: Info },
   { href: '/notices', label: 'Notices' },
 ];
 
