@@ -21,69 +21,47 @@ import {
   Phone,
   MapPin,
   Sparkles,
-  Shield,
-  TrendingUp,
   Lightbulb,
   Handshake,
   Linkedin,
   Mail,
 } from 'lucide-react';
 
+// ─── Types ────────────────────────────────────────────
+interface TeamMemberData {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  initials: string;
+  color: string;
+  sortOrder: number;
+  active: boolean;
+}
+
+interface MilestoneData {
+  id: string;
+  year: string;
+  event: string;
+  sortOrder: number;
+}
+
+interface AboutSettingsData {
+  about_story?: string;
+  about_story_extra?: string;
+  about_story_closing?: string;
+  about_mission?: string;
+  about_vision?: string;
+}
+
 interface SiteSettings {
   businessName?: string;
   businessPhone?: string;
   businessEmail?: string;
   businessAddress?: string;
-  businessDescription?: string;
 }
 
-// ─── Team Members ────────────────────────────────────────────
-const teamMembers = [
-  {
-    name: 'Thangkhopao Kipgen',
-    role: 'Founder & Director',
-    bio: 'Visionary leader with over 15 years of experience in education and community development. Founded Lamka Coaching Center with a mission to make quality education accessible to every student in the region.',
-    color: 'from-cyan-500 to-sky-500',
-    initials: 'TK',
-  },
-  {
-    name: 'Lalhriatpuii',
-    role: 'Head of Academics',
-    bio: 'Experienced educator specializing in competitive exam preparation. Oversees curriculum design, faculty training, and ensures every student receives the guidance they need to succeed.',
-    color: 'from-blue-500 to-indigo-500',
-    initials: 'LP',
-  },
-  {
-    name: 'Thangboi Lhungdim',
-    role: 'Computer Training Head',
-    bio: 'IT professional with expertise in software development and digital literacy training. Leads the Computer Training department, bringing industry-relevant skills to the classroom.',
-    color: 'from-cyan-500 to-teal-500',
-    initials: 'TL',
-  },
-  {
-    name: 'Nemnilhing Haokip',
-    role: 'Student Counselor',
-    bio: 'Dedicated counselor who guides students through their academic journey, from course selection to career planning. Ensures every student feels supported and motivated throughout their preparation.',
-    color: 'from-purple-500 to-violet-500',
-    initials: 'NH',
-  },
-  {
-    name: 'Lunghthawan Touthang',
-    role: 'Operations Manager',
-    bio: 'Keeps everything running smoothly — from cabin bookings and facility management to scheduling and student services. The backbone of the center\'s day-to-day operations.',
-    color: 'from-green-500 to-emerald-500',
-    initials: 'LT',
-  },
-  {
-    name: 'Khamkhanpau Gangte',
-    role: 'Faculty - Competitive Exams',
-    bio: 'Seasoned teacher with a proven track record of producing successful candidates in SSC, Banking, and Railway exams. Known for making complex concepts easy to understand.',
-    color: 'from-orange-500 to-amber-500',
-    initials: 'KG',
-  },
-];
-
-// ─── Core Values ─────────────────────────────────────────────
+// ─── Static content (not admin-managed) ───────────────
 const coreValues = [
   {
     icon: <Heart className="h-6 w-6" />,
@@ -107,27 +85,36 @@ const coreValues = [
   },
 ];
 
-// ─── Timeline / Milestones ───────────────────────────────────
-const milestones = [
-  { year: '2018', event: 'Founded Lamka Coaching Center with a vision to transform education in the region, starting with just two classrooms and a handful of dedicated students.' },
-  { year: '2019', event: 'Launched Computer Training department with CCC and Tally courses, bringing essential digital skills to the community for the first time.' },
-  { year: '2020', event: 'Expanded competitive exam coaching to include Banking and UPSC preparation, despite the challenges of the pandemic year.' },
-  { year: '2021', event: 'Introduced dedicated Study Cabin facility with 20+ cabins, providing students with quiet, focused study spaces available throughout the day.' },
-  { year: '2023', event: 'Crossed the milestone of 500+ trained students, with successful candidates placed in government jobs across multiple departments.' },
-  { year: '2025', event: 'Launched advanced IT programs including Python and Web Development, and expanded to a full-service education hub with modern infrastructure.' },
-];
-
 export default function AboutPage() {
-  const [settings, setSettings] = useState<SiteSettings>({});
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
+  const [aboutSettings, setAboutSettings] = useState<AboutSettingsData>({});
+  const [teamMembers, setTeamMembers] = useState<TeamMemberData[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneData[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/public/settings')
-      .then((r) => r.json())
-      .then((data) => setSettings(data.settings || {}))
-      .catch(() => {});
+    Promise.all([
+      fetch('/api/public/settings').then((r) => r.json()),
+      fetch('/api/public/about').then((r) => r.json()),
+    ])
+      .then(([settingsData, aboutData]) => {
+        setSiteSettings(settingsData.settings || {});
+        setAboutSettings(aboutData.settings || {});
+        setTeamMembers(aboutData.teamMembers || []);
+        setMilestones(aboutData.milestones || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const businessName = settings.businessName || 'Lamka Coaching Center';
+  const businessName = siteSettings.businessName || 'Lamka Coaching Center';
+
+  // Fallback text for about sections
+  const storyText = aboutSettings.about_story || `${businessName} was founded in 2018 with a simple yet powerful belief — that every student, regardless of their background or circumstances, deserves access to quality education and the opportunity to build a better life. What started as a small coaching class in Lamka, Churachandpur, has grown into a full-service education hub that serves hundreds of students every year.`;
+  const storyExtra = aboutSettings.about_story_extra || 'We offer a unique combination of services under one roof: expert coaching for competitive government exams like SSC, Banking, UPSC, and Railway; professional computer training programs ranging from basic CCC to advanced Python and Web Development; and dedicated study cabin spaces designed for focused, distraction-free learning. This holistic approach ensures that students can find everything they need to succeed without having to look elsewhere.';
+  const storyClosing = aboutSettings.about_story_closing || "Our team of experienced educators, industry professionals, and dedicated support staff work together to create an environment where students don't just prepare for exams — they develop the skills, confidence, and discipline needed to excel in their careers and in life. With small batch sizes, personalized attention, and a result-oriented approach, we have helped over 500 students achieve their goals and secure their future.";
+  const missionText = aboutSettings.about_mission || 'To provide accessible, high-quality education and training that empowers students from all backgrounds to achieve their career goals. We are committed to delivering practical, result-oriented coaching programs that combine expert instruction with modern teaching methods, ensuring every student is prepared to face competitive exams and professional challenges with confidence and competence.';
+  const visionText = aboutSettings.about_vision || 'To become the most trusted and impactful education center in the region — a place where aspirations turn into achievements. We envision a future where every young person in our community has the skills, knowledge, and opportunity to build a successful career, whether in government service, the IT industry, or any field they choose to pursue. Through continuous innovation and unwavering dedication, we aim to be the catalyst for that transformation.';
 
   return (
     <PublicLayout>
@@ -191,29 +178,9 @@ export default function AboutPage() {
                 <span className="text-cyan-600">Building Futures.</span>
               </h2>
               <div className="mt-6 space-y-4 text-gray-600 leading-relaxed">
-                <p>
-                  {businessName} was founded in 2018 with a simple yet powerful belief — that every
-                  student, regardless of their background or circumstances, deserves access to
-                  quality education and the opportunity to build a better life. What started as a
-                  small coaching class in Lamka, Churachandpur, has grown into a full-service
-                  education hub that serves hundreds of students every year.
-                </p>
-                <p>
-                  We offer a unique combination of services under one roof: expert coaching for
-                  competitive government exams like SSC, Banking, UPSC, and Railway; professional
-                  computer training programs ranging from basic CCC to advanced Python and Web
-                  Development; and dedicated study cabin spaces designed for focused, distraction-free
-                  learning. This holistic approach ensures that students can find everything they need
-                  to succeed without having to look elsewhere.
-                </p>
-                <p>
-                  Our team of experienced educators, industry professionals, and dedicated support
-                  staff work together to create an environment where students don&apos;t just prepare for
-                  exams — they develop the skills, confidence, and discipline needed to excel in
-                  their careers and in life. With small batch sizes, personalized attention, and a
-                  result-oriented approach, we have helped over 500 students achieve their goals and
-                  secure their future.
-                </p>
+                <p>{storyText}</p>
+                <p>{storyExtra}</p>
+                <p>{storyClosing}</p>
               </div>
             </div>
 
@@ -257,13 +224,7 @@ export default function AboutPage() {
                 <Target className="h-7 w-7" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Our Mission</h3>
-              <p className="text-gray-600 leading-relaxed">
-                To provide accessible, high-quality education and training that empowers students
-                from all backgrounds to achieve their career goals. We are committed to delivering
-                practical, result-oriented coaching programs that combine expert instruction with
-                modern teaching methods, ensuring every student is prepared to face competitive
-                exams and professional challenges with confidence and competence.
-              </p>
+              <p className="text-gray-600 leading-relaxed">{missionText}</p>
             </div>
 
             {/* Vision */}
@@ -272,14 +233,7 @@ export default function AboutPage() {
                 <Eye className="h-7 w-7" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Our Vision</h3>
-              <p className="text-gray-600 leading-relaxed">
-                To become the most trusted and impactful education center in the region — a place
-                where aspirations turn into achievements. We envision a future where every young
-                person in our community has the skills, knowledge, and opportunity to build a
-                successful career, whether in government service, the IT industry, or any field they
-                choose to pursue. Through continuous innovation and unwavering dedication, we aim
-                to be the catalyst for that transformation.
-              </p>
+              <p className="text-gray-600 leading-relaxed">{visionText}</p>
             </div>
           </div>
         </div>
@@ -320,54 +274,56 @@ export default function AboutPage() {
       {/* ============================================
           OUR JOURNEY — Timeline
           ============================================ */}
-      <section className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
-        {/* Background accents */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 30% 20%, rgba(6,182,212,0.08) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(6,182,212,0.05) 0%, transparent 40%)',
-          }}
-        />
+      {milestones.length > 0 && (
+        <section className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
+          {/* Background accents */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 30% 20%, rgba(6,182,212,0.08) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(6,182,212,0.05) 0%, transparent 40%)',
+            }}
+          />
 
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <Badge className="mb-3 bg-cyan-500/10 text-cyan-400 border-cyan-500/20">Our Journey</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">Milestones Along the Way</h2>
-            <p className="mt-3 text-gray-400 max-w-xl mx-auto text-lg">
-              From humble beginnings to a thriving education hub — every step has been driven by our
-              commitment to student success.
-            </p>
-          </div>
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-14">
+              <Badge className="mb-3 bg-cyan-500/10 text-cyan-400 border-cyan-500/20">Our Journey</Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold text-white">Milestones Along the Way</h2>
+              <p className="mt-3 text-gray-400 max-w-xl mx-auto text-lg">
+                From humble beginnings to a thriving education hub — every step has been driven by our
+                commitment to student success.
+              </p>
+            </div>
 
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-px bg-white/10 sm:-translate-x-px" />
+            <div className="relative">
+              {/* Vertical line */}
+              <div className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-px bg-white/10 sm:-translate-x-px" />
 
-            <div className="space-y-8">
-              {milestones.map((milestone, index) => (
-                <div
-                  key={milestone.year}
-                  className={`relative flex items-start gap-6 sm:gap-0 ${
-                    index % 2 === 0 ? 'sm:flex-row' : 'sm:flex-row-reverse'
-                  }`}
-                >
-                  {/* Dot */}
-                  <div className="absolute left-4 sm:left-1/2 w-3 h-3 rounded-full bg-cyan-400 border-2 border-gray-950 -translate-x-1.5 sm:-translate-x-1.5 mt-1.5 z-10" />
+              <div className="space-y-8">
+                {milestones.map((milestone, index) => (
+                  <div
+                    key={milestone.id}
+                    className={`relative flex items-start gap-6 sm:gap-0 ${
+                      index % 2 === 0 ? 'sm:flex-row' : 'sm:flex-row-reverse'
+                    }`}
+                  >
+                    {/* Dot */}
+                    <div className="absolute left-4 sm:left-1/2 w-3 h-3 rounded-full bg-cyan-400 border-2 border-gray-950 -translate-x-1.5 sm:-translate-x-1.5 mt-1.5 z-10" />
 
-                  {/* Content */}
-                  <div className={`ml-10 sm:ml-0 sm:w-1/2 ${index % 2 === 0 ? 'sm:pr-12' : 'sm:pl-12'}`}>
-                    <span className="inline-block px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-400 text-sm font-bold mb-2">
-                      {milestone.year}
-                    </span>
-                    <p className="text-gray-300 leading-relaxed text-sm">{milestone.event}</p>
+                    {/* Content */}
+                    <div className={`ml-10 sm:ml-0 sm:w-1/2 ${index % 2 === 0 ? 'sm:pr-12' : 'sm:pl-12'}`}>
+                      <span className="inline-block px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-400 text-sm font-bold mb-2">
+                        {milestone.year}
+                      </span>
+                      <p className="text-gray-300 leading-relaxed text-sm">{milestone.event}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ============================================
           WHAT WE OFFER — 3 pillars
@@ -448,57 +404,59 @@ export default function AboutPage() {
       {/* ============================================
           OUR TEAM
           ============================================ */}
-      <section className="py-20 sm:py-28 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <Badge variant="secondary" className="mb-3 bg-cyan-100 text-cyan-700">
-              Our Team
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Meet the People Behind Your Success</h2>
-            <p className="mt-3 text-gray-500 max-w-xl mx-auto text-lg">
-              Our dedicated team of educators, professionals, and support staff are committed to
-              helping every student reach their full potential.
-            </p>
-          </div>
+      {teamMembers.length > 0 && (
+        <section className="py-20 sm:py-28 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-14">
+              <Badge variant="secondary" className="mb-3 bg-cyan-100 text-cyan-700">
+                Our Team
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Meet the People Behind Your Success</h2>
+              <p className="mt-3 text-gray-500 max-w-xl mx-auto text-lg">
+                Our dedicated team of educators, professionals, and support staff are committed to
+                helping every student reach their full potential.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {teamMembers.map((member) => (
-              <div
-                key={member.name}
-                className="group bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-xl hover:border-cyan-100 transition-all duration-300"
-              >
-                {/* Avatar */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div
-                    className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${member.color} flex items-center justify-center text-white font-bold text-lg shadow-lg`}
-                  >
-                    {member.initials}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {teamMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="group bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-xl hover:border-cyan-100 transition-all duration-300"
+                >
+                  {/* Avatar */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <div
+                      className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${member.color} flex items-center justify-center text-white font-bold text-lg shadow-lg`}
+                    >
+                      {member.initials}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 group-hover:text-cyan-700 transition-colors">
+                        {member.name}
+                      </h3>
+                      <p className="text-sm text-cyan-600 font-medium">{member.role}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 group-hover:text-cyan-700 transition-colors">
-                      {member.name}
-                    </h3>
-                    <p className="text-sm text-cyan-600 font-medium">{member.role}</p>
+
+                  {/* Bio */}
+                  <p className="text-sm text-gray-500 leading-relaxed">{member.bio}</p>
+
+                  {/* Social links placeholder */}
+                  <div className="mt-4 pt-3 border-t border-gray-50 flex items-center gap-2">
+                    <span className="h-8 w-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-cyan-50 hover:text-cyan-600 transition-colors cursor-pointer">
+                      <Mail className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="h-8 w-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-cyan-50 hover:text-cyan-600 transition-colors cursor-pointer">
+                      <Linkedin className="h-3.5 w-3.5" />
+                    </span>
                   </div>
                 </div>
-
-                {/* Bio */}
-                <p className="text-sm text-gray-500 leading-relaxed">{member.bio}</p>
-
-                {/* Social links placeholder */}
-                <div className="mt-4 pt-3 border-t border-gray-50 flex items-center gap-2">
-                  <span className="h-8 w-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-cyan-50 hover:text-cyan-600 transition-colors cursor-pointer">
-                    <Mail className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="h-8 w-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-cyan-50 hover:text-cyan-600 transition-colors cursor-pointer">
-                    <Linkedin className="h-3.5 w-3.5" />
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ============================================
           CTA — Join Us
@@ -545,18 +503,18 @@ export default function AboutPage() {
 
           {/* Contact info */}
           <div className="mt-10 flex flex-wrap justify-center gap-6 text-sm text-gray-500">
-            {settings.businessPhone && (
+            {siteSettings.businessPhone && (
               <a
-                href={`tel:${settings.businessPhone}`}
+                href={`tel:${siteSettings.businessPhone}`}
                 className="flex items-center gap-2 hover:text-cyan-400 transition-colors"
               >
                 <Phone className="h-4 w-4 text-cyan-400" />
-                <span>{settings.businessPhone}</span>
+                <span>{siteSettings.businessPhone}</span>
               </a>
             )}
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-cyan-400" />
-              <span>{settings.businessAddress || 'Lamka, Churachandpur, Manipur'}</span>
+              <span>{siteSettings.businessAddress || 'Lamka, Churachandpur, Manipur'}</span>
             </div>
           </div>
         </div>

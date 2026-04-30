@@ -21,6 +21,7 @@ import {
   GraduationCap,
   UserPlus,
   Megaphone,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -77,6 +78,9 @@ const EnrollmentsView = dynamic(() => import('@/components/enrollments/enrollmen
 const NoticesView = dynamic(() => import('@/components/notices/notices-view'), {
   loading: () => <PageSkeleton />,
 });
+const AboutView = dynamic(() => import('@/components/about/about-view'), {
+  loading: () => <PageSkeleton />,
+});
 
 // Bottom nav items (5 primary + More)
 const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
@@ -92,6 +96,7 @@ const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; admi
   { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
   { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
   { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
+  { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
@@ -106,6 +111,7 @@ const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; a
   { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
   { view: 'enrollments', label: 'Enrollments', icon: <UserPlus className="h-5 w-5" />, adminOnly: false },
   { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
+  { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
@@ -162,6 +168,7 @@ function PageHeader() {
     notices: 'Notices',
     reports: 'Reports',
     settings: 'Settings',
+    about: 'About Page',
   };
 
   return (
@@ -223,6 +230,7 @@ function renderView(view: ViewType) {
     case 'notices': return <NoticesView />;
     case 'reports': return <ReportsView />;
     case 'settings': return <SettingsView />;
+    case 'about': return <AboutView />;
     default: return <DashboardView />;
   }
 }
