@@ -60,10 +60,10 @@ export default function NoticesPage() {
   return (
     <PublicLayout>
       {/* Page Header */}
-      <section className="bg-gradient-to-br from-orange-600 to-amber-500 py-12 sm:py-16">
+      <section className="bg-gradient-to-br from-cyan-600 to-sky-500 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">Notice Board</h1>
-          <p className="mt-2 text-orange-100 text-lg max-w-xl mx-auto">
+          <p className="mt-2 text-cyan-100 text-lg max-w-xl mx-auto">
             Stay updated with the latest announcements, schedules, and important information
           </p>
         </div>
@@ -101,18 +101,18 @@ export default function NoticesPage() {
           {!loading && pinnedNotices.length > 0 && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <Pin className="h-4 w-4 text-orange-600" />
-                <h2 className="text-sm font-semibold text-orange-700 uppercase tracking-wider">Pinned</h2>
+                <Pin className="h-4 w-4 text-cyan-600" />
+                <h2 className="text-sm font-semibold text-cyan-700 uppercase tracking-wider">Pinned</h2>
               </div>
               <div className="space-y-4">
                 {pinnedNotices.map((notice) => (
                   <Card
                     key={notice.id}
-                    className="border-l-4 border-l-orange-500 border-0 shadow-sm bg-orange-50/30"
+                    className="border-l-4 border-l-cyan-500 border-0 shadow-sm bg-cyan-50/30"
                   >
                     <CardContent className="p-5">
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge className="bg-orange-100 text-orange-700 text-[10px] px-1.5">
+                        <Badge className="bg-cyan-100 text-cyan-700 text-[10px] px-1.5">
                           <Pin className="h-2.5 w-2.5 mr-0.5" /> Important
                         </Badge>
                         <span className="text-xs text-gray-400">

@@ -181,7 +181,7 @@ export default function QuickPayDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Banknote className="h-5 w-5 text-orange-500" />
+            <Banknote className="h-5 w-5 text-cyan-500" />
             Quick Pay
           </DialogTitle>
           <DialogDescription>Record a payment for this student</DialogDescription>
@@ -190,7 +190,7 @@ export default function QuickPayDialog({
         {student && (
           <div className="space-y-4">
             {/* Student Info */}
-            <div className="rounded-lg bg-orange-50 border border-orange-200 p-3">
+            <div className="rounded-lg bg-cyan-50 border border-cyan-200 p-3">
               <p className="font-semibold text-gray-900">{student.name}</p>
               <p className="text-sm text-gray-600">{student.phone}</p>
             </div>
@@ -237,10 +237,10 @@ export default function QuickPayDialog({
             </div>
 
             {selectedBooking && (
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm">
+              <div className="rounded-lg bg-sky-50 border border-sky-200 p-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Pending Amount:</span>
-                  <span className="font-semibold text-orange-700">
+                  <span className="font-semibold text-cyan-700">
                     {formatCurrency(pendingAmount)}
                   </span>
                 </div>
@@ -271,7 +271,7 @@ export default function QuickPayDialog({
                   variant={mode === 'cash' ? 'default' : 'outline'}
                   className={
                     mode === 'cash'
-                      ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                      ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
                       : ''
                   }
                   onClick={() => setMode('cash')}
@@ -283,7 +283,7 @@ export default function QuickPayDialog({
                   variant={mode === 'upi' ? 'default' : 'outline'}
                   className={
                     mode === 'upi'
-                      ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                      ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
                       : ''
                   }
                   onClick={() => setMode('upi')}
@@ -320,7 +320,7 @@ export default function QuickPayDialog({
           <Button
             onClick={handleSubmit}
             disabled={loading || !selectedBookingId || !amount}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
+            className="bg-cyan-500 hover:bg-cyan-600 text-white"
           >
             {loading ? (
               <>

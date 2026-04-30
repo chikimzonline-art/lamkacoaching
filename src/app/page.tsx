@@ -77,7 +77,7 @@ export default function HomePage() {
   return (
     <PublicLayout>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500">
+      <section className="relative overflow-hidden bg-gradient-to-br from-cyan-600 via-cyan-500 to-sky-500">
         {/* Decorative circles */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 -right-24 h-72 w-72 bg-white/5 rounded-full" />
@@ -93,14 +93,14 @@ export default function HomePage() {
             </Badge>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
               Welcome to{' '}
-              <span className="text-amber-200">Lamka Coaching Center</span>
+              <span className="text-sky-200">Lamka Coaching Center</span>
             </h1>
-            <p className="mt-4 text-lg sm:text-xl text-orange-100 leading-relaxed max-w-xl">
+            <p className="mt-4 text-lg sm:text-xl text-cyan-100 leading-relaxed max-w-xl">
               Your gateway to success in competitive exams. Expert coaching for SSC, Banking, and more — with dedicated study cabins and personalized guidance.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/courses">
-                <Button size="lg" className="bg-white text-orange-700 hover:bg-orange-50 font-semibold shadow-lg shadow-orange-700/20 h-12 px-6">
+                <Button size="lg" className="bg-white text-cyan-700 hover:bg-cyan-50 font-semibold shadow-lg shadow-cyan-700/20 h-12 px-6">
                   Explore Courses
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -121,7 +121,7 @@ export default function HomePage() {
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <div className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</div>
-                  <div className="text-xs sm:text-sm text-orange-200 mt-0.5">{stat.label}</div>
+                  <div className="text-xs sm:text-sm text-cyan-200 mt-0.5">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -144,7 +144,7 @@ export default function HomePage() {
                 icon: <GraduationCap className="h-7 w-7" />,
                 title: 'SSC Coaching',
                 desc: 'Comprehensive preparation for SSC CGL, CHSL, MTS, and other government exams with experienced faculty and proven results.',
-                color: 'bg-orange-100 text-orange-700',
+                color: 'bg-cyan-100 text-cyan-700',
               },
               {
                 icon: <TrendingUp className="h-7 w-7" />,
@@ -189,7 +189,7 @@ export default function HomePage() {
                 <p className="mt-1 text-gray-500">Explore our coaching programs</p>
               </div>
               <Link href="/courses">
-                <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 hidden sm:flex">
+                <Button variant="outline" className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50 hidden sm:flex">
                   View All <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -197,16 +197,16 @@ export default function HomePage() {
             {departments.map((dept) => (
               <div key={dept.id} className="mb-10 last:mb-0">
                 <div className="flex items-center gap-2 mb-4">
-                  <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                  <Badge variant="secondary" className="bg-cyan-100 text-cyan-800">
                     {dept.name}
                   </Badge>
                   <span className="text-xs text-gray-400">{dept.courses.length} course{dept.courses.length !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {dept.courses.slice(0, 3).map((course) => (
-                    <Card key={course.id} className="border border-gray-100 hover:border-orange-200 transition-colors group">
+                    <Card key={course.id} className="border border-gray-100 hover:border-cyan-200 transition-colors group">
                       <CardContent className="p-5">
-                        <h3 className="font-semibold text-gray-900 group-hover:text-orange-700 transition-colors">
+                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
                           {course.name}
                         </h3>
                         <div className="flex items-center gap-3 mt-2">
@@ -216,7 +216,7 @@ export default function HomePage() {
                               {course.duration}
                             </span>
                           )}
-                          <span className="text-sm font-bold text-orange-700">
+                          <span className="text-sm font-bold text-cyan-700">
                             {formatCurrency(course.totalFee)}
                           </span>
                         </div>
@@ -224,7 +224,7 @@ export default function HomePage() {
                           <p className="mt-2 text-sm text-gray-500 line-clamp-2">{course.description}</p>
                         )}
                         <Link href={`/register?courseId=${course.id}`}>
-                          <Button size="sm" variant="ghost" className="mt-3 text-orange-700 hover:text-orange-800 hover:bg-orange-50 p-0 h-auto font-medium">
+                          <Button size="sm" variant="ghost" className="mt-3 text-cyan-700 hover:text-cyan-800 hover:bg-cyan-50 p-0 h-auto font-medium">
                             Enroll Now <ArrowRight className="h-3 w-3 ml-1" />
                           </Button>
                         </Link>
@@ -236,7 +236,7 @@ export default function HomePage() {
             ))}
             <div className="mt-8 text-center sm:hidden">
               <Link href="/courses">
-                <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50">
+                <Button variant="outline" className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50">
                   View All Courses <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -249,7 +249,7 @@ export default function HomePage() {
       {loading && (
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 text-center">
-            <Loader2 className="h-8 w-8 text-orange-600 animate-spin mx-auto" />
+            <Loader2 className="h-8 w-8 text-cyan-600 animate-spin mx-auto" />
             <p className="mt-2 text-sm text-gray-500">Loading courses...</p>
           </div>
         </section>
@@ -261,22 +261,22 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-2">
-                <Megaphone className="h-5 w-5 text-orange-600" />
+                <Megaphone className="h-5 w-5 text-cyan-600" />
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Latest Notices</h2>
               </div>
               <Link href="/notices">
-                <Button variant="outline" size="sm" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50">
+                <Button variant="outline" size="sm" className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50">
                   View All <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {notices.map((notice) => (
-                <Card key={notice.id} className={`border-0 shadow-sm ${notice.pinned ? 'ring-2 ring-orange-200' : ''}`}>
+                <Card key={notice.id} className={`border-0 shadow-sm ${notice.pinned ? 'ring-2 ring-cyan-200' : ''}`}>
                   <CardContent className="p-5">
                     <div className="flex items-center gap-2 mb-2">
                       {notice.pinned && (
-                        <Badge className="bg-orange-100 text-orange-700 text-[10px] px-1.5">
+                        <Badge className="bg-cyan-100 text-cyan-700 text-[10px] px-1.5">
                           <Pin className="h-2.5 w-2.5 mr-0.5" /> Pinned
                         </Badge>
                       )}
@@ -325,7 +325,7 @@ export default function HomePage() {
               },
             ].map((feature) => (
               <div key={feature.title} className="text-center p-6">
-                <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-orange-100 text-orange-700 mb-4">
+                <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-cyan-100 text-cyan-700 mb-4">
                   {feature.icon}
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
@@ -337,15 +337,15 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-orange-600 to-amber-500">
+      <section className="bg-gradient-to-r from-cyan-600 to-sky-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-white">Ready to Start Your Journey?</h2>
-          <p className="mt-3 text-orange-100 text-lg max-w-xl mx-auto">
+          <p className="mt-3 text-cyan-100 text-lg max-w-xl mx-auto">
             Join hundreds of successful students who have achieved their goals with Lamka Coaching Center.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/register">
-              <Button size="lg" className="bg-white text-orange-700 hover:bg-orange-50 font-semibold shadow-lg h-12 px-8">
+              <Button size="lg" className="bg-white text-cyan-700 hover:bg-cyan-50 font-semibold shadow-lg h-12 px-8">
                 Register Now
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>

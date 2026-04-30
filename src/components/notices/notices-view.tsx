@@ -193,8 +193,8 @@ export default function NoticesView() {
         {[
           { label: 'Total Notices', value: notices.length, color: 'text-gray-900' },
           { label: 'Published', value: publishedCount, color: 'text-green-700' },
-          { label: 'Drafts', value: draftCount, color: 'text-amber-700' },
-          { label: 'Pinned', value: pinnedCount, color: 'text-orange-700' },
+          { label: 'Drafts', value: draftCount, color: 'text-sky-700' },
+          { label: 'Pinned', value: pinnedCount, color: 'text-cyan-700' },
         ].map((stat) => (
           <Card key={stat.label} className="border-0 shadow-sm">
             <CardContent className="p-4">
@@ -216,7 +216,7 @@ export default function NoticesView() {
             className="pl-9"
           />
         </div>
-        <Button onClick={openCreate} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white">
+        <Button onClick={openCreate} className="gap-2 bg-cyan-600 hover:bg-cyan-700 text-white">
           <Plus className="h-4 w-4" />
           New Notice
         </Button>
@@ -225,7 +225,7 @@ export default function NoticesView() {
       {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 text-orange-600 animate-spin" />
+          <Loader2 className="h-8 w-8 text-cyan-600 animate-spin" />
         </div>
       )}
 
@@ -240,7 +240,7 @@ export default function NoticesView() {
             {search ? 'Try a different search term' : 'Create your first notice to display on the public website'}
           </p>
           {!search && (
-            <Button onClick={openCreate} className="mt-4 gap-2 bg-orange-600 hover:bg-orange-700 text-white">
+            <Button onClick={openCreate} className="mt-4 gap-2 bg-cyan-600 hover:bg-cyan-700 text-white">
               <Plus className="h-4 w-4" />
               Create Notice
             </Button>
@@ -254,7 +254,7 @@ export default function NoticesView() {
             <Card
               key={notice.id}
               className={`border shadow-sm hover:shadow-md transition-shadow ${
-                notice.pinned ? 'border-l-4 border-l-orange-500' : ''
+                notice.pinned ? 'border-l-4 border-l-cyan-500' : ''
               } ${notice.status === 'draft' ? 'opacity-60' : ''}`}
             >
               <CardContent className="p-4 sm:p-5">
@@ -263,7 +263,7 @@ export default function NoticesView() {
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-semibold text-gray-900 truncate">{notice.title}</h3>
                       {notice.pinned && (
-                        <Badge className="bg-orange-100 text-orange-700 text-[10px] px-1.5">
+                        <Badge className="bg-cyan-100 text-cyan-700 text-[10px] px-1.5">
                           <Pin className="h-2.5 w-2.5 mr-0.5" /> Pinned
                         </Badge>
                       )}
@@ -272,7 +272,7 @@ export default function NoticesView() {
                         className={
                           notice.status === 'published'
                             ? 'border-green-200 bg-green-50 text-green-700'
-                            : 'border-amber-200 bg-amber-50 text-amber-700'
+                            : 'border-sky-200 bg-sky-50 text-sky-700'
                         }
                       >
                         {notice.status === 'published' ? 'Published' : 'Draft'}
@@ -292,7 +292,7 @@ export default function NoticesView() {
                       onClick={() => togglePin(notice)}
                       title={notice.pinned ? 'Unpin' : 'Pin'}
                     >
-                      <Pin className={`h-4 w-4 ${notice.pinned ? 'text-orange-600' : 'text-gray-400'}`} />
+                      <Pin className={`h-4 w-4 ${notice.pinned ? 'text-cyan-600' : 'text-gray-400'}`} />
                     </Button>
                     <Button
                       variant="ghost"
@@ -389,7 +389,7 @@ export default function NoticesView() {
               <Button
                 onClick={handleSave}
                 disabled={saving || !title.trim() || !content.trim()}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className="bg-cyan-600 hover:bg-cyan-700 text-white"
               >
                 {saving ? (
                   <>

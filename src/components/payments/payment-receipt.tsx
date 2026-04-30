@@ -244,7 +244,7 @@ export default function PaymentReceipt({
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <Printer className="h-5 w-5 text-orange-600" />
+              <Printer className="h-5 w-5 text-cyan-600" />
               Payment Receipt
             </span>
             <Button
@@ -259,10 +259,10 @@ export default function PaymentReceipt({
         </DialogHeader>
 
         {/* Receipt Display */}
-        <div className="font-mono text-sm border-2 border-dashed border-orange-300 rounded-lg p-4 bg-orange-50/30">
+        <div className="font-mono text-sm border-2 border-dashed border-cyan-300 rounded-lg p-4 bg-cyan-50/30">
           {/* Header */}
-          <div className="text-center border-b-2 border-dashed border-orange-300 pb-3 mb-3">
-            <h3 className="text-base font-bold text-orange-600">
+          <div className="text-center border-b-2 border-dashed border-cyan-300 pb-3 mb-3">
+            <h3 className="text-base font-bold text-cyan-600">
               {data.businessName}
             </h3>
             <p className="text-xs text-gray-500">
@@ -322,11 +322,11 @@ export default function PaymentReceipt({
           <div className="border-t border-dashed border-gray-300 my-3" />
 
           {/* Amount */}
-          <div className="text-center py-3 bg-orange-100 rounded-md my-2">
+          <div className="text-center py-3 bg-cyan-100 rounded-md my-2">
             <p className="text-xs text-gray-500 uppercase tracking-wider">
               Amount Paid
             </p>
-            <p className="text-2xl font-bold text-orange-600">
+            <p className="text-2xl font-bold text-cyan-600">
               {formatCurrency(data.amount)}
             </p>
           </div>
@@ -352,8 +352,8 @@ export default function PaymentReceipt({
           </div>
 
           {/* Footer */}
-          <div className="border-t-2 border-dashed border-orange-300 mt-3 pt-3 text-center">
-            <p className="text-orange-600 text-xs font-semibold">
+          <div className="border-t-2 border-dashed border-cyan-300 mt-3 pt-3 text-center">
+            <p className="text-cyan-600 text-xs font-semibold">
               Thank you for your payment!
             </p>
             <p className="text-xs text-gray-400">
@@ -369,7 +369,7 @@ export default function PaymentReceipt({
           </Button>
           <Button
             onClick={handlePrint}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            className="bg-cyan-600 hover:bg-cyan-700 text-white"
           >
             <Printer className="h-4 w-4 mr-2" />
             Print Receipt

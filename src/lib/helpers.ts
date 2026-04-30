@@ -61,7 +61,7 @@ export function calculateMonths(startDate: Date, endDate: Date): number {
 
 export function getPaymentModeColor(mode: string): string {
   switch (mode) {
-    case 'cash': return 'bg-orange-100 text-orange-800';
+    case 'cash': return 'bg-cyan-100 text-cyan-800';
     case 'upi': return 'bg-purple-100 text-purple-800';
     default: return 'bg-gray-100 text-gray-800';
   }

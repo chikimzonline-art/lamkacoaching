@@ -66,13 +66,13 @@ export default function CoursesPage() {
   return (
     <PublicLayout>
       {/* Page Header */}
-      <section className="bg-gradient-to-br from-orange-600 to-amber-500 py-12 sm:py-16">
+      <section className="bg-gradient-to-br from-cyan-600 to-sky-500 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">Our Courses</h1>
-          <p className="mt-2 text-orange-100 text-lg max-w-xl mx-auto">
+          <p className="mt-2 text-cyan-100 text-lg max-w-xl mx-auto">
             Explore our coaching programs for SSC, Banking, and other competitive exams
           </p>
-          <div className="mt-4 text-sm text-orange-200">
+          <div className="mt-4 text-sm text-cyan-200">
             {totalCourses} course{totalCourses !== 1 ? 's' : ''} across {departments.length} department{departments.length !== 1 ? 's' : ''}
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function CoursesPage() {
                 className={cn(
                   'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                   activeDept === 'all'
-                    ? 'bg-orange-600 text-white'
+                    ? 'bg-cyan-600 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 )}
               >
@@ -110,7 +110,7 @@ export default function CoursesPage() {
                   className={cn(
                     'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                     activeDept === dept.id
-                      ? 'bg-orange-600 text-white'
+                      ? 'bg-cyan-600 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   )}
                 >
@@ -148,9 +148,9 @@ export default function CoursesPage() {
             filteredDepartments.map((dept) => (
               <div key={dept.id} className="mb-10 last:mb-0">
                 <div className="flex items-center gap-2 mb-5">
-                  <Building2 className="h-4 w-4 text-orange-600" />
+                  <Building2 className="h-4 w-4 text-cyan-600" />
                   <h2 className="text-xl font-bold text-gray-900">{dept.name}</h2>
-                  <Badge variant="secondary" className="bg-orange-50 text-orange-700">
+                  <Badge variant="secondary" className="bg-cyan-50 text-cyan-700">
                     {dept.courses.length} course{dept.courses.length !== 1 ? 's' : ''}
                   </Badge>
                 </div>
@@ -158,11 +158,11 @@ export default function CoursesPage() {
                   {dept.courses.map((course) => (
                     <Card
                       key={course.id}
-                      className="border border-gray-100 hover:border-orange-200 hover:shadow-md transition-all group"
+                      className="border border-gray-100 hover:border-cyan-200 hover:shadow-md transition-all group"
                     >
                       <CardContent className="p-5 flex flex-col h-full">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold text-gray-900 group-hover:text-orange-700 transition-colors leading-snug">
+                          <h3 className="font-semibold text-gray-900 group-hover:text-cyan-700 transition-colors leading-snug">
                             {course.name}
                           </h3>
                         </div>
@@ -174,7 +174,7 @@ export default function CoursesPage() {
                               {course.duration}
                             </span>
                           )}
-                          <span className="text-base font-bold text-orange-700">
+                          <span className="text-base font-bold text-cyan-700">
                             {formatCurrency(course.totalFee)}
                           </span>
                         </div>
@@ -189,7 +189,7 @@ export default function CoursesPage() {
                           <Link href={`/register?courseId=${course.id}`}>
                             <Button
                               size="sm"
-                              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium"
                             >
                               Enroll Now
                               <ArrowRight className="h-3.5 w-3.5 ml-1.5" />

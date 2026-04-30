@@ -140,10 +140,10 @@ function RegisterForm() {
               We will contact you shortly with further details.
             </p>
             {selectedCourse && (
-              <Card className="mt-6 border-0 shadow-sm bg-orange-50/50">
+              <Card className="mt-6 border-0 shadow-sm bg-cyan-50/50">
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-600">
-                    Enrolled in: <span className="font-semibold text-orange-700">{selectedCourse.name}</span>
+                    Enrolled in: <span className="font-semibold text-cyan-700">{selectedCourse.name}</span>
                   </p>
                   {selectedCourse.totalFee > 0 && (
                     <p className="text-sm text-gray-500 mt-1">
@@ -158,12 +158,12 @@ function RegisterForm() {
             )}
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/courses">
-                <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50">
+                <Button variant="outline" className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50">
                   Browse More Courses
                 </Button>
               </Link>
               <Link href="/">
-                <Button className="bg-orange-600 hover:bg-orange-700 text-white gap-2">
+                <Button className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2">
                   Back to Home
                 </Button>
               </Link>
@@ -177,10 +177,10 @@ function RegisterForm() {
   return (
     <PublicLayout>
       {/* Page Header */}
-      <section className="bg-gradient-to-br from-orange-600 to-amber-500 py-12 sm:py-16">
+      <section className="bg-gradient-to-br from-cyan-600 to-sky-500 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">Student Registration</h1>
-          <p className="mt-2 text-orange-100 text-lg max-w-xl mx-auto">
+          <p className="mt-2 text-cyan-100 text-lg max-w-xl mx-auto">
             Register yourself to enroll in courses and book study cabins
           </p>
         </div>
@@ -191,7 +191,7 @@ function RegisterForm() {
           <Card className="border-0 shadow-lg shadow-gray-200/50">
             <CardHeader className="pb-2 px-6 pt-6">
               <div className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-orange-600" />
+                <UserPlus className="h-5 w-5 text-cyan-600" />
                 <h2 className="text-lg font-semibold text-gray-900">Fill in Your Details</h2>
               </div>
               <p className="text-sm text-gray-500">
@@ -292,7 +292,7 @@ function RegisterForm() {
                       </SelectTrigger>
                       <SelectContent>
                         {departments.map((dept) => [
-                          <div key={`label-${dept.id}`} className="px-2 py-1.5 text-xs font-semibold text-orange-600 uppercase tracking-wider">
+                          <div key={`label-${dept.id}`} className="px-2 py-1.5 text-xs font-semibold text-cyan-600 uppercase tracking-wider">
                             {dept.name}
                           </div>,
                           ...dept.courses.map((course) => (
@@ -313,14 +313,14 @@ function RegisterForm() {
                     <p className="text-sm text-gray-400">No courses available at the moment</p>
                   )}
                   {selectedCourse && (
-                    <Card className="bg-orange-50/50 border-orange-100">
+                    <Card className="bg-cyan-50/50 border-cyan-100">
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-orange-800">{selectedCourse.name}</p>
-                            <p className="text-xs text-orange-600">{selectedCourse.departmentName}</p>
+                            <p className="text-sm font-medium text-cyan-800">{selectedCourse.name}</p>
+                            <p className="text-xs text-cyan-600">{selectedCourse.departmentName}</p>
                           </div>
-                          <span className="text-sm font-bold text-orange-700">
+                          <span className="text-sm font-bold text-cyan-700">
                             {formatCurrency(selectedCourse.totalFee)}
                           </span>
                         </div>
@@ -336,7 +336,7 @@ function RegisterForm() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-base"
+                  className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-base"
                 >
                   {submitting ? (
                     <>
@@ -368,7 +368,7 @@ export default function RegisterPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="h-8 w-8 text-orange-600 animate-spin" />
+          <Loader2 className="h-8 w-8 text-cyan-600 animate-spin" />
         </div>
       }
     >

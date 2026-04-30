@@ -129,7 +129,7 @@ function PageSkeleton() {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 to-sky-50">
       <div className="text-center">
         <Skeleton className="h-16 w-16 rounded-2xl mx-auto mb-4" />
         <Skeleton className="h-6 w-48 mx-auto mb-2" />
@@ -176,7 +176,7 @@ function PageHeader() {
             variant="outline"
             className={
               user.role === 'admin'
-                ? 'border-orange-200 bg-orange-50 text-orange-700'
+                ? 'border-cyan-200 bg-cyan-50 text-cyan-700'
                 : 'border-blue-200 bg-blue-50 text-blue-700'
             }
           >
@@ -186,7 +186,7 @@ function PageHeader() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2 h-9">
-                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-orange-100 text-orange-700">
+                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-cyan-100 text-cyan-700">
                   <UserCircle className="h-4 w-4" />
                 </div>
                 <span className="hidden sm:inline text-sm">{user.name}</span>
@@ -239,7 +239,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-6 py-5">
-        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-orange-600 text-white">
+        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-cyan-600 text-white">
           <BookOpen className="h-6 w-6" />
         </div>
         <div>
@@ -259,7 +259,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
               activeView === item.view
-                ? 'bg-orange-600 text-white shadow-sm'
+                ? 'bg-cyan-600 text-white shadow-sm'
                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
             )}
           >
@@ -274,7 +274,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
           <Separator className="bg-gray-700" />
           <div className="px-3 py-3 space-y-1">
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-orange-600/20 text-orange-400">
+              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-cyan-600/20 text-cyan-400">
                 <UserCircle className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
@@ -317,7 +317,7 @@ function BottomNav() {
               className={cn(
                 'flex flex-col items-center justify-center flex-1 py-1 transition-colors min-h-[44px]',
                 activeView === item.view
-                  ? 'text-orange-600'
+                  ? 'text-cyan-600'
                   : 'text-gray-400 hover:text-gray-600'
               )}
             >
@@ -330,7 +330,7 @@ function BottomNav() {
             className={cn(
               'flex flex-col items-center justify-center flex-1 py-1 transition-colors min-h-[44px]',
               moreNavItems.some((item) => item.view === activeView)
-                ? 'text-orange-600'
+                ? 'text-cyan-600'
                 : 'text-gray-400 hover:text-gray-600'
             )}
           >
@@ -356,7 +356,7 @@ function BottomNav() {
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
                   activeView === item.view
-                    ? 'bg-orange-50 text-orange-700'
+                    ? 'bg-cyan-50 text-cyan-700'
                     : 'text-gray-700 hover:bg-gray-50'
                 )}
               >
@@ -400,7 +400,7 @@ function AuthenticatedApp() {
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-orange-600 text-white">
+            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-cyan-600 text-white">
               <BookOpen className="h-4 w-4" />
             </div>
             <span className="font-semibold text-gray-900 text-sm">Lamka Coaching</span>

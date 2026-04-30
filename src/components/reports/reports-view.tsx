@@ -120,7 +120,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2">
       <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
-      <p className="text-sm font-bold text-orange-700">{formatCurrency(payload[0].value * 100)}</p>
+      <p className="text-sm font-bold text-cyan-700">{formatCurrency(payload[0].value * 100)}</p>
     </div>
   );
 }
@@ -226,7 +226,7 @@ export default function ReportsView() {
               onClick={() => setPeriod(p)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 period === p
-                  ? 'bg-white text-orange-700 shadow-sm'
+                  ? 'bg-white text-cyan-700 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -237,7 +237,7 @@ export default function ReportsView() {
         <Button
           variant="outline"
           onClick={handleExportCSV}
-          className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 hover:text-orange-800"
+          className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800"
         >
           <Download className="h-4 w-4" />
           Export CSV
@@ -249,20 +249,20 @@ export default function ReportsView() {
         <StatCard
           title="Total Revenue"
           value={formatCurrency(data.totalRevenue * 100)}
-          icon={<Banknote className="h-5 w-5 text-orange-600" />}
-          color="bg-orange-50"
+          icon={<Banknote className="h-5 w-5 text-cyan-600" />}
+          color="bg-cyan-50"
         />
         <StatCard
           title="Total Payments"
           value={String(data.paymentCount)}
-          icon={<FileText className="h-5 w-5 text-orange-600" />}
-          color="bg-orange-50"
+          icon={<FileText className="h-5 w-5 text-cyan-600" />}
+          color="bg-cyan-50"
         />
         <StatCard
           title="Avg per Payment"
           value={formatCurrency(avgPerPayment * 100)}
-          icon={<TrendingUp className="h-5 w-5 text-orange-600" />}
-          color="bg-orange-50"
+          icon={<TrendingUp className="h-5 w-5 text-cyan-600" />}
+          color="bg-cyan-50"
         />
       </div>
 
@@ -271,10 +271,10 @@ export default function ReportsView() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-orange-600" />
+              <TrendingUp className="h-4 w-4 text-cyan-600" />
               Revenue Overview
             </CardTitle>
-            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+            <Badge variant="outline" className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200">
               {period.charAt(0).toUpperCase() + period.slice(1)}
             </Badge>
           </div>
@@ -324,7 +324,7 @@ export default function ReportsView() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 text-orange-600" />
+              <Users className="h-4 w-4 text-cyan-600" />
               Top Students by Revenue
             </CardTitle>
             <Badge variant="outline" className="text-xs">
@@ -361,11 +361,11 @@ export default function ReportsView() {
                         <span
                           className={`inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold ${
                             index === 0
-                              ? 'bg-amber-100 text-amber-700'
+                              ? 'bg-sky-100 text-sky-700'
                               : index === 1
                                 ? 'bg-gray-100 text-gray-600'
                                 : index === 2
-                                  ? 'bg-orange-100 text-orange-700'
+                                  ? 'bg-cyan-100 text-cyan-700'
                                   : 'bg-gray-50 text-gray-400'
                           }`}
                         >
@@ -376,7 +376,7 @@ export default function ReportsView() {
                         <p className="text-sm font-medium text-gray-900">{student.name}</p>
                       </td>
                       <td className="py-3 text-right">
-                        <span className="text-sm font-semibold text-orange-700">
+                        <span className="text-sm font-semibold text-cyan-700">
                           {formatCurrency(student.totalPaid * 100)}
                         </span>
                       </td>

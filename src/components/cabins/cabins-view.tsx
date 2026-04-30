@@ -115,7 +115,7 @@ function getDisplayStyles(state: CabinDisplayState) {
     case 'hourly':
       return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
     case 'timeslot-full':
-      return 'border-amber-300 bg-amber-50/50 hover:border-amber-400';
+      return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
     case 'inactive':
       return 'border-gray-300 bg-gray-50 hover:border-gray-400 opacity-70';
     default:
@@ -132,7 +132,7 @@ function getStatusBadge(state: CabinDisplayState) {
     case 'hourly':
       return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Hourly</Badge>;
     case 'timeslot-full':
-      return <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">Fully Booked</Badge>;
+      return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Fully Booked</Badge>;
     case 'inactive':
       return <Badge className="bg-gray-100 text-gray-800 border-gray-200 text-xs">Inactive</Badge>;
     default:
@@ -332,11 +332,11 @@ export default function CabinsView() {
   }
 
   const filterBadges: { key: FilterType; label: string; count: number; color: string; activeColor: string }[] = [
-    { key: 'all', label: 'All', count: cabins.length, color: 'border-orange-200 text-orange-600 bg-orange-50', activeColor: 'border-orange-500 text-orange-900 bg-orange-200' },
+    { key: 'all', label: 'All', count: cabins.length, color: 'border-cyan-200 text-cyan-600 bg-cyan-50', activeColor: 'border-cyan-500 text-cyan-900 bg-cyan-200' },
     { key: 'available', label: 'Available', count: availableCount, color: 'border-emerald-200 text-emerald-700 bg-emerald-50', activeColor: 'border-emerald-500 text-emerald-900 bg-emerald-200' },
     { key: 'exclusive', label: 'Exclusive', count: exclusiveCount, color: 'border-red-200 text-red-700 bg-red-50', activeColor: 'border-red-500 text-red-900 bg-red-200' },
     { key: 'hourly', label: 'Hourly', count: hourlyCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' },
-    ...(timeslotFullCount > 0 ? [{ key: 'timeslot-full' as FilterType, label: 'Fully Booked', count: timeslotFullCount, color: 'border-amber-200 text-amber-700 bg-amber-50', activeColor: 'border-amber-500 text-amber-900 bg-amber-200' }] : []),
+    ...(timeslotFullCount > 0 ? [{ key: 'timeslot-full' as FilterType, label: 'Fully Booked', count: timeslotFullCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' }] : []),
     ...(inactiveCount > 0 ? [{ key: 'inactive' as FilterType, label: 'Inactive', count: inactiveCount, color: 'border-gray-200 text-gray-500 bg-gray-50', activeColor: 'border-gray-400 text-gray-700 bg-gray-200' }] : []),
   ];
 
@@ -360,13 +360,13 @@ export default function CabinsView() {
           {filterState !== 'all' && (
             <button
               onClick={() => setFilterState('all')}
-              className="text-sm text-gray-400 hover:text-orange-600 self-center ml-1 underline cursor-pointer"
+              className="text-sm text-gray-400 hover:text-cyan-600 self-center ml-1 underline cursor-pointer"
             >
               Clear
             </button>
           )}
         </div>
-        <Button onClick={() => setAddDialogOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white">
+        <Button onClick={() => setAddDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Add Cabin
         </Button>
@@ -390,7 +390,7 @@ export default function CabinsView() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-white/80">
-                      <DoorOpen className="h-4 w-4 text-orange-600" />
+                      <DoorOpen className="h-4 w-4 text-cyan-600" />
                     </div>
                     <span className="font-bold text-gray-900 text-lg">#{cabin.cabinNum}</span>
                   </div>
@@ -412,7 +412,7 @@ export default function CabinsView() {
                 )}
                 {state === 'timeslot-full' && hourlyBookings.length > 0 && (
                   <div className="mt-2 text-xs space-y-0.5">
-                    <p className="font-medium text-amber-800">{hourlyBookings.length} booking{hourlyBookings.length > 1 ? 's' : ''}</p>
+                    <p className="font-medium text-sky-800">{hourlyBookings.length} booking{hourlyBookings.length > 1 ? 's' : ''}</p>
                     <p className="text-gray-500">
                       {formatTime(opStart)} - {formatTime(opEnd)} covered
                     </p>
@@ -433,7 +433,7 @@ export default function CabinsView() {
       {filteredCabins.length === 0 && !loading && (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-8 text-center text-gray-400">
-            <DoorOpen className="h-12 w-12 mx-auto mb-3 opacity-50 text-orange-300" />
+            <DoorOpen className="h-12 w-12 mx-auto mb-3 opacity-50 text-cyan-300" />
             <p>No cabins match the selected filter</p>
             <p className="text-sm mt-1">Try a different filter or add new cabins</p>
           </CardContent>
@@ -445,7 +445,7 @@ export default function CabinsView() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <DoorOpen className="h-5 w-5 text-orange-500" />
+              <DoorOpen className="h-5 w-5 text-cyan-500" />
               Add Cabin
             </DialogTitle>
           </DialogHeader>
@@ -455,7 +455,7 @@ export default function CabinsView() {
                 variant={addMode === 'single' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setAddMode('single')}
-                className={addMode === 'single' ? 'bg-orange-500 hover:bg-orange-600' : ''}
+                className={addMode === 'single' ? 'bg-cyan-500 hover:bg-cyan-600' : ''}
               >
                 Single Cabin
               </Button>
@@ -463,7 +463,7 @@ export default function CabinsView() {
                 variant={addMode === 'bulk' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setAddMode('bulk')}
-                className={addMode === 'bulk' ? 'bg-orange-500 hover:bg-orange-600' : ''}
+                className={addMode === 'bulk' ? 'bg-cyan-500 hover:bg-cyan-600' : ''}
               >
                 Bulk Add
               </Button>
@@ -505,7 +505,7 @@ export default function CabinsView() {
             <Button
               onClick={handleAddCabin}
               disabled={submitting || (addMode === 'single' ? !singleCabinNum : !bulkCount)}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
             >
               {submitting ? 'Adding...' : 'Add'}
             </Button>
@@ -518,7 +518,7 @@ export default function CabinsView() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <DoorOpen className="h-5 w-5 text-orange-500" />
+              <DoorOpen className="h-5 w-5 text-cyan-500" />
               Edit Cabin #{selectedCabin?.cabinNum}
             </DialogTitle>
           </DialogHeader>
@@ -546,8 +546,8 @@ export default function CabinsView() {
               />
             </div>
             {selectedCabin && selectedCabin.bookings.length > 0 && (
-              <div className="rounded-lg bg-orange-50 p-3 space-y-2 border border-orange-100">
-                <p className="text-sm font-medium text-orange-800">Active Bookings ({selectedCabin.bookings.length})</p>
+              <div className="rounded-lg bg-cyan-50 p-3 space-y-2 border border-cyan-100">
+                <p className="text-sm font-medium text-cyan-800">Active Bookings ({selectedCabin.bookings.length})</p>
                 {selectedCabin.bookings.map((b) => (
                   <div key={b.id} className="flex items-center justify-between text-xs">
                     <span className="text-gray-600">{b.student.name}</span>
@@ -576,7 +576,7 @@ export default function CabinsView() {
               <Button
                 onClick={handleUpdateCabin}
                 disabled={submitting}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-cyan-500 hover:bg-cyan-600 text-white"
               >
                 {submitting ? 'Saving...' : 'Save'}
               </Button>

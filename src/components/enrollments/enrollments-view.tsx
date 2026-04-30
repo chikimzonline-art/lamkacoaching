@@ -334,10 +334,10 @@ export default function EnrollmentsView() {
       {/* Header & Stats */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
-          <UserPlus className="h-5 w-5 text-orange-600" />
+          <UserPlus className="h-5 w-5 text-cyan-600" />
           <h2 className="text-lg font-bold text-gray-900">Enrollments</h2>
         </div>
-        <Button onClick={openWizard} size="sm" className="bg-orange-600 hover:bg-orange-700">
+        <Button onClick={openWizard} size="sm" className="bg-cyan-600 hover:bg-cyan-700">
           <Plus className="h-4 w-4 mr-1.5" />
           New Enrollment
         </Button>
@@ -354,7 +354,7 @@ export default function EnrollmentsView() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3 sm:p-4">
             <p className="text-xs text-gray-500">Total Fees</p>
-            <p className="text-xl font-bold text-orange-600">{formatCurrency(stats.totalFees)}</p>
+            <p className="text-xl font-bold text-cyan-600">{formatCurrency(stats.totalFees)}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
@@ -424,7 +424,7 @@ export default function EnrollmentsView() {
                 key={enrollment.id}
                 className={cn(
                   'border shadow-sm hover:shadow-md transition-shadow',
-                  enrollment.status === 'active' && 'border-orange-200',
+                  enrollment.status === 'active' && 'border-cyan-200',
                   enrollment.status === 'dropped' && 'opacity-60',
                 )}
               >
@@ -433,7 +433,7 @@ export default function EnrollmentsView() {
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={cn(
                         'text-xs',
-                        enrollment.status === 'active' && 'bg-orange-100 text-orange-800 border-orange-200',
+                        enrollment.status === 'active' && 'bg-cyan-100 text-cyan-800 border-cyan-200',
                         enrollment.status === 'completed' && 'bg-gray-100 text-gray-600 border-gray-200',
                         enrollment.status === 'dropped' && 'bg-red-100 text-red-800 border-red-200',
                       )}>
@@ -470,7 +470,7 @@ export default function EnrollmentsView() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       {outstanding > 0 && (
                         <Button size="sm" variant="outline" onClick={() => openPayDialog(enrollment)}
-                          className="text-xs h-9 text-orange-700 border-orange-300 hover:bg-orange-50">
+                          className="text-xs h-9 text-cyan-700 border-cyan-300 hover:bg-cyan-50">
                           <Banknote className="h-3 w-3 mr-1" />
                           Record Payment
                         </Button>
@@ -523,10 +523,10 @@ export default function EnrollmentsView() {
               <Label>Payment Mode</Label>
               <div className="grid grid-cols-2 gap-2">
                 <Button type="button" variant={payMode === 'cash' ? 'default' : 'outline'}
-                  className={payMode === 'cash' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                  className={payMode === 'cash' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
                   onClick={() => setPayMode('cash')}>Cash</Button>
                 <Button type="button" variant={payMode === 'upi' ? 'default' : 'outline'}
-                  className={payMode === 'upi' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                  className={payMode === 'upi' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
                   onClick={() => setPayMode('upi')}>UPI</Button>
               </div>
             </div>
@@ -538,7 +538,7 @@ export default function EnrollmentsView() {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setPayDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleRecordPayment} disabled={paySubmitting || !payAmount}
-              className="bg-orange-600 hover:bg-orange-700">
+              className="bg-cyan-600 hover:bg-cyan-700">
               {paySubmitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Recording...</> : 'Record Payment'}
             </Button>
           </DialogFooter>
@@ -560,13 +560,13 @@ export default function EnrollmentsView() {
                   onClick={() => { if (i < stepIndex) setStep(s.key); }}
                   className={cn(
                     'flex items-center justify-center h-8 w-8 rounded-full text-xs font-medium transition-colors',
-                    i === stepIndex ? 'bg-orange-600 text-white' : i < stepIndex ? 'bg-orange-100 text-orange-700 cursor-pointer' : 'bg-gray-100 text-gray-400',
+                    i === stepIndex ? 'bg-cyan-600 text-white' : i < stepIndex ? 'bg-cyan-100 text-cyan-700 cursor-pointer' : 'bg-gray-100 text-gray-400',
                   )}
                 >
                   {i + 1}
                 </button>
                 {i < STEPS.length - 1 && (
-                  <div className={cn('w-6 sm:w-10 h-0.5 mx-1', i < stepIndex ? 'bg-orange-300' : 'bg-gray-200')} />
+                  <div className={cn('w-6 sm:w-10 h-0.5 mx-1', i < stepIndex ? 'bg-cyan-300' : 'bg-gray-200')} />
                 )}
               </div>
             ))}
@@ -580,7 +580,7 @@ export default function EnrollmentsView() {
                 <Input placeholder="Search by name or phone..." value={wizardStudentSearch}
                   onChange={(e) => setWizardStudentSearch(e.target.value)} />
                 <Button type="button" variant="outline"
-                  className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
+                  className="w-full border-cyan-300 text-cyan-700 hover:bg-cyan-50"
                   onClick={() => { setNewStudentName(''); setNewStudentPhone(''); setShowNewStudentForm(true); }}>
                   <UserPlus className="h-4 w-4 mr-2" /> Create New Student
                 </Button>
@@ -590,7 +590,7 @@ export default function EnrollmentsView() {
                   ) : studentOptions.map((s) => (
                     <button key={s.id} onClick={() => setWizardStudentId(s.id)}
                       className={cn('w-full p-3 rounded-lg text-left transition-colors',
-                        wizardStudentId === s.id ? 'bg-orange-50 border border-orange-200' : 'hover:bg-gray-50')}>
+                        wizardStudentId === s.id ? 'bg-cyan-50 border border-cyan-200' : 'hover:bg-gray-50')}>
                       <p className="font-medium text-gray-900 text-sm">{s.name}</p>
                       <p className="text-xs text-gray-500">{s.phone}</p>
                     </button>
@@ -602,7 +602,7 @@ export default function EnrollmentsView() {
             {step === 'student' && showNewStudentForm && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-500 mb-2">Add a new student</p>
-                <div className="space-y-3 rounded-xl border border-orange-200 bg-orange-50/50 p-4">
+                <div className="space-y-3 rounded-xl border border-cyan-200 bg-cyan-50/50 p-4">
                   <div className="space-y-2">
                     <Label>Full Name</Label>
                     <Input placeholder="Enter student name" value={newStudentName} onChange={(e) => setNewStudentName(e.target.value)} />
@@ -614,7 +614,7 @@ export default function EnrollmentsView() {
                   <div className="flex gap-2 pt-1">
                     <Button type="button" onClick={handleCreateInlineStudent}
                       disabled={creatingStudent || !newStudentName.trim() || !newStudentPhone.trim()}
-                      className="flex-1 bg-orange-600 hover:bg-orange-700">
+                      className="flex-1 bg-cyan-600 hover:bg-cyan-700">
                       {creatingStudent ? 'Creating...' : 'Create & Select'}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => setShowNewStudentForm(false)}>
@@ -642,11 +642,11 @@ export default function EnrollmentsView() {
                   ) : courses.map((c) => (
                     <button key={c.id} onClick={() => setWizardCourseId(c.id)}
                       className={cn('w-full p-3 rounded-lg text-left transition-colors',
-                        wizardCourseId === c.id ? 'bg-orange-50 border border-orange-200' : 'hover:bg-gray-50')}>
+                        wizardCourseId === c.id ? 'bg-cyan-50 border border-cyan-200' : 'hover:bg-gray-50')}>
                       <p className="font-medium text-gray-900 text-sm">{c.name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-xs text-gray-500">{c.department.name}</span>
-                        <span className="text-xs text-orange-600 font-medium">{formatCurrency(c.totalFee)}</span>
+                        <span className="text-xs text-cyan-600 font-medium">{formatCurrency(c.totalFee)}</span>
                         {c.duration && <span className="text-xs text-gray-400">{c.duration}</span>}
                       </div>
                     </button>
@@ -705,12 +705,12 @@ export default function EnrollmentsView() {
             {step === 'confirm' && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-500 mb-2">Review & confirm enrollment</p>
-                <div className="rounded-xl border border-orange-200 bg-orange-50/50 p-4 space-y-2">
+                <div className="rounded-xl border border-cyan-200 bg-cyan-50/50 p-4 space-y-2">
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Student:</span><span className="font-medium">{selectedStudent?.name}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Course:</span><span className="font-medium">{selectedCourse?.name}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Department:</span><span className="font-medium">{selectedCourse?.department.name}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Start:</span><span className="font-medium">{formatDate(wizardStartDate.toISOString())}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-gray-500">Fee:</span><span className="font-bold text-orange-600">{formatCurrency(Number(wizardFee) * 100)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-500">Fee:</span><span className="font-bold text-cyan-600">{formatCurrency(Number(wizardFee) * 100)}</span></div>
                 </div>
 
                 {/* Inline Payment */}
@@ -734,10 +734,10 @@ export default function EnrollmentsView() {
                         <Label>Payment Mode</Label>
                         <div className="grid grid-cols-2 gap-2">
                           <Button type="button" variant={wizardPayMode === 'cash' ? 'default' : 'outline'}
-                            className={wizardPayMode === 'cash' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                            className={wizardPayMode === 'cash' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
                             onClick={() => setWizardPayMode('cash')}>Cash</Button>
                           <Button type="button" variant={wizardPayMode === 'upi' ? 'default' : 'outline'}
-                            className={wizardPayMode === 'upi' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                            className={wizardPayMode === 'upi' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
                             onClick={() => setWizardPayMode('upi')}>UPI</Button>
                         </div>
                       </div>
@@ -768,13 +768,13 @@ export default function EnrollmentsView() {
                   (step === 'student' && !wizardStudentId) ||
                   (step === 'course' && !wizardCourseId)
                 }
-                className="bg-orange-600 hover:bg-orange-700"
+                className="bg-cyan-600 hover:bg-cyan-700"
               >
                 Next <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
               <Button onClick={handleCreateEnrollment} disabled={submitting || !wizardFee}
-                className="bg-orange-600 hover:bg-orange-700">
+                className="bg-cyan-600 hover:bg-cyan-700">
                 {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Creating...</> : 'Create Enrollment'}
               </Button>
             )}

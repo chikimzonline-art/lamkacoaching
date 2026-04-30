@@ -536,7 +536,7 @@ export default function BookingsView() {
             </PopoverContent>
           </Popover>
         </div>
-        <Button onClick={openWizard} className="bg-orange-600 hover:bg-orange-700">
+        <Button onClick={openWizard} className="bg-cyan-600 hover:bg-cyan-700">
           <Plus className="h-4 w-4 mr-2" />
           New Booking
         </Button>
@@ -567,7 +567,7 @@ export default function BookingsView() {
                 className={cn(
                   'border shadow-sm hover:shadow-md transition-shadow',
                   booking.status === 'cancelled' && 'opacity-60',
-                  booking.status === 'active' && 'border-orange-200'
+                  booking.status === 'active' && 'border-cyan-200'
                 )}
               >
                 <CardContent className="p-4">
@@ -579,7 +579,7 @@ export default function BookingsView() {
                         className={cn(
                           'text-xs',
                           booking.type === 'exclusive'
-                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            ? 'bg-sky-100 text-sky-800 border-sky-200'
                             : 'bg-sky-100 text-sky-800 border-sky-200'
                         )}
                       >
@@ -589,7 +589,7 @@ export default function BookingsView() {
                         variant="outline"
                         className={cn(
                           'text-xs',
-                          booking.status === 'active' && 'bg-orange-100 text-orange-800 border-orange-200',
+                          booking.status === 'active' && 'bg-cyan-100 text-cyan-800 border-cyan-200',
                           booking.status === 'completed' && 'bg-gray-100 text-gray-600 border-gray-200',
                           booking.status === 'cancelled' && 'bg-red-100 text-red-800 border-red-200'
                         )}
@@ -627,7 +627,7 @@ export default function BookingsView() {
                   {/* Payment info */}
                   <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-3 text-xs">
-                      <span className="text-orange-600 font-medium">
+                      <span className="text-cyan-600 font-medium">
                         Paid: {formatCurrency(booking.paidAmount)}
                       </span>
                       {pending > 0 && (
@@ -651,7 +651,7 @@ export default function BookingsView() {
                           size="sm"
                           variant="outline"
                           onClick={() => openPaymentDialog(booking)}
-                          className="text-xs h-9 text-orange-700 border-orange-300 hover:bg-orange-50"
+                          className="text-xs h-9 text-cyan-700 border-cyan-300 hover:bg-cyan-50"
                         >
                           Record Payment
                         </Button>
@@ -661,7 +661,7 @@ export default function BookingsView() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleRenewBooking(booking)}
-                          className="text-xs h-9 text-amber-700 border-amber-300 hover:bg-amber-50"
+                          className="text-xs h-9 text-sky-700 border-sky-300 hover:bg-sky-50"
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />
                           Renew +1 Month
@@ -701,7 +701,7 @@ export default function BookingsView() {
                               size="sm"
                               variant="ghost"
                               onClick={() => openReceipt(booking, p)}
-                              className="h-8 px-3 text-xs text-gray-400 hover:text-orange-600"
+                              className="h-8 px-3 text-xs text-gray-400 hover:text-cyan-600"
                             >
                               <Receipt className="h-3 w-3 mr-1" />
                               Receipt
@@ -736,9 +736,9 @@ export default function BookingsView() {
                   className={cn(
                     'flex items-center justify-center h-8 w-8 rounded-full text-xs font-medium transition-colors',
                     i === stepIndex
-                      ? 'bg-orange-600 text-white'
+                      ? 'bg-cyan-600 text-white'
                       : i < stepIndex
-                      ? 'bg-orange-100 text-orange-700 cursor-pointer'
+                      ? 'bg-cyan-100 text-cyan-700 cursor-pointer'
                       : 'bg-gray-100 text-gray-400'
                   )}
                 >
@@ -748,7 +748,7 @@ export default function BookingsView() {
                   <div
                     className={cn(
                       'w-6 sm:w-10 h-0.5 mx-1',
-                      i < stepIndex ? 'bg-orange-300' : 'bg-gray-200'
+                      i < stepIndex ? 'bg-cyan-300' : 'bg-gray-200'
                     )}
                   />
                 )}
@@ -766,7 +766,7 @@ export default function BookingsView() {
                   className={cn(
                     'w-full p-4 rounded-xl border-2 text-left transition-all',
                     wizardType === 'hourly'
-                      ? 'border-orange-500 bg-orange-50'
+                      ? 'border-cyan-500 bg-cyan-50'
                       : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
@@ -778,7 +778,7 @@ export default function BookingsView() {
                   className={cn(
                     'w-full p-4 rounded-xl border-2 text-left transition-all',
                     wizardType === 'exclusive'
-                      ? 'border-orange-500 bg-orange-50'
+                      ? 'border-cyan-500 bg-cyan-50'
                       : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
@@ -799,7 +799,7 @@ export default function BookingsView() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-800"
+                  className="w-full border-cyan-300 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800"
                   onClick={() => {
                     setNewStudentName('');
                     setNewStudentPhone('');
@@ -823,7 +823,7 @@ export default function BookingsView() {
                         className={cn(
                           'w-full p-3 rounded-lg text-left transition-colors',
                           wizardStudentId === s.id
-                            ? 'bg-orange-50 border border-orange-200'
+                            ? 'bg-cyan-50 border border-cyan-200'
                             : 'hover:bg-gray-50'
                         )}
                       >
@@ -839,7 +839,7 @@ export default function BookingsView() {
             {step === 'student' && showNewStudentForm && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-500 mb-2">Add a new student</p>
-                <div className="space-y-3 rounded-xl border border-orange-200 bg-orange-50/50 p-4">
+                <div className="space-y-3 rounded-xl border border-cyan-200 bg-cyan-50/50 p-4">
                   <div className="space-y-2">
                     <Label htmlFor="new-student-name">Full Name</Label>
                     <Input
@@ -863,7 +863,7 @@ export default function BookingsView() {
                       type="button"
                       onClick={handleCreateInlineStudent}
                       disabled={creatingStudent || !newStudentName.trim() || !newStudentPhone.trim()}
-                      className="flex-1 bg-orange-600 hover:bg-orange-700"
+                      className="flex-1 bg-cyan-600 hover:bg-cyan-700"
                     >
                       {creatingStudent ? 'Creating...' : 'Create & Select'}
                     </Button>
@@ -896,7 +896,7 @@ export default function BookingsView() {
                         className={cn(
                           'p-3 rounded-xl border-2 text-center transition-all',
                           wizardCabinId === c.id
-                            ? 'border-orange-500 bg-orange-50'
+                            ? 'border-cyan-500 bg-cyan-50'
                             : 'border-gray-200 hover:border-gray-300'
                         )}
                       >
@@ -1032,7 +1032,7 @@ export default function BookingsView() {
                       variant="outline"
                       className={
                         wizardType === 'exclusive'
-                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          ? 'bg-sky-100 text-sky-800 border-sky-200'
                           : 'bg-sky-100 text-sky-800 border-sky-200'
                       }
                     >
@@ -1072,17 +1072,17 @@ export default function BookingsView() {
                   )}
                   <div className="pt-2 border-t border-gray-200 flex justify-between">
                     <span className="text-sm font-semibold text-gray-700">Total Amount</span>
-                    <span className="text-lg font-bold text-orange-600">
+                    <span className="text-lg font-bold text-cyan-600">
                       {formatCurrency(Number(wizardAmount) * 100)}
                     </span>
                   </div>
                 </div>
 
                 {/* Pay Now Section */}
-                <div className="rounded-xl border-2 border-dashed border-orange-200 bg-orange-50/50 p-4 space-y-3">
+                <div className="rounded-xl border-2 border-dashed border-cyan-200 bg-cyan-50/50 p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Banknote className="h-5 w-5 text-orange-600" />
+                      <Banknote className="h-5 w-5 text-cyan-600" />
                       <span className="text-sm font-semibold text-gray-800">Payment at Admission</span>
                     </div>
                     <button
@@ -1096,7 +1096,7 @@ export default function BookingsView() {
                       }}
                       className={cn(
                         'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                        wizardPayNow ? 'bg-orange-600' : 'bg-gray-300'
+                        wizardPayNow ? 'bg-cyan-600' : 'bg-gray-300'
                       )}
                     >
                       <span
@@ -1149,7 +1149,7 @@ export default function BookingsView() {
                             className={cn(
                               'flex items-center justify-center gap-2 p-2.5 rounded-lg border-2 text-sm font-medium transition-all',
                               wizardPayMode === 'cash'
-                                ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
                                 : 'border-gray-200 text-gray-500 hover:border-gray-300'
                             )}
                           >
@@ -1162,7 +1162,7 @@ export default function BookingsView() {
                             className={cn(
                               'flex items-center justify-center gap-2 p-2.5 rounded-lg border-2 text-sm font-medium transition-all',
                               wizardPayMode === 'upi'
-                                ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
                                 : 'border-gray-200 text-gray-500 hover:border-gray-300'
                             )}
                           >
@@ -1176,7 +1176,7 @@ export default function BookingsView() {
                         </div>
                       </div>
                       {wizardPayAmount && Number(wizardPayAmount) > 0 && (
-                        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white border border-orange-200">
+                        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white border border-cyan-200">
                           <Check className="h-4 w-4 text-emerald-600 shrink-0" />
                           <p className="text-xs text-gray-600">
                             <span className="font-semibold text-emerald-700">{formatCurrency(Number(wizardPayAmount) * 100)}</span> will be recorded as <span className="uppercase font-medium">{wizardPayMode}</span> payment upon booking creation.
@@ -1223,7 +1223,7 @@ export default function BookingsView() {
                     }
                     setStep(STEPS[stepIndex + 1].key);
                   }}
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-cyan-600 hover:bg-cyan-700"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -1232,7 +1232,7 @@ export default function BookingsView() {
                 <Button
                   onClick={handleCreateBooking}
                   disabled={submitting}
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-cyan-600 hover:bg-cyan-700"
                 >
                   {submitting
                     ? 'Creating...'
@@ -1300,7 +1300,7 @@ export default function BookingsView() {
             <Button
               onClick={handleRecordPayment}
               disabled={paymentSubmitting || !paymentAmount || Number(paymentAmount) <= 0}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-cyan-600 hover:bg-cyan-700"
             >
               {paymentSubmitting ? 'Recording...' : 'Record Payment'}
             </Button>

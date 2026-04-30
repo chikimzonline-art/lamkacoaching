@@ -48,11 +48,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 to-sky-50 px-4">
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-orange-600 text-white mb-4 shadow-lg shadow-orange-200">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-cyan-600 text-white mb-4 shadow-lg shadow-cyan-200">
             <BookOpen className="h-9 w-9" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Lamka Coaching Center</h1>
@@ -109,7 +109,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                className="w-full h-11 bg-cyan-600 hover:bg-cyan-700 text-white font-medium"
               >
                 {loading ? (
                   <>

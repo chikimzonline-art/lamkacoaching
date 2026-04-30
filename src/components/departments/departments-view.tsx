@@ -120,10 +120,10 @@ export default function DepartmentsView() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-orange-600" />
+          <Building2 className="h-5 w-5 text-cyan-600" />
           <h2 className="text-lg font-bold text-gray-900">Departments</h2>
         </div>
-        <Button onClick={openCreate} size="sm" className="bg-orange-600 hover:bg-orange-700">
+        <Button onClick={openCreate} size="sm" className="bg-cyan-600 hover:bg-cyan-700">
           <Plus className="h-4 w-4 mr-1.5" />
           Add Department
         </Button>
@@ -149,8 +149,8 @@ export default function DepartmentsView() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-orange-100">
-                        <Building2 className="h-4 w-4 text-orange-600" />
+                      <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-cyan-100">
+                        <Building2 className="h-4 w-4 text-cyan-600" />
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{dept.name}</p>
@@ -204,7 +204,7 @@ export default function DepartmentsView() {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving || !formName.trim()} className="bg-orange-600 hover:bg-orange-700">
+            <Button onClick={handleSave} disabled={saving || !formName.trim()} className="bg-cyan-600 hover:bg-cyan-700">
               {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</> : editing ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>

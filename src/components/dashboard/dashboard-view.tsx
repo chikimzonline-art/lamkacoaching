@@ -176,7 +176,7 @@ export default function DashboardView() {
     return (
       <Card className="border-0 shadow-sm">
         <CardContent className="p-8 text-center text-gray-500">
-          <AlertCircle className="h-12 w-12 mx-auto mb-3 text-orange-300" />
+          <AlertCircle className="h-12 w-12 mx-auto mb-3 text-cyan-300" />
           <p>Failed to load dashboard data. Please try refreshing.</p>
         </CardContent>
       </Card>
@@ -192,15 +192,15 @@ export default function DashboardView() {
         <StatCard
           title="Total Cabins"
           value={String(stats.totalCabins)}
-          icon={<DoorOpen className="h-5 w-5 text-orange-600" />}
-          color="bg-orange-50"
+          icon={<DoorOpen className="h-5 w-5 text-cyan-600" />}
+          color="bg-cyan-50"
           subtitle={`${stats.availableCabins} available`}
         />
         <StatCard
           title="Active Bookings"
           value={String(stats.activeBookingsCount)}
-          icon={<Calendar className="h-5 w-5 text-orange-600" />}
-          color="bg-orange-50"
+          icon={<Calendar className="h-5 w-5 text-cyan-600" />}
+          color="bg-cyan-50"
           subtitle={`${stats.todayHourlyCount} hourly today`}
         />
         <StatCard
@@ -226,8 +226,8 @@ export default function DashboardView() {
         <StatCard
           title="Course Pending"
           value={formatCurrency(stats.enrollmentOutstanding || 0)}
-          icon={<AlertCircle className="h-5 w-5 text-amber-500" />}
-          color="bg-amber-50"
+          icon={<AlertCircle className="h-5 w-5 text-sky-500" />}
+          color="bg-sky-50"
           subtitle="Enrollment dues"
         />
       </div>
@@ -238,10 +238,10 @@ export default function DashboardView() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-orange-600" />
+                <Clock className="h-4 w-4 text-cyan-600" />
                 Today&apos;s Bookings
               </CardTitle>
-              <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 bg-orange-50">
+              <Badge variant="outline" className="text-xs border-cyan-200 text-cyan-700 bg-cyan-50">
                 {todayBookings.length}
               </Badge>
             </div>
@@ -254,7 +254,7 @@ export default function DashboardView() {
                 {todayBookings.map((b) => (
                   <div
                     key={b.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-orange-50/50 hover:bg-orange-100/60 transition-colors border border-orange-100"
+                    className="flex items-center justify-between p-3 rounded-lg bg-cyan-50/50 hover:bg-cyan-100/60 transition-colors border border-cyan-100"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 truncate">{b.student.name}</p>
@@ -264,7 +264,7 @@ export default function DashboardView() {
                       </p>
                     </div>
                     <div className="text-right ml-3 shrink-0">
-                      <p className="text-sm font-semibold text-orange-600">
+                      <p className="text-sm font-semibold text-cyan-600">
                         {formatCurrency(b.totalAmount)}
                       </p>
                       <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700 border-sky-200">
@@ -283,10 +283,10 @@ export default function DashboardView() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4 text-orange-600" />
+                <Users className="h-4 w-4 text-cyan-600" />
                 Exclusive Reservations
               </CardTitle>
-              <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 bg-orange-50">
+              <Badge variant="outline" className="text-xs border-cyan-200 text-cyan-700 bg-cyan-50">
                 {exclusiveBookings.length}
               </Badge>
             </div>
@@ -330,10 +330,10 @@ export default function DashboardView() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <ArrowUpRight className="h-4 w-4 text-amber-500" />
+                <ArrowUpRight className="h-4 w-4 text-sky-500" />
                 Expiring Soon
               </CardTitle>
-              <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+              <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700 border-sky-200">
                 {expiringSoon.length}
               </Badge>
             </div>
@@ -346,7 +346,7 @@ export default function DashboardView() {
                 {expiringSoon.map((b) => (
                   <div
                     key={b.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-200"
+                    className="flex items-center justify-between p-3 rounded-lg bg-sky-50 border border-sky-200"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 truncate">{b.student.name}</p>
@@ -355,7 +355,7 @@ export default function DashboardView() {
                       </p>
                     </div>
                     <div className="text-right ml-3 shrink-0">
-                      <p className="text-sm font-semibold text-amber-700">
+                      <p className="text-sm font-semibold text-sky-700">
                         Expires {b.endDate ? formatDate(b.endDate) : 'N/A'}
                       </p>
                       <p className="text-xs text-gray-400">{b.student.phone}</p>
@@ -372,7 +372,7 @@ export default function DashboardView() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-orange-600" />
+                <Banknote className="h-4 w-4 text-cyan-600" />
                 Recent Payments
               </CardTitle>
             </div>
@@ -385,7 +385,7 @@ export default function DashboardView() {
                 {recentPayments.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-orange-50/50 hover:bg-orange-100/60 transition-colors border border-orange-100"
+                    className="flex items-center justify-between p-3 rounded-lg bg-cyan-50/50 hover:bg-cyan-100/60 transition-colors border border-cyan-100"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 truncate">{p.student.name}</p>
@@ -397,11 +397,11 @@ export default function DashboardView() {
                     <div className="text-right flex items-center gap-2 ml-3 shrink-0">
                       <Badge
                         variant="outline"
-                        className={`text-xs ${p.mode === 'cash' ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}
+                        className={`text-xs ${p.mode === 'cash' ? 'bg-cyan-100 text-cyan-800 border-cyan-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}
                       >
                         {p.mode.toUpperCase()}
                       </Badge>
-                      <p className="text-sm font-semibold text-orange-600">
+                      <p className="text-sm font-semibold text-cyan-600">
                         {formatCurrency(p.amount)}
                       </p>
                     </div>
@@ -441,7 +441,7 @@ export default function DashboardView() {
                   <div className="text-right flex items-center gap-2 ml-3 shrink-0">
                     <Badge
                       variant="outline"
-                      className={`text-xs ${p.mode === 'cash' ? 'bg-orange-100 text-orange-800 border-orange-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}
+                      className={`text-xs ${p.mode === 'cash' ? 'bg-cyan-100 text-cyan-800 border-cyan-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}
                     >
                       {p.mode.toUpperCase()}
                     </Badge>

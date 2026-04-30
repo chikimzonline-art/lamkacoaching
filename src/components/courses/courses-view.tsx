@@ -188,7 +188,7 @@ export default function CoursesView() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
-          <GraduationCap className="h-5 w-5 text-orange-600" />
+          <GraduationCap className="h-5 w-5 text-cyan-600" />
           <h2 className="text-lg font-bold text-gray-900">Courses</h2>
         </div>
         <div className="flex items-center gap-2">
@@ -203,7 +203,7 @@ export default function CoursesView() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={openCreate} size="sm" className="bg-orange-600 hover:bg-orange-700">
+          <Button onClick={openCreate} size="sm" className="bg-cyan-600 hover:bg-cyan-700">
             <Plus className="h-4 w-4 mr-1.5" />
             Add Course
           </Button>
@@ -235,7 +235,7 @@ export default function CoursesView() {
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-900 truncate">{course.name}</p>
                       <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-orange-50 text-orange-700 border-orange-200">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-cyan-50 text-cyan-700 border-cyan-200">
                           {course.department.name}
                         </Badge>
                         {course.duration && (
@@ -264,7 +264,7 @@ export default function CoursesView() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-sm font-bold text-orange-600">{formatCurrency(course.totalFee)}</p>
+                  <p className="text-sm font-bold text-cyan-600">{formatCurrency(course.totalFee)}</p>
                   <p className="text-xs text-gray-500">{course._count.enrollments} enrolled</p>
                 </div>
               </CardContent>
@@ -336,7 +336,7 @@ export default function CoursesView() {
             <Button
               onClick={handleSave}
               disabled={saving || !formName.trim() || !formDeptId || !formFee}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-cyan-600 hover:bg-cyan-700"
             >
               {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</> : editing ? 'Update' : 'Create'}
             </Button>

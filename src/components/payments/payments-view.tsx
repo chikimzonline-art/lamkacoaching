@@ -432,14 +432,14 @@ export default function PaymentsView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Banknote className="h-6 w-6 text-orange-500" />
+          <Banknote className="h-6 w-6 text-cyan-500" />
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
             Payments
           </h2>
         </div>
         <Button
           onClick={openRecordDialog}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-cyan-500 hover:bg-cyan-600 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Record Payment
@@ -448,16 +448,16 @@ export default function PaymentsView() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="border-orange-100">
+        <Card className="border-cyan-100">
           <CardContent className="p-3 sm:p-4 flex items-center gap-3">
-            <div className="rounded-full bg-orange-100 p-2.5">
-              <Banknote className="h-5 w-5 text-orange-600" />
+            <div className="rounded-full bg-cyan-100 p-2.5">
+              <Banknote className="h-5 w-5 text-cyan-600" />
             </div>
             <div>
               <p className="text-xs sm:text-sm text-gray-500">Collected Today</p>
-              <p className="text-lg sm:text-xl font-bold text-orange-600">
+              <p className="text-lg sm:text-xl font-bold text-cyan-600">
                 {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                  <Loader2 className="h-5 w-5 animate-spin text-cyan-500" />
                 ) : (
                   formatCurrency(todayCollected)
                 )}
@@ -465,16 +465,16 @@ export default function PaymentsView() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-amber-100">
+        <Card className="border-sky-100">
           <CardContent className="p-3 sm:p-4 flex items-center gap-3">
-            <div className="rounded-full bg-amber-100 p-2.5">
-              <TrendingUp className="h-5 w-5 text-amber-600" />
+            <div className="rounded-full bg-sky-100 p-2.5">
+              <TrendingUp className="h-5 w-5 text-sky-600" />
             </div>
             <div>
               <p className="text-xs sm:text-sm text-gray-500">This Month</p>
-              <p className="text-lg sm:text-xl font-bold text-amber-600">
+              <p className="text-lg sm:text-xl font-bold text-sky-600">
                 {loading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+                  <Loader2 className="h-5 w-5 animate-spin text-sky-500" />
                 ) : (
                   formatCurrency(monthCollected)
                 )}
@@ -515,7 +515,7 @@ export default function PaymentsView() {
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
         </div>
       )}
 
@@ -547,14 +547,14 @@ export default function PaymentsView() {
                       {payment.student.phone}
                     </p>
                   </div>
-                  <p className="text-lg font-bold text-orange-600">
+                  <p className="text-lg font-bold text-cyan-600">
                     {formatCurrency(payment.amount)}
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   {payment.type === 'booking' && payment.booking ? (
-                    <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                    <Badge variant="secondary" className="bg-cyan-100 text-cyan-700">
                       Cabin {payment.booking.cabin.cabinNum}
                     </Badge>
                   ) : payment.enrollment ? (
@@ -562,7 +562,7 @@ export default function PaymentsView() {
                       {payment.enrollment.course.name}
                     </Badge>
                   ) : null}
-                  <Badge variant="secondary" className={payment.type === 'booking' ? 'capitalize bg-amber-50 text-amber-700' : 'bg-purple-50 text-purple-700'}>
+                  <Badge variant="secondary" className={payment.type === 'booking' ? 'capitalize bg-sky-50 text-sky-700' : 'bg-purple-50 text-purple-700'}>
                     {payment.type === 'booking' ? payment.booking?.type || 'Booking' : 'Course'}
                   </Badge>
                   <Badge variant="secondary" className="uppercase bg-gray-100 text-gray-600">
@@ -578,7 +578,7 @@ export default function PaymentsView() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 border-orange-300 text-orange-600 hover:bg-orange-50"
+                    className="flex-1 border-cyan-300 text-cyan-600 hover:bg-cyan-50"
                     onClick={() => viewReceipt(payment)}
                   >
                     <Receipt className="h-3.5 w-3.5 mr-1" />
@@ -609,7 +609,7 @@ export default function PaymentsView() {
         <div className="hidden md:block rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-orange-50/50">
+              <TableRow className="bg-cyan-50/50">
                 <TableHead>Student</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead className="text-center">Cabin</TableHead>
@@ -631,7 +631,7 @@ export default function PaymentsView() {
                     {payment.type === 'booking' && payment.booking ? (
                       <Badge
                         variant="secondary"
-                        className="bg-orange-100 text-orange-700"
+                        className="bg-cyan-100 text-cyan-700"
                       >
                         Cabin {payment.booking.cabin.cabinNum}
                       </Badge>
@@ -650,7 +650,7 @@ export default function PaymentsView() {
                     {payment.type === 'booking' && payment.booking ? (
                       <Badge
                         variant="secondary"
-                        className="capitalize bg-amber-50 text-amber-700"
+                        className="capitalize bg-sky-50 text-sky-700"
                       >
                         {payment.booking.type}
                       </Badge>
@@ -663,7 +663,7 @@ export default function PaymentsView() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-orange-600">
+                  <TableCell className="text-right font-semibold text-cyan-600">
                     {formatCurrency(payment.amount)}
                   </TableCell>
                   <TableCell className="text-center">
@@ -677,7 +677,7 @@ export default function PaymentsView() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                        className="border-cyan-300 text-cyan-600 hover:bg-cyan-50"
                         onClick={() => viewReceipt(payment)}
                       >
                         <Receipt className="h-3.5 w-3.5 mr-1" />
@@ -710,7 +710,7 @@ export default function PaymentsView() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-orange-500" />
+              <Plus className="h-5 w-5 text-cyan-500" />
               Record Payment
             </DialogTitle>
             <DialogDescription>Record a new payment for a student</DialogDescription>
@@ -786,10 +786,10 @@ export default function PaymentsView() {
             )}
 
             {selectedBooking && (
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm">
+              <div className="rounded-lg bg-sky-50 border border-sky-200 p-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Pending Amount:</span>
-                  <span className="font-semibold text-orange-700">
+                  <span className="font-semibold text-cyan-700">
                     {formatCurrency(selectedBooking.totalAmount - selectedBooking.paidAmount)}
                   </span>
                 </div>
@@ -820,7 +820,7 @@ export default function PaymentsView() {
                   variant={payMode === 'cash' ? 'default' : 'outline'}
                   className={
                     payMode === 'cash'
-                      ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                      ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
                       : ''
                   }
                   onClick={() => setPayMode('cash')}
@@ -832,7 +832,7 @@ export default function PaymentsView() {
                   variant={payMode === 'upi' ? 'default' : 'outline'}
                   className={
                     payMode === 'upi'
-                      ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                      ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
                       : ''
                   }
                   onClick={() => setPayMode('upi')}
@@ -865,7 +865,7 @@ export default function PaymentsView() {
             <Button
               onClick={handleRecordPayment}
               disabled={saving || !selectedStudentId || !selectedBookingId || !payAmount}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
             >
               {saving ? (
                 <>

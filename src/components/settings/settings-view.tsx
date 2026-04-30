@@ -135,7 +135,7 @@ export default function SettingsViewWrapper() {
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-orange-600" />
+            <Building2 className="h-5 w-5 text-cyan-600" />
             Business Information
           </CardTitle>
         </CardHeader>
@@ -156,7 +156,7 @@ export default function SettingsViewWrapper() {
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Clock className="h-5 w-5 text-orange-600" />
+            <Clock className="h-5 w-5 text-cyan-600" />
             Operating Hours
           </CardTitle>
         </CardHeader>
@@ -195,7 +195,7 @@ export default function SettingsViewWrapper() {
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-orange-600" />
+            <DollarSign className="h-5 w-5 text-cyan-600" />
             Pricing
           </CardTitle>
         </CardHeader>
@@ -232,7 +232,7 @@ export default function SettingsViewWrapper() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-orange-600 hover:bg-orange-700 px-8"
+          className="bg-cyan-600 hover:bg-cyan-700 px-8"
         >
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Saving...' : 'Save Settings'}
@@ -418,7 +418,7 @@ function UserManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5 text-orange-600" />
+            <Users className="h-5 w-5 text-cyan-600" />
             User Management
           </h2>
           <p className="text-sm text-gray-500">Manage system access and roles</p>
@@ -426,7 +426,7 @@ function UserManagement() {
         <Button
           onClick={openCreateDialog}
           size="sm"
-          className="bg-orange-600 hover:bg-orange-700"
+          className="bg-cyan-600 hover:bg-cyan-700"
         >
           <Plus className="h-4 w-4 mr-1.5" />
           Add User
@@ -458,7 +458,7 @@ function UserManagement() {
                   <div
                     className={`flex items-center justify-center h-10 w-10 rounded-full shrink-0 ${
                       u.role === 'admin'
-                        ? 'bg-orange-100 text-orange-700'
+                        ? 'bg-cyan-100 text-cyan-700'
                         : 'bg-gray-100 text-gray-600'
                     }`}
                   >
@@ -475,7 +475,7 @@ function UserManagement() {
                         variant="outline"
                         className={`text-[10px] px-1.5 py-0 ${
                           u.role === 'admin'
-                            ? 'border-orange-200 text-orange-700'
+                            ? 'border-cyan-200 text-cyan-700'
                             : 'border-gray-200 text-gray-500'
                         }`}
                       >
@@ -487,7 +487,7 @@ function UserManagement() {
                         </Badge>
                       )}
                       {u.id === currentUser?.id && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-200 text-amber-600">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-sky-200 text-sky-600">
                           you
                         </Badge>
                       )}
@@ -576,7 +576,7 @@ function UserManagement() {
                 <SelectContent>
                   <SelectItem value="admin">
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-orange-600" />
+                      <ShieldCheck className="h-4 w-4 text-cyan-600" />
                       <span>Admin — Full access, user management</span>
                     </div>
                   </SelectItem>
@@ -624,7 +624,7 @@ function UserManagement() {
             <Button
               onClick={handleSaveUser}
               disabled={saving}
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-cyan-600 hover:bg-cyan-700"
             >
               {saving ? (
                 <>

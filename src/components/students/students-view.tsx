@@ -217,12 +217,12 @@ export default function StudentsView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Users className="h-6 w-6 text-orange-500" />
+          <Users className="h-6 w-6 text-cyan-500" />
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Students</h2>
         </div>
         <Button
           onClick={openAddDialog}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-cyan-500 hover:bg-cyan-600 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Student
@@ -242,48 +242,48 @@ export default function StudentsView() {
 
       {/* Summary Cards - 2x2 grid on mobile */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <Card className="border-orange-100">
+        <Card className="border-cyan-100">
           <CardContent className="p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-500">Total Students</p>
             <p className="text-lg sm:text-2xl font-bold text-gray-900">
               {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                <Loader2 className="h-5 w-5 animate-spin text-cyan-500" />
               ) : (
                 totalStudents
               )}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-orange-100">
+        <Card className="border-cyan-100">
           <CardContent className="p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-500">Active Students</p>
-            <p className="text-lg sm:text-2xl font-bold text-orange-600">
+            <p className="text-lg sm:text-2xl font-bold text-cyan-600">
               {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                <Loader2 className="h-5 w-5 animate-spin text-cyan-500" />
               ) : (
                 activeStudents
               )}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-amber-100">
+        <Card className="border-sky-100">
           <CardContent className="p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-500">With Pending Fees</p>
-            <p className="text-lg sm:text-2xl font-bold text-amber-600">
+            <p className="text-lg sm:text-2xl font-bold text-sky-600">
               {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+                <Loader2 className="h-5 w-5 animate-spin text-sky-500" />
               ) : (
                 withPendingFees
               )}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-amber-100">
+        <Card className="border-sky-100">
           <CardContent className="p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-gray-500">Total Pending</p>
-            <p className="text-lg sm:text-2xl font-bold text-amber-700">
+            <p className="text-lg sm:text-2xl font-bold text-sky-700">
               {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+                <Loader2 className="h-5 w-5 animate-spin text-sky-500" />
               ) : (
                 formatCurrency(totalPending)
               )}
@@ -295,7 +295,7 @@ export default function StudentsView() {
       {/* Loading state */}
       {loading && (
         <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
         </div>
       )}
 
@@ -332,7 +332,7 @@ export default function StudentsView() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-gray-400 hover:text-orange-600"
+                      className="h-8 w-8 text-gray-400 hover:text-cyan-600"
                       onClick={() => openEditDialog(student)}
                     >
                       <Pencil className="h-4 w-4" />
@@ -358,7 +358,7 @@ export default function StudentsView() {
                     variant="secondary"
                     className={
                       student.activeBookingCount > 0
-                        ? 'bg-orange-100 text-orange-700'
+                        ? 'bg-cyan-100 text-cyan-700'
                         : 'bg-gray-100 text-gray-500'
                     }
                   >
@@ -370,7 +370,7 @@ export default function StudentsView() {
                     </Badge>
                   )}
                   {student.totalDue > 0 && (
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                    <Badge variant="secondary" className="bg-sky-100 text-sky-700">
                       Due: {formatCurrency(student.totalDue)}
                     </Badge>
                   )}
@@ -379,7 +379,7 @@ export default function StudentsView() {
                 {student.totalDue > 0 && (
                   <Button
                     size="sm"
-                    className="mt-3 w-full bg-orange-500 hover:bg-orange-600 text-white"
+                    className="mt-3 w-full bg-cyan-500 hover:bg-cyan-600 text-white"
                     onClick={() => openQuickPay(student)}
                   >
                     <Banknote className="h-4 w-4 mr-2" />
@@ -397,7 +397,7 @@ export default function StudentsView() {
         <div className="hidden md:block rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-orange-50/50">
+              <TableRow className="bg-cyan-50/50">
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
@@ -434,7 +434,7 @@ export default function StudentsView() {
                       variant="secondary"
                       className={
                         student.activeBookingCount > 0
-                          ? 'bg-orange-100 text-orange-700'
+                          ? 'bg-cyan-100 text-cyan-700'
                           : 'bg-gray-100 text-gray-500'
                       }
                     >
@@ -461,7 +461,7 @@ export default function StudentsView() {
                   </TableCell>
                   <TableCell className="text-right">
                     {student.totalDue > 0 ? (
-                      <span className="font-semibold text-amber-600">
+                      <span className="font-semibold text-sky-600">
                         {formatCurrency(student.totalDue)}
                       </span>
                     ) : (
@@ -474,7 +474,7 @@ export default function StudentsView() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                          className="border-cyan-300 text-cyan-600 hover:bg-cyan-50"
                           onClick={() => openQuickPay(student)}
                         >
                           <Banknote className="h-3.5 w-3.5 mr-1" />
@@ -484,7 +484,7 @@ export default function StudentsView() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-orange-600"
+                        className="h-8 w-8 text-gray-400 hover:text-cyan-600"
                         onClick={() => openEditDialog(student)}
                       >
                         <Pencil className="h-4 w-4" />
@@ -516,7 +516,7 @@ export default function StudentsView() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-orange-500" />
+              <Users className="h-5 w-5 text-cyan-500" />
               {editingStudent ? 'Edit Student' : 'Add New Student'}
             </DialogTitle>
             <DialogDescription>
@@ -588,7 +588,7 @@ export default function StudentsView() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
             >
               {saving ? (
                 <>

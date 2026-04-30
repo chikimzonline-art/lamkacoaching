@@ -38,7 +38,7 @@ export default function PublicFooter() {
           {/* About */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-orange-600 text-white">
+              <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-cyan-600 text-white">
                 <BookOpen className="h-5 w-5" />
               </div>
               <span className="font-bold text-white text-base">{name}</span>
@@ -57,7 +57,7 @@ export default function PublicFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-400 hover:text-orange-400 transition-colors"
+                    className="text-sm text-gray-400 hover:text-cyan-400 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -72,22 +72,22 @@ export default function PublicFooter() {
             <ul className="space-y-3">
               {settings.businessPhone && (
                 <li className="flex items-start gap-2.5">
-                  <Phone className="h-4 w-4 text-orange-400 mt-0.5 shrink-0" />
-                  <a href={`tel:${settings.businessPhone}`} className="text-sm text-gray-400 hover:text-orange-400 transition-colors">
+                  <Phone className="h-4 w-4 text-cyan-400 mt-0.5 shrink-0" />
+                  <a href={`tel:${settings.businessPhone}`} className="text-sm text-gray-400 hover:text-cyan-400 transition-colors">
                     {settings.businessPhone}
                   </a>
                 </li>
               )}
               {settings.businessEmail && (
                 <li className="flex items-start gap-2.5">
-                  <Mail className="h-4 w-4 text-orange-400 mt-0.5 shrink-0" />
-                  <a href={`mailto:${settings.businessEmail}`} className="text-sm text-gray-400 hover:text-orange-400 transition-colors break-all">
+                  <Mail className="h-4 w-4 text-cyan-400 mt-0.5 shrink-0" />
+                  <a href={`mailto:${settings.businessEmail}`} className="text-sm text-gray-400 hover:text-cyan-400 transition-colors break-all">
                     {settings.businessEmail}
                   </a>
                 </li>
               )}
               <li className="flex items-start gap-2.5">
-                <MapPin className="h-4 w-4 text-orange-400 mt-0.5 shrink-0" />
+                <MapPin className="h-4 w-4 text-cyan-400 mt-0.5 shrink-0" />
                 <span className="text-sm text-gray-400">
                   {settings.businessAddress || 'Lamka, Churachandpur, Manipur'}
                 </span>
@@ -108,8 +108,8 @@ export default function PublicFooter() {
                 <span>8:00 AM - 6:00 PM</span>
               </li>
             </ul>
-            <div className="mt-4 p-3 bg-orange-600/10 rounded-lg border border-orange-600/20">
-              <p className="text-xs text-orange-400 font-medium">New Batches Starting Soon!</p>
+            <div className="mt-4 p-3 bg-cyan-600/10 rounded-lg border border-cyan-600/20">
+              <p className="text-xs text-cyan-400 font-medium">New Batches Starting Soon!</p>
               <p className="text-xs text-gray-400 mt-1">Enroll now to secure your seat.</p>
             </div>
           </div>
