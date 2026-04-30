@@ -227,7 +227,7 @@ function renderView(view: ViewType) {
   }
 }
 
-function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
+function SidebarContent({ onItemClick, pendingCount }: { onItemClick?: () => void; pendingCount?: number }) {
   const { activeView, setActiveView } = useAppStore();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
@@ -265,6 +265,11 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
           >
             {item.icon}
             {item.label}
+            {item.view === 'bookings' && pendingCount && pendingCount > 0 && (
+              <span className="ml-auto flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+                {pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </nav>
@@ -296,7 +301,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 }
 
 // Bottom Navigation Bar for mobile
-function BottomNav() {
+function BottomNav({ pendingCount }: { pendingCount?: number }) {
   const { activeView, setActiveView } = useAppStore();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
@@ -315,7 +320,7 @@ function BottomNav() {
               key={item.view}
               onClick={() => setActiveView(item.view)}
               className={cn(
-                'flex flex-col items-center justify-center flex-1 py-1 transition-colors min-h-[44px]',
+                'relative flex flex-col items-center justify-center flex-1 py-1 transition-colors min-h-[44px]',
                 activeView === item.view
                   ? 'text-cyan-600'
                   : 'text-gray-400 hover:text-gray-600'
@@ -323,6 +328,11 @@ function BottomNav() {
             >
               {item.icon}
               <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+              {item.view === 'bookings' && pendingCount && pendingCount > 0 && (
+                <span className="absolute top-0.5 right-1/4 flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold">
+                  {pendingCount}
+                </span>
+              )}
             </button>
           ))}
           <button
@@ -375,6 +385,24 @@ function AuthenticatedApp() {
   const { activeView, sidebarOpen } = useAppStore();
   const { user } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const res = await fetch('/api/dashboard');
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(data.pendingBookingCount || 0);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (user && user.role !== 'admin' && activeView === 'settings') {
@@ -396,7 +424,7 @@ function AuthenticatedApp() {
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64 bg-gray-900 border-gray-700">
               <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <SidebarContent onItemClick={() => setMobileMenuOpen(false)} />
+              <SidebarContent onItemClick={() => setMobileMenuOpen(false)} pendingCount={pendingCount} />
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
@@ -416,7 +444,7 @@ function AuthenticatedApp() {
           sidebarOpen ? 'lg:w-64' : 'lg:w-0 lg:overflow-hidden'
         )}
       >
-        {sidebarOpen && <SidebarContent />}
+        {sidebarOpen && <SidebarContent pendingCount={pendingCount} />}
       </aside>
 
       {/* Main Content */}
@@ -445,7 +473,7 @@ function AuthenticatedApp() {
       </footer>
 
       {/* Bottom Navigation - mobile only */}
-      <BottomNav />
+      <BottomNav pendingCount={pendingCount} />
     </div>
   );
 }

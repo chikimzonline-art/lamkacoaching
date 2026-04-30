@@ -20,6 +20,8 @@ import {
   TrendingUp,
   CheckCircle2,
   Loader2,
+  Phone,
+  MapPin,
 } from 'lucide-react';
 
 interface Department {
@@ -42,6 +44,13 @@ interface Notice {
   createdAt: string;
 }
 
+interface SiteSettings {
+  heroBadgeText?: string;
+  heroBannerText?: string;
+  businessPhone?: string;
+  businessAddress?: string;
+}
+
 function formatCurrency(paise: number): string {
   return `₹${(paise / 100).toLocaleString('en-IN')}`;
 }
@@ -57,22 +66,30 @@ function formatDate(date: string): string {
 export default function HomePage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/public/courses').then((r) => r.json()),
       fetch('/api/public/notices').then((r) => r.json()),
+      fetch('/api/public/settings').then((r) => r.json()),
     ])
-      .then(([coursesData, noticesData]) => {
+      .then(([coursesData, noticesData, settingsData]) => {
         setDepartments(coursesData.departments || []);
         setNotices((noticesData.notices || []).slice(0, 3));
+        setSiteSettings(settingsData.settings || {});
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const totalCourses = departments.reduce((sum, d) => sum + d.courses.length, 0);
+
+  const heroBadgeText = siteSettings.heroBadgeText || 'Admissions Open 2025-26';
+  const heroBannerText = siteSettings.heroBannerText || 'New batches starting soon!';
+  const businessPhone = siteSettings.businessPhone;
+  const businessAddress = siteSettings.businessAddress;
 
   return (
     <PublicLayout>
@@ -89,7 +106,7 @@ export default function HomePage() {
           <div className="max-w-2xl">
             <Badge className="mb-4 bg-white/20 text-white border-white/30 hover:bg-white/30">
               <Star className="h-3 w-3 mr-1" />
-              Admissions Open for 2025-26
+              {heroBadgeText}
             </Badge>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
               Welcome to{' '}
@@ -98,6 +115,13 @@ export default function HomePage() {
             <p className="mt-4 text-lg sm:text-xl text-cyan-100 leading-relaxed max-w-xl">
               Your gateway to success in competitive exams. Expert coaching for SSC, Banking, and more — with dedicated study cabins and personalized guidance.
             </p>
+
+            {/* Floating accent card with dynamic banner text */}
+            <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
+              <span className="h-2 w-2 rounded-full bg-sky-300 animate-pulse" />
+              <span className="text-sm font-medium text-white">{heroBannerText}</span>
+            </div>
+
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/courses">
                 <Button size="lg" className="bg-white text-cyan-700 hover:bg-cyan-50 font-semibold shadow-lg shadow-cyan-700/20 h-12 px-6">
@@ -356,6 +380,23 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
+          {/* Contact hints from settings */}
+          {(businessPhone || businessAddress) && (
+            <div className="mt-6 flex flex-wrap justify-center gap-6 text-cyan-100 text-sm">
+              {businessPhone && (
+                <span className="flex items-center gap-1.5">
+                  <Phone className="h-4 w-4" />
+                  {businessPhone}
+                </span>
+              )}
+              {businessAddress && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" />
+                  {businessAddress}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </section>
     </PublicLayout>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Phone, Mail, MapPin } from 'lucide-react';
+import { BookOpen, Phone, Mail, MapPin, GraduationCap, DoorOpen } from 'lucide-react';
 
 interface BusinessSettings {
   businessName?: string;
@@ -10,14 +10,20 @@ interface BusinessSettings {
   businessEmail?: string;
   businessAddress?: string;
   businessDescription?: string;
+  footerCtaTitle?: string;
+  footerCtaSubtitle?: string;
 }
 
-const quickLinks = [
+const baseQuickLinks = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'Our Courses' },
   { href: '/notices', label: 'Notices' },
-  { href: '/register', label: 'Register' },
   { href: '/admin', label: 'Admin Portal' },
+];
+
+const registerSubLinks = [
+  { href: '/register', label: 'Coaching Class', icon: GraduationCap },
+  { href: '/cabins', label: 'Study Cabin', icon: DoorOpen },
 ];
 
 export default function PublicFooter() {
@@ -30,6 +36,9 @@ export default function PublicFooter() {
       .then((data) => setSettings(data.settings || {}))
       .catch(() => {});
   }, []);
+
+  const ctaTitle = settings.footerCtaTitle || 'New Batches Starting Soon!';
+  const ctaSubtitle = settings.footerCtaSubtitle || 'Enroll now to secure your seat.';
 
   return (
     <footer className="bg-gray-900 text-gray-300">
@@ -53,7 +62,7 @@ export default function PublicFooter() {
           <div>
             <h3 className="text-white font-semibold text-sm mb-4">Quick Links</h3>
             <ul className="space-y-2.5">
-              {quickLinks.map((link) => (
+              {baseQuickLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -63,6 +72,26 @@ export default function PublicFooter() {
                   </Link>
                 </li>
               ))}
+              {/* Register with sub-items */}
+              <li>
+                <span className="text-sm text-gray-300 font-medium">Register</span>
+                <ul className="ml-3 mt-1 space-y-2">
+                  {registerSubLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-cyan-400 transition-colors"
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {link.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
             </ul>
           </div>
 
@@ -109,8 +138,8 @@ export default function PublicFooter() {
               </li>
             </ul>
             <div className="mt-4 p-3 bg-cyan-600/10 rounded-lg border border-cyan-600/20">
-              <p className="text-xs text-cyan-400 font-medium">New Batches Starting Soon!</p>
-              <p className="text-xs text-gray-400 mt-1">Enroll now to secure your seat.</p>
+              <p className="text-xs text-cyan-400 font-medium">{ctaTitle}</p>
+              <p className="text-xs text-gray-400 mt-1">{ctaSubtitle}</p>
             </div>
           </div>
         </div>

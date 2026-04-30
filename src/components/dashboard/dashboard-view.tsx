@@ -3,9 +3,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DoorOpen, Calendar, Banknote, AlertCircle, Clock, Users, ArrowUpRight } from 'lucide-react';
+import { DoorOpen, Calendar, Banknote, AlertCircle, Clock, Users, ArrowUpRight, AlertTriangle, ArrowRight } from 'lucide-react';
 import { formatCurrency, formatDate, formatTime } from '@/lib/helpers';
+import { useAppStore } from '@/store/app-store';
 
 interface DashboardStats {
   totalCabins: number;
@@ -55,6 +57,18 @@ interface EnrollmentPayment {
   enrollment: { course: { name: string; department: { name: string } } };
 }
 
+interface PendingBooking {
+  id: string;
+  type: string;
+  status: string;
+  startDate: string;
+  endDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  student: { name: string; phone: string };
+  cabin: { cabinNum: number };
+}
+
 interface DashboardData {
   stats: DashboardStats;
   todayBookings: Booking[];
@@ -62,6 +76,8 @@ interface DashboardData {
   expiringSoon: Booking[];
   recentPayments: Payment[];
   recentEnrollmentPayments: EnrollmentPayment[];
+  pendingBookingRequests: PendingBooking[];
+  pendingBookingCount: number;
 }
 
 function StatCard({
@@ -135,6 +151,7 @@ function ListSkeleton({ rows = 3 }: { rows?: number }) {
 }
 
 export default function DashboardView() {
+  const { setActiveView } = useAppStore();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -183,10 +200,58 @@ export default function DashboardView() {
     );
   }
 
-  const { stats, todayBookings, exclusiveBookings, expiringSoon, recentPayments, recentEnrollmentPayments } = data;
+  const { stats, todayBookings, exclusiveBookings, expiringSoon, recentPayments, recentEnrollmentPayments, pendingBookingRequests, pendingBookingCount } = data;
 
   return (
     <div className="space-y-6">
+      {/* Pending Booking Requests Alert */}
+      {pendingBookingCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <h3 className="font-semibold text-amber-800">
+                Pending Booking Requests
+              </h3>
+              <Badge className="bg-amber-200 text-amber-800 text-xs">
+                {pendingBookingCount}
+              </Badge>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setActiveView('bookings')}
+              className="bg-amber-600 hover:bg-amber-700 text-white self-start sm:self-auto"
+            >
+              Go to Bookings
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+          {pendingBookingRequests.length > 0 && (
+            <div className="space-y-2">
+              {pendingBookingRequests.slice(0, 3).map((b) => (
+                <div
+                  key={b.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-amber-100/60 border border-amber-200/50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-amber-900 truncate">{b.student.name}</p>
+                    <p className="text-xs text-amber-700">
+                      Cabin #{b.cabin.cabinNum} &bull; {b.type} &bull;{' '}
+                      {b.type === 'hourly'
+                        ? `${formatTime(b.startTime || '')} - ${formatTime(b.endTime || '')}`
+                        : `${formatDate(b.startDate)}`}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50 shrink-0 ml-2">
+                    Pending
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Stats Cards - 2x2 on mobile, 6 cols on sm+ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <StatCard

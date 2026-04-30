@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, CalendarIcon, Check, X, ChevronRight, ChevronLeft, RefreshCw, Receipt, UserPlus, Banknote } from 'lucide-react';
+import { Plus, CalendarIcon, Check, X, ChevronRight, ChevronLeft, RefreshCw, Receipt, UserPlus, Banknote, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import PaymentReceipt from '@/components/payments/payment-receipt';
 import { toast } from 'sonner';
 import { formatCurrency, formatDate, formatTime, calculateHours, calculateMonths, addMonths } from '@/lib/helpers';
@@ -80,6 +80,7 @@ export default function BookingsView() {
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [pendingCount, setPendingCount] = useState<number>(0);
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
 
   // New booking wizard
@@ -175,13 +176,24 @@ export default function BookingsView() {
     }
   }, [typeFilter, statusFilter, dateFilter]);
 
+  const fetchPendingCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/bookings?status=pending');
+      const json = await res.json();
+      setPendingCount(json.bookings?.length || 0);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
   useEffect(() => {
     fetchBookings();
-  }, [fetchBookings]);
+    fetchPendingCount();
+  }, [fetchBookings, fetchPendingCount]);
 
   const fetchStudentOptions = useCallback(async (search: string) => {
     try {
@@ -316,6 +328,47 @@ export default function BookingsView() {
       toast.error('Failed to create booking');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleApproveBooking = async (booking: Booking) => {
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: booking.id, action: 'approve' }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to approve booking');
+        return;
+      }
+      toast.success('Booking approved successfully');
+      fetchBookings();
+      fetchPendingCount();
+    } catch {
+      toast.error('Failed to approve booking');
+    }
+  };
+
+  const handleRejectBooking = async (booking: Booking) => {
+    if (!confirm(`Reject this booking request for ${booking.student.name}?`)) return;
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: booking.id, action: 'reject' }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to reject booking');
+        return;
+      }
+      toast.success('Booking rejected');
+      fetchBookings();
+      fetchPendingCount();
+    } catch {
+      toast.error('Failed to reject booking');
     }
   };
 
@@ -487,6 +540,28 @@ export default function BookingsView() {
 
   return (
     <div className="space-y-4">
+      {/* Pending Booking Requests Alert */}
+      {pendingCount > 0 && statusFilter !== 'pending' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <span className="text-sm font-medium text-amber-800">
+                {pendingCount} pending booking request{pendingCount !== 1 ? 's' : ''} awaiting review
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setStatusFilter('pending')}
+              className="border-amber-300 text-amber-700 hover:bg-amber-100 self-start sm:self-auto"
+            >
+              Review Now
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex flex-wrap gap-2 flex-1">
@@ -507,6 +582,7 @@ export default function BookingsView() {
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
@@ -567,7 +643,8 @@ export default function BookingsView() {
                 className={cn(
                   'border shadow-sm hover:shadow-md transition-shadow',
                   booking.status === 'cancelled' && 'opacity-60',
-                  booking.status === 'active' && 'border-cyan-200'
+                  booking.status === 'active' && 'border-cyan-200',
+                  booking.status === 'pending' && 'border-amber-200'
                 )}
               >
                 <CardContent className="p-4">
@@ -590,6 +667,7 @@ export default function BookingsView() {
                         className={cn(
                           'text-xs',
                           booking.status === 'active' && 'bg-cyan-100 text-cyan-800 border-cyan-200',
+                          booking.status === 'pending' && 'bg-amber-100 text-amber-800 border-amber-200',
                           booking.status === 'completed' && 'bg-gray-100 text-gray-600 border-gray-200',
                           booking.status === 'cancelled' && 'bg-red-100 text-red-800 border-red-200'
                         )}
@@ -642,6 +720,29 @@ export default function BookingsView() {
                       </span>
                     )}
                   </div>
+
+                  {/* Pending Actions */}
+                  {booking.status === 'pending' && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleApproveBooking(booking)}
+                        className="text-xs h-9 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <ThumbsUp className="h-3 w-3 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRejectBooking(booking)}
+                        className="text-xs h-9 text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <ThumbsDown className="h-3 w-3 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   {booking.status === 'active' && (

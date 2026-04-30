@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Clock, DollarSign, Building2, Save, Users, Plus, Pencil, Trash2, Shield, ShieldCheck, Loader2, UserCircle, Eye, EyeOff } from 'lucide-react';
+import { Clock, DollarSign, Building2, Save, Users, Plus, Pencil, Trash2, Shield, ShieldCheck, Loader2, UserCircle, Eye, EyeOff, Phone, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -41,6 +41,13 @@ interface SettingsData {
   operating_hours_end: string;
   hourly_rate: string;
   monthly_rate: string;
+  business_phone: string;
+  business_email: string;
+  business_address: string;
+  hero_badge_text: string;
+  hero_banner_text: string;
+  footer_cta_title: string;
+  footer_cta_subtitle: string;
 }
 
 interface UserRecord {
@@ -59,6 +66,13 @@ const defaultSettings: SettingsData = {
   operating_hours_end: '22:00',
   hourly_rate: '100',
   monthly_rate: '3000',
+  business_phone: '',
+  business_email: '',
+  business_address: '',
+  hero_badge_text: 'Admissions Open 2025-26',
+  hero_banner_text: 'New batches starting soon!',
+  footer_cta_title: 'New Batches Starting Soon!',
+  footer_cta_subtitle: 'Enroll now to secure your seat.',
 };
 
 function useSettingsState() {
@@ -77,6 +91,13 @@ function useSettingsState() {
           operating_hours_end: json.settings.operating_hours_end || defaultSettings.operating_hours_end,
           hourly_rate: json.settings.hourly_rate || defaultSettings.hourly_rate,
           monthly_rate: json.settings.monthly_rate || defaultSettings.monthly_rate,
+          business_phone: json.settings.business_phone || defaultSettings.business_phone,
+          business_email: json.settings.business_email || defaultSettings.business_email,
+          business_address: json.settings.business_address || defaultSettings.business_address,
+          hero_badge_text: json.settings.hero_badge_text || defaultSettings.hero_badge_text,
+          hero_banner_text: json.settings.hero_banner_text || defaultSettings.hero_banner_text,
+          footer_cta_title: json.settings.footer_cta_title || defaultSettings.footer_cta_title,
+          footer_cta_subtitle: json.settings.footer_cta_subtitle || defaultSettings.footer_cta_subtitle,
         });
       }
     } catch (err) {
@@ -224,6 +245,110 @@ export default function SettingsViewWrapper() {
               <p className="text-xs text-gray-400">Rate per month for exclusive bookings</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Contact Details */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Phone className="h-5 w-5 text-cyan-600" />
+            Contact Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="business_phone">Business Phone</Label>
+            <Input
+              id="business_phone"
+              value={settings.business_phone}
+              onChange={(e) => setSettings({ ...settings, business_phone: e.target.value })}
+              placeholder="e.g. +91 9876543210"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="business_email">Business Email</Label>
+            <Input
+              id="business_email"
+              type="email"
+              value={settings.business_email}
+              onChange={(e) => setSettings({ ...settings, business_email: e.target.value })}
+              placeholder="e.g. info@lamkacoaching.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="business_address">Business Address</Label>
+            <Input
+              id="business_address"
+              value={settings.business_address}
+              onChange={(e) => setSettings({ ...settings, business_address: e.target.value })}
+              placeholder="e.g. Lamka, Churachandpur, Manipur"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Website Content */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Globe className="h-5 w-5 text-cyan-600" />
+            Website Content
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="hero_badge_text">Hero Badge Text</Label>
+            <Input
+              id="hero_badge_text"
+              value={settings.hero_badge_text}
+              onChange={(e) => setSettings({ ...settings, hero_badge_text: e.target.value })}
+              placeholder="e.g. Admissions Open 2025-26"
+            />
+            <p className="text-xs text-gray-400">Shown as a badge on the homepage hero section</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="hero_banner_text">Hero Banner Text</Label>
+            <Input
+              id="hero_banner_text"
+              value={settings.hero_banner_text}
+              onChange={(e) => setSettings({ ...settings, hero_banner_text: e.target.value })}
+              placeholder="e.g. New batches starting soon!"
+            />
+            <p className="text-xs text-gray-400">Shown in the floating accent card on the homepage</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="footer_cta_title">Footer CTA Title</Label>
+            <Input
+              id="footer_cta_title"
+              value={settings.footer_cta_title}
+              onChange={(e) => setSettings({ ...settings, footer_cta_title: e.target.value })}
+              placeholder="e.g. New Batches Starting Soon!"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="footer_cta_subtitle">Footer CTA Subtitle</Label>
+            <Input
+              id="footer_cta_subtitle"
+              value={settings.footer_cta_subtitle}
+              onChange={(e) => setSettings({ ...settings, footer_cta_subtitle: e.target.value })}
+              placeholder="e.g. Enroll now to secure your seat."
+            />
+          </div>
+
+          {/* Live Preview */}
+          {settings.hero_badge_text && (
+            <div className="mt-4 p-4 bg-cyan-50 border border-cyan-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <Eye className="h-4 w-4 text-cyan-600" />
+                <span className="text-sm font-medium text-cyan-700">Live Preview — Hero Badge</span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/80 text-cyan-700 border border-cyan-200 rounded-full text-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                {settings.hero_badge_text}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

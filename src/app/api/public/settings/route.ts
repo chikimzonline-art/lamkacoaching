@@ -10,6 +10,10 @@ export async function GET() {
       'businessEmail',
       'businessAddress',
       'businessDescription',
+      'heroBadgeText',
+      'heroBannerText',
+      'footerCtaTitle',
+      'footerCtaSubtitle',
     ];
 
     const settings = await db.setting.findMany({

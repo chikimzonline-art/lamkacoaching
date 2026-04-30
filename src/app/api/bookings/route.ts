@@ -345,3 +345,52 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to process booking request' }, { status: 500 });
   }
 }
+
+// PATCH /api/bookings - Approve or reject a pending booking
+export async function PATCH(request: Request) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, action } = body;
+
+    if (!id || !action) {
+      return NextResponse.json({ error: 'Booking ID and action are required' }, { status: 400 });
+    }
+
+    if (action !== 'approve' && action !== 'reject') {
+      return NextResponse.json({ error: 'Action must be "approve" or "reject"' }, { status: 400 });
+    }
+
+    // Verify the booking exists and is pending
+    const booking = await db.booking.findUnique({ where: { id } });
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+    if (booking.status !== 'pending') {
+      return NextResponse.json({ error: 'Only pending bookings can be approved or rejected' }, { status: 400 });
+    }
+
+    const newStatus = action === 'approve' ? 'active' : 'cancelled';
+
+    const updatedBooking = await db.booking.update({
+      where: { id },
+      data: { status: newStatus },
+      include: {
+        student: { select: { id: true, name: true, phone: true } },
+        cabin: { select: { id: true, cabinNum: true, status: true } },
+      },
+    });
+
+    return NextResponse.json({
+      booking: updatedBooking,
+      message: action === 'approve' ? 'Booking approved successfully' : 'Booking rejected',
+    });
+  } catch (error) {
+    console.error('Error processing booking action:', error);
+    return NextResponse.json({ error: 'Failed to process booking action' }, { status: 500 });
+  }
+}

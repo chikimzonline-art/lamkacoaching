@@ -130,6 +130,18 @@ export async function GET() {
       },
     });
 
+    // Pending booking requests
+    const pendingBookingRequests = await db.booking.findMany({
+      where: { status: 'pending' },
+      include: {
+        student: { select: { name: true, phone: true } },
+        cabin: { select: { cabinNum: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+    const pendingBookingCount = await db.booking.count({ where: { status: 'pending' } });
+
     return NextResponse.json({
       stats: {
         totalCabins,
@@ -149,6 +161,8 @@ export async function GET() {
       expiringSoon,
       recentPayments,
       recentEnrollmentPayments,
+      pendingBookingRequests,
+      pendingBookingCount,
     });
   } catch (error) {
     console.error('Error fetching dashboard:', error);
