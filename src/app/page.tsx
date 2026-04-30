@@ -271,7 +271,7 @@ export default function HomePage() {
                   <span key={tag} className="px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded-md text-xs font-medium">{tag}</span>
                 ))}
               </div>
-              <Link href="/courses?dept=computer" className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-700 group-hover:gap-2 transition-all">
+              <Link href="/computer-training" className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-700 group-hover:gap-2 transition-all">
                 Explore Programs <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
@@ -319,7 +319,7 @@ export default function HomePage() {
                   Gain the digital skills that employers actually want. From basic computer operations to professional programming — we have a course for every level.
                 </p>
               </div>
-              <Link href="/courses?dept=computer">
+              <Link href="/computer-training">
                 <Button variant="outline" className="gap-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/50 shrink-0 rounded-xl">
                   All Programs <ArrowRight className="h-4 w-4" />
                 </Button>

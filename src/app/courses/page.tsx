@@ -43,7 +43,13 @@ export default function CoursesPage() {
   useEffect(() => {
     fetch('/api/public/courses')
       .then((r) => r.json())
-      .then((data) => setDepartments(data.departments || []))
+      .then((data) => {
+        // Filter out Computer Training - it has its own dedicated page
+        const competitiveOnly = (data.departments || []).filter(
+          (d: Department) => d.name !== 'Computer Training'
+        );
+        setDepartments(competitiveOnly);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -68,9 +74,9 @@ export default function CoursesPage() {
       {/* Page Header */}
       <section className="bg-gradient-to-br from-cyan-600 to-sky-500 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white">Our Courses</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Competitive Exam Courses</h1>
           <p className="mt-2 text-cyan-100 text-lg max-w-xl mx-auto">
-            Explore our coaching programs for SSC, Banking, and other competitive exams
+            Expert coaching programs for SSC, Banking, UPSC, Railway and other government exams
           </p>
           <div className="mt-4 text-sm text-cyan-200">
             {totalCourses} course{totalCourses !== 1 ? 's' : ''} across {departments.length} department{departments.length !== 1 ? 's' : ''}
