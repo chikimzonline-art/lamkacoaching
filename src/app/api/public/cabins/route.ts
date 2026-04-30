@@ -54,13 +54,13 @@ export async function GET() {
     const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
     const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
 
-    const hourlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 50;
+    const hourlyMonthlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 1000;
     const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) : 3000;
 
     return NextResponse.json({
       cabins: cabinsWithAvailability,
       pricing: {
-        hourlyRate,
+        hourlyMonthlyRate,
         monthlyRate,
       },
       totalCabins: cabins.length,

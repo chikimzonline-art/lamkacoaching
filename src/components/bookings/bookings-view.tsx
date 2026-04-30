@@ -91,8 +91,7 @@ export default function BookingsView() {
   const [wizardStudentSearch, setWizardStudentSearch] = useState('');
   const [wizardCabinId, setWizardCabinId] = useState('');
   const [wizardDate, setWizardDate] = useState<Date>(new Date());
-  const [wizardStartTime, setWizardStartTime] = useState('09:00');
-  const [wizardEndTime, setWizardEndTime] = useState('12:00');
+
   const [wizardEndDate, setWizardEndDate] = useState<Date | undefined>(addMonths(new Date(), 1));
   const [wizardAmount, setWizardAmount] = useState('');
   const [wizardNotes, setWizardNotes] = useState('');
@@ -123,7 +122,7 @@ export default function BookingsView() {
   const [wizardPayMode, setWizardPayMode] = useState<'cash' | 'upi'>('cash');
 
   // Settings for rate calculation
-  const [hourlyRate, setHourlyRate] = useState(100);
+  const [hourlyRate, setHourlyRate] = useState(1000);
   const [monthlyRate, setMonthlyRate] = useState(3000);
 
   // Business name for receipts
@@ -150,7 +149,7 @@ export default function BookingsView() {
       const res = await fetch('/api/settings');
       const json = await res.json();
       if (json.settings) {
-        setHourlyRate(Number(json.settings.hourly_rate) || 100);
+        setHourlyRate(Number(json.settings.hourly_rate) || 1000);
         setMonthlyRate(Number(json.settings.monthly_rate) || 3000);
         setBusinessName(json.settings.business_name || 'Lamka Coaching Center');
       }
@@ -231,16 +230,15 @@ export default function BookingsView() {
   useEffect(() => {
     if (step === 'details') {
       if (wizardType === 'hourly') {
-        const hours = calculateHours(wizardStartTime, wizardEndTime);
-        const amount = Math.round(hours * hourlyRate);
-        setWizardAmount(String(amount));
+        // Hourly booking = monthly fee (5 hrs/day, 1 month)
+        setWizardAmount(String(hourlyRate));
       } else if (wizardType === 'exclusive' && wizardEndDate) {
         const months = calculateMonths(wizardDate, wizardEndDate);
         const amount = months * monthlyRate;
         setWizardAmount(String(amount));
       }
     }
-  }, [step, wizardType, wizardStartTime, wizardEndTime, wizardDate, wizardEndDate, hourlyRate, monthlyRate]);
+  }, [step, wizardType, wizardDate, wizardEndDate, hourlyRate, monthlyRate]);
 
   // Auto-set end date to 1 month from start date when start date changes (exclusive bookings)
   useEffect(() => {
@@ -256,8 +254,6 @@ export default function BookingsView() {
     setWizardStudentSearch('');
     setWizardCabinId('');
     setWizardDate(new Date());
-    setWizardStartTime('09:00');
-    setWizardEndTime('12:00');
     setWizardEndDate(addMonths(new Date(), 1));
     setWizardAmount('');
     setWizardNotes('');
@@ -296,8 +292,9 @@ export default function BookingsView() {
 
       if (wizardType === 'hourly') {
         body.startDate = wizardDate.toISOString().split('T')[0];
-        body.startTime = wizardStartTime;
-        body.endTime = wizardEndTime;
+        body.startTime = '09:00';
+        body.endTime = '14:00';
+        body.endDate = addMonths(wizardDate, 1).toISOString().split('T')[0];
       } else {
         body.startDate = wizardDate.toISOString().split('T')[0];
         if (wizardEndDate) body.endDate = wizardEndDate.toISOString().split('T')[0];
@@ -421,7 +418,9 @@ export default function BookingsView() {
   };
 
   const handleRenewBooking = async (booking: Booking) => {
-    if (!confirm(`Renew exclusive booking for ${booking.student.name} (Cabin #${booking.cabin.cabinNum}) by 1 month?\n\nAdditional cost: ${formatCurrency(monthlyRate * 100)}`)) return;
+    const rate = booking.type === 'hourly' ? hourlyRate : monthlyRate;
+    const typeLabel = booking.type === 'hourly' ? 'hourly' : 'exclusive';
+    if (!confirm(`Renew ${typeLabel} booking for ${booking.student.name} (Cabin #${booking.cabin.cabinNum}) by 1 month?\n\nAdditional cost: ${formatCurrency(rate * 100)}`)) return;
     try {
       const res = await fetch('/api/bookings', {
         method: 'POST',
@@ -442,7 +441,7 @@ export default function BookingsView() {
 
   const openReceipt = (booking: Booking, payment: { amount: number; mode: string; receivedAt: string }) => {
     const period = booking.type === 'hourly'
-      ? `${formatDate(booking.startDate)}, ${formatTime(booking.startTime || '')} - ${formatTime(booking.endTime || '')}`
+      ? `${formatDate(booking.startDate)}${booking.endDate ? ` - ${formatDate(booking.endDate)}` : ''} (5 hrs/day)`
       : `${formatDate(booking.startDate)} - ${booking.endDate ? formatDate(booking.endDate) : 'Ongoing'}`;
 
     setReceiptData({
@@ -688,8 +687,8 @@ export default function BookingsView() {
                     </p>
                     {booking.type === 'hourly' ? (
                       <p className="text-sm text-gray-500">
-                        {formatDate(booking.startDate)} &bull;{' '}
-                        {formatTime(booking.startTime || '')} - {formatTime(booking.endTime || '')}
+                        {formatDate(booking.startDate)}
+                        {booking.endDate ? ` - ${formatDate(booking.endDate)}` : ''} &bull; 5 hrs/day
                       </p>
                     ) : (
                       <p className="text-sm text-gray-500">
@@ -757,7 +756,7 @@ export default function BookingsView() {
                           Record Payment
                         </Button>
                       )}
-                      {booking.type === 'exclusive' && (
+                      {(booking.type === 'exclusive' || booking.type === 'hourly') && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -872,7 +871,7 @@ export default function BookingsView() {
                   )}
                 >
                   <p className="font-semibold text-gray-900">Hourly Booking</p>
-                  <p className="text-sm text-gray-500 mt-1">Book a cabin for a specific time slot</p>
+                  <p className="text-sm text-gray-500 mt-1">5 hrs/day, 1 month duration (₹{hourlyRate}/month)</p>
                 </button>
                 <button
                   onClick={() => setWizardType('exclusive')}
@@ -1015,7 +1014,7 @@ export default function BookingsView() {
                 {wizardType === 'hourly' ? (
                   <>
                     <div className="space-y-2">
-                      <Label>Date</Label>
+                      <Label>Start Date</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -1032,26 +1031,12 @@ export default function BookingsView() {
                         </PopoverContent>
                       </Popover>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>Start Time</Label>
-                        <Input
-                          type="time"
-                          value={wizardStartTime}
-                          onChange={(e) => setWizardStartTime(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>End Time</Label>
-                        <Input
-                          type="time"
-                          value={wizardEndTime}
-                          onChange={(e) => setWizardEndTime(e.target.value)}
-                        />
-                      </div>
+                    <div className="bg-cyan-50 border border-cyan-100 rounded-lg p-3">
+                      <p className="text-sm text-cyan-800 font-medium">Duration: 1 Month</p>
+                      <p className="text-xs text-cyan-600 mt-0.5">5 hours/day &bull; 9:00 AM - 2:00 PM &bull; Auto-renewable</p>
                     </div>
                     <p className="text-sm text-gray-500">
-                      Duration: {calculateHours(wizardStartTime, wizardEndTime)} hour(s) &times; ₹{hourlyRate}/hr
+                      Monthly fee: ₹{hourlyRate}/month
                     </p>
                   </>
                 ) : (
@@ -1150,10 +1135,10 @@ export default function BookingsView() {
                   </div>
                   {wizardType === 'hourly' ? (
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Time</span>
+                      <span className="text-sm text-gray-500">Period</span>
                       <span className="text-sm font-medium">
-                        {formatDate(wizardDate.toISOString())} &bull;{' '}
-                        {formatTime(wizardStartTime)} - {formatTime(wizardEndTime)}
+                        {formatDate(wizardDate.toISOString())} - {' '}
+                        {formatDate(addMonths(wizardDate, 1).toISOString())} &bull; 5 hrs/day
                       </span>
                     </div>
                   ) : (

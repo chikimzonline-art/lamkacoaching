@@ -35,7 +35,7 @@ interface CabinInfo {
 interface CabinData {
   cabins: CabinInfo[];
   pricing: {
-    hourlyRate: number;
+    hourlyMonthlyRate: number;
     monthlyRate: number;
   };
   totalCabins: number;
@@ -58,9 +58,6 @@ export default function CabinsPage() {
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
 
   // Submission
   const [submitting, setSubmitting] = useState(false);
@@ -80,11 +77,8 @@ export default function CabinsPage() {
 
   // Calculate estimated amount
   let estimatedAmount = 0;
-  if (data && bookingType === 'hourly' && startTime && endTime) {
-    const [sH, sM] = startTime.split(':').map(Number);
-    const [eH, eM] = endTime.split(':').map(Number);
-    const hours = (eH + eM / 60) - (sH + sM / 60);
-    if (hours > 0) estimatedAmount = Math.round(hours * data.pricing.hourlyRate * 100);
+  if (data && bookingType === 'hourly') {
+    estimatedAmount = data.pricing.hourlyMonthlyRate * 100;
   } else if (data && bookingType === 'monthly') {
     estimatedAmount = data.pricing.monthlyRate * 100;
   }
@@ -106,9 +100,6 @@ export default function CabinsPage() {
           cabinId: selectedCabin,
           bookingType,
           startDate,
-          endDate: bookingType === 'monthly' ? undefined : endDate,
-          startTime: bookingType === 'hourly' ? startTime : undefined,
-          endTime: bookingType === 'hourly' ? endTime : undefined,
         }),
       });
 
@@ -183,7 +174,7 @@ export default function CabinsPage() {
             <h1 className="text-3xl sm:text-4xl font-bold text-white">Study Cabin Booking</h1>
           </div>
           <p className="mt-2 text-lg max-w-xl mx-auto text-white/80">
-            Book a quiet, comfortable study space — available on hourly or monthly basis
+            Book a quiet, comfortable study space — hourly (5 hrs/day) or full-day monthly
           </p>
           {data && (
             <div className="mt-4 flex items-center justify-center gap-4 text-sm text-white/60">
@@ -203,14 +194,14 @@ export default function CabinsPage() {
               <div className="bg-green-50 border border-green-100 rounded-2xl p-6 text-center">
                 <Clock className="h-6 w-6 text-green-600 mx-auto mb-2" />
                 <h3 className="font-bold text-gray-900 text-lg">Hourly Booking</h3>
-                <p className="text-3xl font-extrabold text-green-700 mt-1">₹{data.pricing.hourlyRate}<span className="text-sm font-normal text-gray-500">/hour</span></p>
-                <p className="text-sm text-gray-500 mt-1">Perfect for short study sessions</p>
+                <p className="text-3xl font-extrabold text-green-700 mt-1">₹{data.pricing.hourlyMonthlyRate}<span className="text-sm font-normal text-gray-500">/month</span></p>
+                <p className="text-sm text-gray-500 mt-1">5 hours/day &bull; 1 month duration</p>
               </div>
               <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center">
                 <CalendarDays className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
                 <h3 className="font-bold text-gray-900 text-lg">Monthly Booking</h3>
                 <p className="text-3xl font-extrabold text-emerald-700 mt-1">₹{data.pricing.monthlyRate}<span className="text-sm font-normal text-gray-500">/month</span></p>
-                <p className="text-sm text-gray-500 mt-1">Best value for regular students</p>
+                <p className="text-sm text-gray-500 mt-1">Full-day access, best value for regular students</p>
               </div>
             </div>
           )}
@@ -385,7 +376,7 @@ export default function CabinsPage() {
                     ) : (
                       <>
                         <div>
-                          <Label htmlFor="startDateH" className="mb-1.5 block text-sm font-medium text-gray-700">Date</Label>
+                          <Label htmlFor="startDateH" className="mb-1.5 block text-sm font-medium text-gray-700">Start Date</Label>
                           <Input
                             id="startDateH"
                             type="date"
@@ -395,26 +386,10 @@ export default function CabinsPage() {
                             min={new Date().toISOString().split('T')[0]}
                           />
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label htmlFor="startTime" className="mb-1.5 block text-sm font-medium text-gray-700">From</Label>
-                            <Input
-                              id="startTime"
-                              type="time"
-                              required
-                              value={startTime}
-                              onChange={(e) => setStartTime(e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="endTime" className="mb-1.5 block text-sm font-medium text-gray-700">To</Label>
-                            <Input
-                              id="endTime"
-                              type="time"
-                              required
-                              value={endTime}
-                              onChange={(e) => setEndTime(e.target.value)}
-                            />
+                        <div>
+                          <Label className="mb-1.5 block text-sm font-medium text-gray-700">Duration</Label>
+                          <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 text-sm text-gray-600">
+                            1 Month (5 hrs/day, auto-renewable)
                           </div>
                         </div>
                       </>

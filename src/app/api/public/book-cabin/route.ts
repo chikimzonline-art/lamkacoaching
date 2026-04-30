@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, email, address, cabinId, bookingType, startDate, endDate, startTime, endTime } = body;
+    const { name, phone, email, address, cabinId, bookingType, startDate } = body;
 
     // Validate required fields
     if (!name?.trim() || !phone?.trim()) {
@@ -25,6 +25,13 @@ export async function POST(request: Request) {
     if (!bookingType || !['hourly', 'monthly'].includes(bookingType)) {
       return NextResponse.json(
         { error: 'Please select a valid booking type' },
+        { status: 400 }
+      );
+    }
+
+    if (!startDate) {
+      return NextResponse.json(
+        { error: 'Start date is required' },
         { status: 400 }
       );
     }
@@ -52,7 +59,7 @@ export async function POST(request: Request) {
     // Get pricing
     const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
     const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
-    const hourlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 50;
+    const hourlyMonthlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 1000;
     const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) : 3000;
 
     let totalAmount: number; // in paise
@@ -63,60 +70,39 @@ export async function POST(request: Request) {
     let dbBookingType: string;
 
     if (bookingType === 'hourly') {
-      if (!startDate || !startTime || !endTime) {
-        return NextResponse.json(
-          { error: 'Date, start time, and end time are required for hourly booking' },
-          { status: 400 }
-        );
-      }
-
+      // Hourly booking: 5 hrs/day, 1 month duration, monthly fee
       bookingStartDate = new Date(startDate);
       bookingStartDate.setHours(0, 0, 0, 0);
-      bookingStartTime = startTime;
-      bookingEndTime = endTime;
+      bookingEndDate = new Date(bookingStartDate);
+      bookingEndDate.setMonth(bookingEndDate.getMonth() + 1);
+      bookingEndDate.setHours(23, 59, 59, 999);
       dbBookingType = 'hourly';
+      bookingStartTime = '09:00'; // Default 5-hour window start
+      bookingEndTime = '14:00';   // Default 5-hour window end
+      totalAmount = hourlyMonthlyRate * 100; // Monthly fee in paise
 
-      // Calculate hours
-      const [startH, startM] = startTime.split(':').map(Number);
-      const [endH, endM] = endTime.split(':').map(Number);
-      const hours = (endH + endM / 60) - (startH + startM / 60);
-      if (hours <= 0) {
-        return NextResponse.json(
-          { error: 'End time must be after start time' },
-          { status: 400 }
-        );
-      }
-      totalAmount = Math.round(hours * hourlyRate * 100); // convert to paise
-
-      // Check for time conflicts
-      const existingBookings = await db.booking.findMany({
+      // Check for conflicting hourly bookings (same cabin, overlapping period)
+      const overlappingBookings = await db.booking.findMany({
         where: {
           cabinId,
           status: 'active',
           type: 'hourly',
-          startDate: bookingStartDate,
+          OR: [
+            { startDate: { lte: bookingEndDate }, endDate: { gte: bookingStartDate } },
+            { startDate: { lte: bookingEndDate }, endDate: null },
+          ],
         },
       });
 
-      for (const existing of existingBookings) {
-        if (existing.startTime && existing.endTime &&
-          startTime < existing.endTime && endTime > existing.startTime) {
-          return NextResponse.json(
-            { error: `This cabin is already booked from ${existing.startTime} to ${existing.endTime} on that date. Please choose a different time.` },
-            { status: 409 }
-          );
-        }
-      }
-
-    } else {
-      // Monthly booking (exclusive)
-      if (!startDate) {
+      if (overlappingBookings.length > 0) {
         return NextResponse.json(
-          { error: 'Start date is required for monthly booking' },
-          { status: 400 }
+          { error: 'This cabin already has an active hourly booking for the selected period. Please choose a different cabin or date.' },
+          { status: 409 }
         );
       }
 
+    } else {
+      // Monthly booking (exclusive/full-day)
       bookingStartDate = new Date(startDate);
       bookingStartDate.setHours(0, 0, 0, 0);
       bookingEndDate = new Date(bookingStartDate);

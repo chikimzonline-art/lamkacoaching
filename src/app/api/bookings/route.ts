@@ -301,16 +301,19 @@ export async function POST(request: Request) {
       if (!existing) {
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
       }
-      if (existing.type !== 'exclusive') {
-        return NextResponse.json({ error: 'Only exclusive bookings can be renewed' }, { status: 400 });
-      }
       if (existing.status !== 'active') {
         return NextResponse.json({ error: 'Only active bookings can be renewed' }, { status: 400 });
       }
 
-      // Get monthly rate from settings
-      const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
-      const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) * 100 : 300000; // in paise
+      // Get rate from settings based on booking type
+      let renewAmount: number; // in paise
+      if (existing.type === 'hourly') {
+        const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
+        renewAmount = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) * 100 : 100000; // in paise
+      } else {
+        const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
+        renewAmount = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) * 100 : 300000; // in paise
+      }
 
       // Calculate new end date: current endDate + 1 month, or startDate + 1 month if no endDate
       const currentEnd = existing.endDate ? new Date(existing.endDate) : new Date(existing.startDate);
@@ -323,7 +326,7 @@ export async function POST(request: Request) {
         where: { id },
         data: {
           endDate: newEnd,
-          totalAmount: existing.totalAmount + monthlyRate,
+          totalAmount: existing.totalAmount + renewAmount,
         },
         include: {
           student: { select: { id: true, name: true, phone: true } },
@@ -334,7 +337,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         booking,
-        renewedAmount: monthlyRate,
+        renewedAmount: renewAmount,
         newEndDate: newEnd.toISOString(),
       });
     }

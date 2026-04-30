@@ -64,7 +64,7 @@ const defaultSettings: SettingsData = {
   business_name: 'Lamka Coaching Center',
   operating_hours_start: '07:00',
   operating_hours_end: '22:00',
-  hourly_rate: '100',
+  hourly_rate: '1000',
   monthly_rate: '3000',
   business_phone: '',
   business_email: '',
@@ -223,7 +223,7 @@ export default function SettingsViewWrapper() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Hourly Rate (₹)</Label>
+              <Label htmlFor="hourly_rate">Hourly Booking Fee (₹/month)</Label>
               <Input
                 id="hourly_rate"
                 type="number"
@@ -231,10 +231,10 @@ export default function SettingsViewWrapper() {
                 onChange={(e) => setSettings({ ...settings, hourly_rate: e.target.value })}
                 min={1}
               />
-              <p className="text-xs text-gray-400">Rate per hour for hourly bookings</p>
+              <p className="text-xs text-gray-400">Monthly fee for hourly booking (5 hrs/day, 1 month duration)</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="monthly_rate">Monthly Rate (₹)</Label>
+              <Label htmlFor="monthly_rate">Full-Day Monthly Rate (₹)</Label>
               <Input
                 id="monthly_rate"
                 type="number"
@@ -242,7 +242,7 @@ export default function SettingsViewWrapper() {
                 onChange={(e) => setSettings({ ...settings, monthly_rate: e.target.value })}
                 min={1}
               />
-              <p className="text-xs text-gray-400">Rate per month for exclusive bookings</p>
+              <p className="text-xs text-gray-400">Rate per month for exclusive (full-day) bookings</p>
             </div>
           </div>
         </CardContent>
