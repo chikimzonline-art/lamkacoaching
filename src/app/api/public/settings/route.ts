@@ -4,25 +4,27 @@ import { db } from '@/lib/db';
 // GET /api/public/settings - Public: get business info settings
 export async function GET() {
   try {
-    const publicKeys = [
-      'businessName',
-      'businessPhone',
-      'businessEmail',
-      'businessAddress',
-      'businessDescription',
-      'heroBadgeText',
-      'heroBannerText',
-      'footerCtaTitle',
-      'footerCtaSubtitle',
-    ];
+    // DB stores snake_case keys; map to camelCase for frontend consumption
+    const keyMap: Record<string, string> = {
+      'business_name': 'businessName',
+      'business_phone': 'businessPhone',
+      'business_email': 'businessEmail',
+      'business_address': 'businessAddress',
+      'business_description': 'businessDescription',
+      'hero_badge_text': 'heroBadgeText',
+      'hero_banner_text': 'heroBannerText',
+      'footer_cta_title': 'footerCtaTitle',
+      'footer_cta_subtitle': 'footerCtaSubtitle',
+    };
 
     const settings = await db.setting.findMany({
-      where: { key: { in: publicKeys } },
+      where: { key: { in: Object.keys(keyMap) } },
     });
 
     const settingsMap: Record<string, string> = {};
     settings.forEach((s) => {
-      settingsMap[s.key] = s.value;
+      const camelKey = keyMap[s.key] || s.key;
+      settingsMap[camelKey] = s.value;
     });
 
     return NextResponse.json({ settings: settingsMap });
