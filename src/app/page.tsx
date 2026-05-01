@@ -399,13 +399,13 @@ export default function HomePage() {
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/register">
-                  <Button size="lg" className="h-13 px-7 bg-white text-gray-900 hover:bg-cyan-50 font-bold text-base shadow-xl shadow-black/20 rounded-xl">
+                  <Button size="lg" className="h-13 px-7 bg-white text-gray-900 hover:bg-cyan-50 font-bold text-base shadow-xl shadow-black/20 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200">
                     Enroll Free
                     <ArrowRight className="h-4.5 w-4.5 ml-2" />
                   </Button>
                 </Link>
                 <Link href="/courses">
-                  <Button size="lg" variant="outline" className="h-13 px-7 bg-transparent border-white/25 text-white hover:bg-white/10 hover:border-white/40 font-semibold text-base rounded-xl">
+                  <Button size="lg" variant="outline" className="h-13 px-7 bg-transparent border-white/25 text-white hover:bg-white/10 hover:border-white/40 font-semibold text-base rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200">
                     View Courses
                   </Button>
                 </Link>
@@ -499,7 +499,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Card 1: Competitive Exams */}
-            <div className="group relative bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-2xl p-7 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300">
+            <div className="group relative bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-2xl p-7 hover:shadow-xl hover:shadow-blue-100/50 hover:-translate-y-1 transition-all duration-300">
               <div className="h-14 w-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-blue-200">
                 <GraduationCap className="h-7 w-7" />
               </div>
@@ -518,9 +518,9 @@ export default function HomePage() {
             </div>
 
             {/* Card 2: Computer Training */}
-            <div className="group relative bg-gradient-to-br from-cyan-50 to-sky-50 border border-cyan-100 rounded-2xl p-7 hover:shadow-xl hover:shadow-cyan-100/50 transition-all duration-300">
+            <div className="group relative bg-gradient-to-br from-cyan-50 to-sky-50 border border-cyan-100 rounded-2xl p-7 hover:shadow-xl hover:shadow-cyan-100/50 hover:-translate-y-1 transition-all duration-300">
               <div className="absolute top-4 right-4">
-                <Badge className="bg-cyan-600 text-white text-[10px]">Popular</Badge>
+                <Badge className="bg-cyan-600 text-white text-[10px] animate-subtle-pulse">Popular</Badge>
               </div>
               <div className="h-14 w-14 rounded-2xl bg-cyan-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-cyan-200">
                 <Monitor className="h-7 w-7" />
@@ -540,7 +540,7 @@ export default function HomePage() {
             </div>
 
             {/* Card 3: Study Cabins */}
-            <div className="group relative bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-7 hover:shadow-xl hover:shadow-green-100/50 transition-all duration-300">
+            <div className="group relative bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-7 hover:shadow-xl hover:shadow-green-100/50 hover:-translate-y-1 transition-all duration-300">
               <div className="h-14 w-14 rounded-2xl bg-green-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-green-200">
                 <DoorOpen className="h-7 w-7" />
               </div>
@@ -560,6 +560,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
       {/* ============================================
           ACHIEVEMENTS — Results & Impact
@@ -721,6 +723,8 @@ export default function HomePage() {
         </section>
       )}
 
+      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
       {/* ============================================
           NOTICES — Clean announcement ticker
           ============================================ */}
@@ -835,7 +839,7 @@ export default function HomePage() {
                 bg: 'bg-rose-50',
               },
             ].map((feature) => (
-              <div key={feature.title} className={`${feature.bg} border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-shadow`}>
+              <div key={feature.title} className={`${feature.bg} border border-gray-100 rounded-2xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300`}>
                 <div className={`inline-flex items-center justify-center h-11 w-11 rounded-xl bg-gradient-to-br ${feature.accent} text-white mb-4 shadow-sm`}>
                   {feature.icon}
                 </div>
@@ -886,13 +890,13 @@ export default function HomePage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/register">
-              <Button size="lg" className="h-13 px-8 bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 text-white font-bold text-base shadow-xl shadow-cyan-900/30 rounded-xl">
+              <Button size="lg" className="h-13 px-8 bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 text-white font-bold text-base shadow-xl shadow-cyan-900/30 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200">
                 Register for Free
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
             </Link>
             <Link href="/courses">
-              <Button size="lg" variant="outline" className="h-13 px-8 bg-transparent border-white/20 text-white hover:bg-white/5 hover:border-white/30 font-semibold text-base rounded-xl">
+              <Button size="lg" variant="outline" className="h-13 px-8 bg-transparent border-white/20 text-white hover:bg-white/5 hover:border-white/30 font-semibold text-base rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200">
                 Browse Courses
               </Button>
             </Link>

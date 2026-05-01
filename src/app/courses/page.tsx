@@ -14,9 +14,12 @@ import {
   Building2,
   Loader2,
   Search,
+  Calculator,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Department {
   id: string;
@@ -39,6 +42,8 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true);
   const [activeDept, setActiveDept] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch('/api/public/courses')
@@ -68,6 +73,27 @@ export default function CoursesPage() {
     .filter((d) => d.courses.length > 0);
 
   const totalCourses = departments.reduce((sum, d) => sum + d.courses.length, 0);
+
+  // Get all courses flat for the calculator
+  const allCourses = departments.flatMap((d) =>
+    d.courses.map((c) => ({ ...c, departmentName: d.name }))
+  );
+
+  const selectedTotal = allCourses
+    .filter((c) => selectedCourseIds.has(c.id))
+    .reduce((sum, c) => sum + c.totalFee, 0);
+
+  const toggleCourse = (courseId: string) => {
+    setSelectedCourseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(courseId)) {
+        next.delete(courseId);
+      } else {
+        next.add(courseId);
+      }
+      return next;
+    });
+  };
 
   return (
     <PublicLayout>
@@ -125,6 +151,90 @@ export default function CoursesPage() {
               ))}
             </div>
           </div>
+
+          {/* Fee Calculator */}
+          {!loading && allCourses.length > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8">
+              <button
+                onClick={() => setShowCalculator(!showCalculator)}
+                className="flex items-center gap-2 text-gray-900 font-semibold text-lg hover:text-cyan-700 transition-colors w-full"
+              >
+                <Calculator className="h-5 w-5 text-cyan-600" />
+                Calculate Total Fee
+                <span
+                  className={cn(
+                    'ml-auto text-sm font-normal transition-transform duration-300',
+                    showCalculator ? 'rotate-180' : ''
+                  )}
+                >
+                  ▾
+                </span>
+              </button>
+
+              <AnimatePresence>
+                {showCalculator && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-4 space-y-2">
+                      {allCourses.map((course) => (
+                        <label
+                          key={course.id}
+                          className={cn(
+                            'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors',
+                            selectedCourseIds.has(course.id)
+                              ? 'bg-cyan-50 border border-cyan-200'
+                              : 'bg-white border border-gray-100 hover:bg-gray-50'
+                          )}
+                        >
+                          <Checkbox
+                            checked={selectedCourseIds.has(course.id)}
+                            onCheckedChange={() => toggleCourse(course.id)}
+                          />
+                          <span className="flex-1 text-sm font-medium text-gray-900">
+                            {course.name}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="bg-gray-100 text-gray-600 text-xs"
+                          >
+                            {course.departmentName}
+                          </Badge>
+                          <span className="text-sm font-bold text-cyan-700 min-w-[70px] text-right">
+                            {formatCurrency(course.totalFee)}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {/* Total */}
+                    <div className="mt-4 bg-cyan-50 border border-cyan-200 rounded-xl p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-700 font-medium">
+                          Estimated Total Fee
+                          {selectedCourseIds.size > 0 && (
+                            <span className="text-sm font-normal text-gray-500 ml-1">
+                              ({selectedCourseIds.size} course{selectedCourseIds.size !== 1 ? 's' : ''})
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-2xl font-bold text-cyan-700">
+                          {formatCurrency(selectedTotal)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Fees are indicative. Actual fees may vary. Contact us for installment options.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           {/* Loading */}
           {loading && (

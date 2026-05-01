@@ -27,6 +27,7 @@ import {
   Mail,
 } from 'lucide-react';
 import ScrollReveal from '@/components/public/scroll-reveal';
+import GallerySection from '@/components/public/gallery-section';
 
 // ─── Types ────────────────────────────────────────────
 interface TeamMemberData {
@@ -408,6 +409,13 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      </ScrollReveal>
+
+      {/* ============================================
+          PHOTO GALLERY
+          ============================================ */}
+      <ScrollReveal delay={0.4}>
+        <GallerySection />
       </ScrollReveal>
 
       {/* ============================================
