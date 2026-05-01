@@ -116,7 +116,7 @@ export default function ContactSection() {
   ];
 
   return (
-    <section className="py-20 sm:py-28 bg-gray-50 relative overflow-hidden">
+    <section className="py-20 sm:py-28 bg-gray-50 dark:bg-gray-900 relative overflow-hidden">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(6,182,212,0.3) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(6,182,212,0.2) 0%, transparent 50%)' }} />
       <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(rgba(6,182,212,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,.08) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -125,17 +125,17 @@ export default function ContactSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           {/* Left Column - Info */}
           <div className="flex flex-col justify-center">
-            <Badge variant="secondary" className="mb-4 bg-cyan-100 text-cyan-700 w-fit">
+            <Badge variant="secondary" className="mb-4 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 w-fit">
               <MessageSquare className="h-3 w-3 mr-1" />
               Get in Touch
             </Badge>
 
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
               Have Questions?{' '}
-              <span className="text-cyan-600">We&apos;re Here to Help</span>
+              <span className="text-cyan-600 dark:text-cyan-400">We&apos;re Here to Help</span>
             </h2>
 
-            <p className="mt-4 text-gray-500 text-lg leading-relaxed max-w-lg">
+            <p className="mt-4 text-gray-500 dark:text-gray-400 text-lg leading-relaxed max-w-lg">
               Whether you want to know more about our courses, need help choosing the right program, or have any other queries — feel free to reach out.
             </p>
 
@@ -144,22 +144,22 @@ export default function ContactSection() {
               {contactItems.map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center gap-4 rounded-xl bg-white border border-gray-100 p-4 hover:shadow-md hover:border-cyan-100 transition-all duration-300"
+                  className="flex items-center gap-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-4 hover:shadow-md hover:border-cyan-200 dark:hover:border-cyan-800 hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  <div className="h-12 w-12 rounded-full bg-cyan-50 flex items-center justify-center text-cyan-600 shrink-0">
+                  <div className="h-12 w-12 rounded-full bg-cyan-50 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
                     {item.icon}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-400">{item.label}</p>
+                    <p className="text-sm font-medium text-gray-400 dark:text-gray-500">{item.label}</p>
                     {item.href ? (
                       <a
                         href={item.href}
-                        className="text-base font-semibold text-gray-900 hover:text-cyan-600 transition-colors"
+                        className="text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                       >
                         {item.value}
                       </a>
                     ) : (
-                      <p className="text-base font-semibold text-gray-900">{item.value}</p>
+                      <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{item.value}</p>
                     )}
                   </div>
                 </div>
@@ -168,20 +168,20 @@ export default function ContactSection() {
           </div>
 
           {/* Right Column - Form */}
-          <div className="bg-white shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100">
+          <div className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100 dark:border-gray-700">
             {submitted ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="h-16 w-16 rounded-full bg-green-50 flex items-center justify-center mb-4">
+                <div className="h-16 w-16 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center mb-4">
                   <CheckCircle2 className="h-8 w-8 text-green-500" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Thank you!</h3>
-                <p className="text-gray-500">We&apos;ll get back to you soon.</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Thank you!</h3>
+                <p className="text-gray-500 dark:text-gray-400">We&apos;ll get back to you soon.</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="contact-name" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="contact-name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -189,14 +189,14 @@ export default function ContactSection() {
                     placeholder="Your full name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="h-11 rounded-lg"
+                    className="h-11 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     required
                   />
                 </div>
 
                 {/* Phone */}
                 <div className="space-y-2">
-                  <Label htmlFor="contact-phone" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="contact-phone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Phone <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -205,15 +205,15 @@ export default function ContactSection() {
                     placeholder="10-digit mobile number"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                    className="h-11 rounded-lg"
+                    className="h-11 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     required
                   />
                 </div>
 
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="contact-email" className="text-sm font-medium text-gray-700">
-                    Email <span className="text-gray-400 font-normal">(optional)</span>
+                  <Label htmlFor="contact-email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Email <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>
                   </Label>
                   <Input
                     id="contact-email"
@@ -221,20 +221,20 @@ export default function ContactSection() {
                     placeholder="your.email@example.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="h-11 rounded-lg"
+                    className="h-11 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   />
                 </div>
 
                 {/* Subject */}
                 <div className="space-y-2">
-                  <Label htmlFor="contact-subject" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="contact-subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Subject
                   </Label>
                   <Select
                     value={formData.subject}
                     onValueChange={(value) => setFormData({ ...formData, subject: value })}
                   >
-                    <SelectTrigger id="contact-subject" className="w-full h-11 rounded-lg">
+                    <SelectTrigger id="contact-subject" className="w-full h-11 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
                       <SelectValue placeholder="Select a subject" />
                     </SelectTrigger>
                     <SelectContent>
@@ -248,7 +248,7 @@ export default function ContactSection() {
 
                 {/* Message */}
                 <div className="space-y-2">
-                  <Label htmlFor="contact-message" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="contact-message" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Message <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
@@ -256,7 +256,7 @@ export default function ContactSection() {
                     placeholder="How can we help you?"
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="min-h-[120px] rounded-lg resize-none"
+                    className="min-h-[120px] rounded-lg resize-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     required
                   />
                 </div>

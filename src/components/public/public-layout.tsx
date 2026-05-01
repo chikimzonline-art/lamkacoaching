@@ -3,6 +3,7 @@
 import PublicHeader from './public-header';
 import PublicFooter from './public-footer';
 import BackToTop from './back-to-top';
+import ChatWidget from './chat-widget';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <main className="flex-1">{children}</main>
       <PublicFooter />
       <BackToTop />
+      <ChatWidget />
     </div>
   );
 }

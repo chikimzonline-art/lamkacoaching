@@ -40,6 +40,7 @@ import ScrollReveal from '@/components/public/scroll-reveal';
 import ContactSection from '@/components/public/contact-section';
 import AchievementsSection from '@/components/public/achievements-section';
 import UpcomingBatchesSection from '@/components/public/upcoming-batches-section';
+import SuccessStoriesSection from '@/components/public/success-stories-section';
 
 interface Department {
   id: string;
@@ -376,6 +377,14 @@ export default function HomePage() {
           <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.06) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 0%, transparent 40%), radial-gradient(circle at 60% 80%, rgba(255,255,255,0.03) 0%, transparent 40%)' }} />
           {/* Grid pattern */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+
+          {/* Floating shapes */}
+          <div className="absolute top-[10%] left-[5%] w-32 h-32 rounded-full bg-cyan-300/10" style={{ animation: 'float-1 20s ease-in-out infinite' }} />
+          <div className="absolute top-[60%] left-[15%] w-48 h-48 rounded-2xl bg-sky-300/[0.07] rotate-12" style={{ animation: 'float-2 25s ease-in-out infinite' }} />
+          <div className="absolute top-[20%] right-[10%] w-24 h-24 rounded-full bg-teal-300/[0.08]" style={{ animation: 'float-3 18s ease-in-out infinite' }} />
+          <div className="absolute bottom-[25%] right-[20%] w-40 h-40 rounded-2xl bg-cyan-400/[0.06] -rotate-6" style={{ animation: 'float-4 22s ease-in-out infinite' }} />
+          <div className="absolute top-[45%] left-[45%] w-20 h-20 rounded-full bg-sky-200/[0.09]" style={{ animation: 'float-5 15s ease-in-out infinite', animationDelay: '3s' }} />
+          <div className="absolute bottom-[15%] left-[60%] w-36 h-36 rounded-2xl bg-teal-400/[0.07] rotate-45" style={{ animation: 'float-6 28s ease-in-out infinite', animationDelay: '5s' }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 w-full">
@@ -416,7 +425,7 @@ export default function HomePage() {
             <div className="hidden lg:block">
               <div className="relative">
                 {/* Main card */}
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl gradient-border">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-xl bg-cyan-500 flex items-center justify-center">
                       <BookOpen className="h-5 w-5 text-white" />
@@ -568,6 +577,13 @@ export default function HomePage() {
           ============================================ */}
       <ScrollReveal>
         <AchievementsSection />
+      </ScrollReveal>
+
+      {/* ============================================
+          SUCCESS STORIES — Student achievements
+          ============================================ */}
+      <ScrollReveal>
+        <SuccessStoriesSection />
       </ScrollReveal>
 
       {/* ============================================

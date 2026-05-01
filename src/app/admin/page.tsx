@@ -22,6 +22,7 @@ import {
   UserPlus,
   Megaphone,
   Info,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -81,6 +82,9 @@ const NoticesView = dynamic(() => import('@/components/notices/notices-view'), {
 const AboutView = dynamic(() => import('@/components/about/about-view'), {
   loading: () => <PageSkeleton />,
 });
+const BatchesView = dynamic(() => import('@/components/batches/batch-view'), {
+  loading: () => <PageSkeleton />,
+});
 
 // Bottom nav items (5 primary + More)
 const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
@@ -95,6 +99,7 @@ const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; admi
   { view: 'cabins', label: 'Cabins', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
   { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
   { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
+  { view: 'batches', label: 'Batches', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
   { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
   { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
@@ -110,6 +115,7 @@ const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; a
   { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
   { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
   { view: 'enrollments', label: 'Enrollments', icon: <UserPlus className="h-5 w-5" />, adminOnly: false },
+  { view: 'batches', label: 'Batches', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
   { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
   { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
@@ -165,6 +171,7 @@ function PageHeader() {
     departments: 'Departments',
     courses: 'Courses',
     enrollments: 'Enrollments',
+    batches: 'Batches',
     notices: 'Notices',
     reports: 'Reports',
     settings: 'Settings',
@@ -227,6 +234,7 @@ function renderView(view: ViewType) {
     case 'departments': return <DepartmentsView />;
     case 'courses': return <CoursesView />;
     case 'enrollments': return <EnrollmentsView />;
+    case 'batches': return <BatchesView />;
     case 'notices': return <NoticesView />;
     case 'reports': return <ReportsView />;
     case 'settings': return <SettingsView />;

@@ -84,7 +84,7 @@ export default function NoticesPage() {
         </div>
       </section>
 
-      <section className="py-8 sm:py-12">
+      <section className="py-8 sm:py-12 bg-white dark:bg-gray-950">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Search Bar */}
           {!loading && notices.length > 0 && (
@@ -95,10 +95,10 @@ export default function NoticesPage() {
                   placeholder="Search notices..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-10"
+                  className="pl-9 h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 />
               </div>
-              <span className="text-sm text-gray-500 whitespace-nowrap">
+              <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 {filteredNotices.length} notice{filteredNotices.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -122,9 +122,9 @@ export default function NoticesPage() {
           {/* Empty State — no notices at all */}
           {!loading && notices.length === 0 && (
             <div className="text-center py-20">
-              <Inbox className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">No Notices Yet</h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <Inbox className="h-16 w-16 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No Notices Yet</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 There are no announcements at the moment. Check back later for updates.
               </p>
             </div>
@@ -133,9 +133,9 @@ export default function NoticesPage() {
           {/* Search Empty State */}
           {!loading && notices.length > 0 && !hasResults && (
             <div className="text-center py-20">
-              <Search className="h-12 w-12 text-gray-200 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">No notices found</h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <Search className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No notices found</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Try adjusting your search terms
               </p>
             </div>
@@ -152,7 +152,7 @@ export default function NoticesPage() {
                 {pinnedNotices.map((notice) => (
                   <Card
                     key={notice.id}
-                    className="border-l-4 border-l-cyan-500 border-0 shadow-sm bg-cyan-50/30"
+                    className="border-l-4 border-l-cyan-500 border-0 shadow-sm bg-cyan-50/30 dark:bg-cyan-950/20"
                   >
                     <CardContent className="p-5">
                       <div className="flex items-center gap-2 mb-2">
@@ -163,8 +163,8 @@ export default function NoticesPage() {
                           {formatRelativeTime(notice.createdAt)}
                         </span>
                       </div>
-                      <h3 className="font-semibold text-gray-900 text-lg mb-2">{notice.title}</h3>
-                      <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg mb-2">{notice.title}</h3>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
                         {notice.content}
                       </div>
                       <div className="mt-3 flex items-center gap-1 text-xs text-gray-400">
@@ -189,15 +189,15 @@ export default function NoticesPage() {
               )}
               <div className="space-y-4">
                 {regularNotices.map((notice) => (
-                  <Card key={notice.id} className="border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                  <Card key={notice.id} className="border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs text-gray-400">
                           {formatRelativeTime(notice.createdAt)}
                         </span>
                       </div>
-                      <h3 className="font-semibold text-gray-900 mb-2">{notice.title}</h3>
-                      <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{notice.title}</h3>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
                         {notice.content}
                       </div>
                       <div className="mt-3 flex items-center gap-1 text-xs text-gray-400">

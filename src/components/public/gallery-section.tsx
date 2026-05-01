@@ -67,16 +67,16 @@ const galleryItems = [
 
 export default function GallerySection() {
   return (
-    <section className="py-20 sm:py-28 bg-white border-t border-gray-100">
+    <section className="py-20 sm:py-28 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-14">
-          <Badge variant="secondary" className="mb-3 bg-cyan-100 text-cyan-700">
+          <Badge variant="secondary" className="mb-3 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400">
             <Camera className="h-3.5 w-3.5 mr-1.5" />
             Our Campus
           </Badge>
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Take a Look Inside</h2>
-          <p className="mt-3 text-gray-500 max-w-xl mx-auto text-lg">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">Take a Look Inside</h2>
+          <p className="mt-3 text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg">
             A glimpse of our modern facilities designed for focused learning
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function GallerySection() {
             <Button
               size="lg"
               variant="outline"
-              className="border-cyan-200 text-cyan-700 hover:bg-cyan-50 hover:border-cyan-300 font-semibold rounded-xl"
+              className="border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 hover:border-cyan-300 dark:hover:border-cyan-700 font-semibold rounded-xl"
             >
               Visit us for a campus tour
               <ArrowRight className="h-4 w-4 ml-2" />

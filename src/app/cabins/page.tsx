@@ -120,18 +120,18 @@ export default function CabinsPage() {
   if (submitted) {
     return (
       <PublicLayout>
-        <section className="py-20 sm:py-28">
+        <section className="py-20 sm:py-28 bg-white dark:bg-gray-950">
           <div className="max-w-lg mx-auto px-4 text-center">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 text-green-600 mb-5">
+            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-5">
               <CheckCircle2 className="h-8 w-8" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Booking Request Submitted!</h1>
-            <p className="text-gray-500 text-lg leading-relaxed mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">Booking Request Submitted!</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed mb-6">
               Your cabin booking request has been received. We will contact you shortly to confirm your booking and arrange payment.
             </p>
-            <div className="bg-green-50 border border-green-100 rounded-xl p-5 mb-6 text-left">
-              <p className="text-sm text-green-800 font-medium mb-1">What happens next?</p>
-              <ul className="text-sm text-green-700 space-y-1.5">
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-xl p-5 mb-6 text-left">
+              <p className="text-sm text-green-800 dark:text-green-300 font-medium mb-1">What happens next?</p>
+              <ul className="text-sm text-green-700 dark:text-green-400 space-y-1.5">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
                   Our team will review your booking request
@@ -186,28 +186,28 @@ export default function CabinsPage() {
         </div>
       </section>
 
-      <section className="py-8 sm:py-12">
+      <section className="py-8 sm:py-12 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Pricing overview */}
           {data && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-              <div className="bg-green-50 border border-green-100 rounded-2xl p-6 text-center">
-                <Clock className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                <h3 className="font-bold text-gray-900 text-lg">Hourly Booking</h3>
-                <p className="text-3xl font-extrabold text-green-700 mt-1">₹{data.pricing.hourlyMonthlyRate}<span className="text-sm font-normal text-gray-500">/month</span></p>
-                <p className="text-sm text-gray-500 mt-1">5 hours/day &bull; 1 month duration</p>
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
+                <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Hourly Booking</h3>
+                <p className="text-3xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.hourlyMonthlyRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span></p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">5 hours/day &bull; 1 month duration</p>
               </div>
-              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center">
-                <CalendarDays className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
-                <h3 className="font-bold text-gray-900 text-lg">Monthly Booking</h3>
-                <p className="text-3xl font-extrabold text-emerald-700 mt-1">₹{data.pricing.monthlyRate}<span className="text-sm font-normal text-gray-500">/month</span></p>
-                <p className="text-sm text-gray-500 mt-1">Full-day access, best value for regular students</p>
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-6 text-center">
+                <CalendarDays className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Monthly Booking</h3>
+                <p className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">₹{data.pricing.monthlyRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span></p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Full-day access, best value for regular students</p>
               </div>
             </div>
           )}
 
           {/* Cabin features */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-10 text-sm text-gray-500">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-10 text-sm text-gray-500 dark:text-gray-400">
             {[
               { icon: <Wifi className="h-4 w-4 text-green-600" />, text: 'Free Wi-Fi' },
               { icon: <AirVent className="h-4 w-4 text-green-600" />, text: 'Air Conditioned' },
@@ -216,7 +216,7 @@ export default function CabinsPage() {
             ].map((feat) => (
               <div key={feat.text} className="flex items-center gap-1.5">
                 {feat.icon}
-                <span className="font-medium text-gray-600">{feat.text}</span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{feat.text}</span>
               </div>
             ))}
           </div>
@@ -224,12 +224,12 @@ export default function CabinsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Left: Cabin Selection */}
             <div className="lg:col-span-2">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Select a Cabin</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Select a Cabin</h2>
 
               {loading && (
                 <div className="space-y-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                    <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
                   ))}
                 </div>
               )}
@@ -244,10 +244,10 @@ export default function CabinsPage() {
                       className={cn(
                         'w-full text-left rounded-xl border-2 p-4 transition-all',
                         cabin.isOccupied
-                          ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-60'
+                          ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60'
                           : selectedCabin === cabin.id
-                            ? 'bg-green-50 border-green-500 shadow-md shadow-green-100'
-                            : 'bg-white border-gray-200 hover:border-green-300 hover:bg-green-50/30'
+                            ? 'bg-green-50 dark:bg-green-950/30 border-green-500 shadow-md shadow-green-100 dark:shadow-green-900/20'
+                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-green-300 hover:bg-green-50/30 dark:hover:bg-green-950/20'
                       )}
                     >
                       <div className="flex items-center justify-between">
@@ -255,17 +255,17 @@ export default function CabinsPage() {
                           <div className={cn(
                             'h-10 w-10 rounded-lg flex items-center justify-center font-bold text-sm',
                             cabin.isOccupied
-                              ? 'bg-gray-200 text-gray-500'
+                              ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                               : selectedCabin === cabin.id
                                 ? 'bg-green-600 text-white'
-                                : 'bg-green-100 text-green-700'
+                                : 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
                           )}>
                             {cabin.cabinNum}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-900 text-sm">Cabin {cabin.cabinNum}</p>
+                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Cabin {cabin.cabinNum}</p>
                             {cabin.notes && (
-                              <p className="text-xs text-gray-500">{cabin.notes}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{cabin.notes}</p>
                             )}
                           </div>
                         </div>
@@ -273,8 +273,8 @@ export default function CabinsPage() {
                           className={cn(
                             'text-[11px]',
                             cabin.isOccupied
-                              ? 'bg-red-50 text-red-600'
-                              : 'bg-green-50 text-green-700'
+                              ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400'
+                              : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400'
                           )}
                         >
                           {cabin.isOccupied ? 'Occupied' : 'Available'}
@@ -282,7 +282,7 @@ export default function CabinsPage() {
                       </div>
                       {!cabin.isOccupied && cabin.hourlyBookingsToday.length > 0 && (
                         <div className="mt-2 pt-2 border-t border-green-100">
-                          <p className="text-[11px] text-gray-500 mb-1">Booked hours today:</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Booked hours today:</p>
                           <div className="flex flex-wrap gap-1">
                             {cabin.hourlyBookingsToday.map((h, i) => (
                               <span key={i} className="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded">
@@ -301,35 +301,35 @@ export default function CabinsPage() {
             {/* Right: Booking Form */}
             <div className="lg:col-span-3">
               {!selectedCabin ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-10 text-center">
-                  <DoorOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-1">Select a Cabin</h3>
-                  <p className="text-sm text-gray-500">Choose an available cabin from the list to start your booking</p>
+                <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-10 text-center">
+                  <DoorOpen className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">Select a Cabin</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Choose an available cabin from the list to start your booking</p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 sm:p-8 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-lg bg-green-600 text-white flex items-center justify-center font-bold text-sm">
                       {selectedCabinInfo?.cabinNum}
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900">Cabin {selectedCabinInfo?.cabinNum}</h3>
+                      <h3 className="font-bold text-gray-900 dark:text-gray-100">Cabin {selectedCabinInfo?.cabinNum}</h3>
                       <p className="text-xs text-green-600 font-medium">Available for booking</p>
                     </div>
                   </div>
 
                   {/* Booking Type */}
                   <div className="mb-6">
-                    <Label className="mb-2 block font-semibold text-gray-700">Booking Type</Label>
-                    <div className="flex rounded-xl bg-gray-100 p-1 gap-1">
+                    <Label className="mb-2 block font-semibold text-gray-700 dark:text-gray-300">Booking Type</Label>
+                    <div className="flex rounded-xl bg-gray-100 dark:bg-gray-700 p-1 gap-1">
                       <button
                         type="button"
                         onClick={() => setBookingType('monthly')}
                         className={cn(
                           'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
                           bookingType === 'monthly'
-                            ? 'bg-white text-green-700 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                         )}
                       >
                         <CalendarDays className="h-4 w-4" />
@@ -341,8 +341,8 @@ export default function CabinsPage() {
                         className={cn(
                           'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
                           bookingType === 'hourly'
-                            ? 'bg-white text-green-700 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                         )}
                       >
                         <Clock className="h-4 w-4" />
@@ -356,7 +356,7 @@ export default function CabinsPage() {
                     {bookingType === 'monthly' ? (
                       <>
                         <div>
-                          <Label htmlFor="startDate" className="mb-1.5 block text-sm font-medium text-gray-700">Start Date</Label>
+                          <Label htmlFor="startDate" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</Label>
                           <Input
                             id="startDate"
                             type="date"
@@ -364,11 +364,12 @@ export default function CabinsPage() {
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                             min={new Date().toISOString().split('T')[0]}
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                           />
                         </div>
                         <div>
-                          <Label className="mb-1.5 block text-sm font-medium text-gray-700">Duration</Label>
-                          <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 text-sm text-gray-600">
+                          <Label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Duration</Label>
+                          <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300">
                             1 Month (auto-renewable)
                           </div>
                         </div>
@@ -376,7 +377,7 @@ export default function CabinsPage() {
                     ) : (
                       <>
                         <div>
-                          <Label htmlFor="startDateH" className="mb-1.5 block text-sm font-medium text-gray-700">Start Date</Label>
+                          <Label htmlFor="startDateH" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</Label>
                           <Input
                             id="startDateH"
                             type="date"
@@ -384,11 +385,12 @@ export default function CabinsPage() {
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                             min={new Date().toISOString().split('T')[0]}
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                           />
                         </div>
                         <div>
-                          <Label className="mb-1.5 block text-sm font-medium text-gray-700">Duration</Label>
-                          <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 text-sm text-gray-600">
+                          <Label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Duration</Label>
+                          <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300">
                             1 Month (5 hrs/day, auto-renewable)
                           </div>
                         </div>
@@ -397,21 +399,22 @@ export default function CabinsPage() {
                   </div>
 
                   {/* Personal Details */}
-                  <div className="border-t border-gray-100 pt-5 mb-5">
-                    <p className="text-sm font-semibold text-gray-700 mb-4">Your Details</p>
+                  <div className="border-t border-gray-100 dark:border-gray-700 pt-5 mb-5">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Your Details</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="name" className="mb-1.5 block text-sm font-medium text-gray-700">Full Name *</Label>
+                        <Label htmlFor="name" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name *</Label>
                         <Input
                           id="name"
                           required
                           placeholder="Your full name"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
+                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-gray-700">Phone Number *</Label>
+                        <Label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number *</Label>
                         <Input
                           id="phone"
                           required
@@ -419,25 +422,28 @@ export default function CabinsPage() {
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           maxLength={10}
+                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700">Email (optional)</Label>
+                        <Label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Email (optional)</Label>
                         <Input
                           id="email"
                           type="email"
                           placeholder="you@example.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
+                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="address" className="mb-1.5 block text-sm font-medium text-gray-700">Address (optional)</Label>
+                        <Label htmlFor="address" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Address (optional)</Label>
                         <Input
                           id="address"
                           placeholder="Your address"
                           value={address}
                           onChange={(e) => setAddress(e.target.value)}
+                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                         />
                       </div>
                     </div>
@@ -445,18 +451,18 @@ export default function CabinsPage() {
 
                   {/* Estimated Cost */}
                   {estimatedAmount > 0 && (
-                    <div className="bg-green-50 border border-green-100 rounded-xl p-4 mb-5">
+                    <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-xl p-4 mb-5">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Estimated Amount</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Estimated Amount</span>
                         <span className="text-xl font-bold text-green-700">{formatCurrency(estimatedAmount)}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Payment to be made at the center upon confirmation</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Payment to be made at the center upon confirmation</p>
                     </div>
                   )}
 
                   {/* Error */}
                   {error && (
-                    <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-5 flex items-start gap-2">
+                    <div className="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 rounded-xl p-4 mb-5 flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
                       <p className="text-sm text-red-700">{error}</p>
                     </div>
@@ -482,7 +488,7 @@ export default function CabinsPage() {
                     )}
                   </Button>
 
-                  <p className="text-xs text-gray-400 text-center mt-3">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-3">
                     Your booking is a request. We will confirm and arrange payment on your first visit.
                   </p>
                 </form>

@@ -129,28 +129,28 @@ function RegisterForm() {
   if (success) {
     return (
       <PublicLayout>
-        <section className="py-16 sm:py-24">
+        <section className="py-16 sm:py-24 bg-white dark:bg-gray-950">
           <div className="max-w-lg mx-auto px-4 text-center">
-            <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-100 text-green-600 mb-6">
+            <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-6">
               <CheckCircle2 className="h-10 w-10" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Registration Successful!</h1>
-            <p className="mt-3 text-gray-500 leading-relaxed">
-              Welcome, <span className="font-semibold text-gray-900">{registeredName}</span>! Your registration has been submitted successfully.
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Registration Successful!</h1>
+            <p className="mt-3 text-gray-500 dark:text-gray-400 leading-relaxed">
+              Welcome, <span className="font-semibold text-gray-900 dark:text-gray-100">{registeredName}</span>! Your registration has been submitted successfully.
               We will contact you shortly with further details.
             </p>
             {selectedCourse && (
-              <Card className="mt-6 border-0 shadow-sm bg-cyan-50/50">
+              <Card className="mt-6 border-0 shadow-sm bg-cyan-50/50 dark:bg-cyan-950/30">
                 <CardContent className="p-4">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Enrolled in: <span className="font-semibold text-cyan-700">{selectedCourse.name}</span>
                   </p>
                   {selectedCourse.totalFee > 0 && (
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       Course fee: {formatCurrency(selectedCourse.totalFee)}
                     </p>
                   )}
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                     Our team will confirm your enrollment and share payment details.
                   </p>
                 </CardContent>
@@ -186,15 +186,15 @@ function RegisterForm() {
         </div>
       </section>
 
-      <section className="py-8 sm:py-12">
+      <section className="py-8 sm:py-12 bg-white dark:bg-gray-950">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="border-0 shadow-lg shadow-gray-200/50">
+          <Card className="border-0 dark:border dark:border-gray-700 dark:bg-gray-800 shadow-lg shadow-gray-200/50 dark:shadow-gray-900/50">
             <CardHeader className="pb-2 px-6 pt-6">
               <div className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-cyan-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Fill in Your Details</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Fill in Your Details</h2>
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 All fields marked with * are required
               </p>
             </CardHeader>
@@ -212,7 +212,7 @@ function RegisterForm() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={submitting}
-                    className="h-11"
+                    className="h-11 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     autoFocus
                   />
                 </div>
@@ -231,11 +231,11 @@ function RegisterForm() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       disabled={submitting}
-                      className="h-11 pl-9"
+                      className="h-11 pl-9 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                       maxLength={10}
                     />
                   </div>
-                  <p className="text-xs text-gray-400">We will use this to contact you</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">We will use this to contact you</p>
                 </div>
 
                 {/* Email */}
@@ -252,7 +252,7 @@ function RegisterForm() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={submitting}
-                      className="h-11 pl-9"
+                      className="h-11 pl-9 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     />
                   </div>
                 </div>
@@ -270,7 +270,7 @@ function RegisterForm() {
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       disabled={submitting}
-                      className="pl-9 min-h-[80px] resize-none"
+                      className="pl-9 min-h-[80px] resize-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     />
                   </div>
                 </div>
@@ -281,7 +281,7 @@ function RegisterForm() {
                     Select a Course
                   </Label>
                   {loading ? (
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Loading courses...
                     </div>
@@ -313,19 +313,19 @@ function RegisterForm() {
                     <p className="text-sm text-gray-400">No courses available at the moment</p>
                   )}
                   {selectedCourse && (
-                    <Card className="bg-cyan-50/50 border-cyan-100">
+                    <Card className="bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-100 dark:border-cyan-900/30">
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-cyan-800">{selectedCourse.name}</p>
-                            <p className="text-xs text-cyan-600">{selectedCourse.departmentName}</p>
+                            <p className="text-sm font-medium text-cyan-800 dark:text-cyan-300">{selectedCourse.name}</p>
+                            <p className="text-xs text-cyan-600 dark:text-cyan-400">{selectedCourse.departmentName}</p>
                           </div>
                           <span className="text-sm font-bold text-cyan-700">
                             {formatCurrency(selectedCourse.totalFee)}
                           </span>
                         </div>
                         {selectedCourse.duration && (
-                          <p className="text-xs text-gray-500 mt-1">Duration: {selectedCourse.duration}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Duration: {selectedCourse.duration}</p>
                         )}
                       </CardContent>
                     </Card>
@@ -351,7 +351,7 @@ function RegisterForm() {
                   )}
                 </Button>
 
-                <p className="text-xs text-gray-400 text-center">
+                <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
                   By registering, you agree to be contacted by Lamka Coaching Center regarding courses and admissions.
                 </p>
               </form>
