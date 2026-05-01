@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import PublicLayout from '@/components/public/public-layout';
 import { Button } from '@/components/ui/button';
@@ -27,10 +27,16 @@ import {
   Phone,
   MapPin,
   ChevronRight,
+  ChevronLeft,
   Zap,
   Shield,
   Laptop,
+  Quote,
+  Star,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import ScrollReveal from '@/components/public/scroll-reveal';
 
 interface Department {
   id: string;
@@ -72,6 +78,258 @@ function formatDate(date: string): string {
     month: 'short',
     year: 'numeric',
   });
+}
+
+/* ─────────────────────────────────────────────
+   Testimonials Data
+   ───────────────────────────────────────────── */
+const testimonials = [
+  {
+    name: 'Priya Sharma',
+    course: 'SSC CGL Coaching',
+    text: 'I cleared SSC CGL in my very first attempt thanks to the structured guidance at Lamka Coaching Center. The mock tests and personal attention made all the difference!',
+    rating: 5,
+  },
+  {
+    name: 'Rahul Verma',
+    course: 'CCC Computer Course',
+    text: 'The CCC course here is excellent. The hands-on practice and patient instructors helped me score 85% in the NIELIT exam. Highly recommended for anyone starting their computer journey.',
+    rating: 5,
+  },
+  {
+    name: 'Anjali Kumari',
+    course: 'IBPS PO Coaching',
+    text: 'I was struggling with quantitative aptitude until I joined Lamka. The faculty broke down complex problems into simple steps. I finally cleared IBPS PO with confidence!',
+    rating: 4,
+  },
+  {
+    name: 'Mohit Singh',
+    course: 'Tally Prime with GST',
+    text: 'Best Tally course in Lamka! The practical accounting exercises and real GST return filing practice gave me the skills to land an accountant job within 2 months of finishing.',
+    rating: 5,
+  },
+  {
+    name: 'Sneha Patel',
+    course: 'Web Design & Development',
+    text: 'From zero coding knowledge to building my own website — the web design course here is incredibly practical. The project-based learning approach is exactly what I needed.',
+    rating: 5,
+  },
+  {
+    name: 'Arun Thakur',
+    course: 'Study Cabin (Monthly)',
+    text: 'The study cabin facility is a game-changer. Quiet, comfortable, and available at flexible hours. It helped me maintain a consistent study routine during my UPSC preparation.',
+    rating: 4,
+  },
+];
+
+/* ─────────────────────────────────────────────
+   Testimonials Carousel Section
+   ───────────────────────────────────────────── */
+function TestimonialsSection() {
+  const [current, setCurrent] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const total = testimonials.length;
+
+  const startAutoPlay = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % total);
+    }, 5000);
+  }, [total]);
+
+  useEffect(() => {
+    startAutoPlay();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [startAutoPlay]);
+
+  const goTo = (index: number) => {
+    setCurrent(index);
+    startAutoPlay();
+  };
+
+  const prev = () => {
+    goTo((current - 1 + total) % total);
+  };
+
+  const next = () => {
+    goTo((current + 1) % total);
+  };
+
+  const t = testimonials[current];
+
+  return (
+    <section className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
+      {/* Background accents */}
+      <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(6,182,212,0.07) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(6,182,212,0.05) 0%, transparent 40%)' }} />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-14">
+          <Badge className="mb-3 bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+            <Sparkles className="h-3 w-3 mr-1" /> Student Stories
+          </Badge>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white">What Our Students Say</h2>
+          <p className="mt-3 text-gray-400 max-w-xl mx-auto text-lg">
+            Real experiences from students who transformed their careers with us.
+          </p>
+        </div>
+
+        {/* Carousel */}
+        <div className="relative max-w-3xl mx-auto">
+          {/* Navigation Arrows */}
+          <button
+            onClick={prev}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-6 z-10 h-10 w-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-cyan-400 hover:bg-white/20 hover:border-cyan-500/40 transition-all"
+            aria-label="Previous testimonial"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={next}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-6 z-10 h-10 w-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-cyan-400 hover:bg-white/20 hover:border-cyan-500/40 transition-all"
+            aria-label="Next testimonial"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+
+          {/* Testimonial Card */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current}
+              initial={{ opacity: 0, x: 60 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -60 }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+              className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-8 sm:p-10"
+            >
+              {/* Quote icon */}
+              <div className="mb-5">
+                <Quote className="h-10 w-10 text-cyan-500/40" />
+              </div>
+
+              {/* Text */}
+              <p className="text-gray-200 text-lg leading-relaxed mb-6">
+                &ldquo;{t.text}&rdquo;
+              </p>
+
+              {/* Stars */}
+              <div className="flex items-center gap-1 mb-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-5 w-5 ${i < t.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`}
+                  />
+                ))}
+              </div>
+
+              {/* Name & Course */}
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-full bg-gradient-to-br from-cyan-500 to-sky-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-cyan-500/20">
+                  {t.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-white">{t.name}</p>
+                  <p className="text-sm text-cyan-400">{t.course}</p>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Navigation Dots */}
+        <div className="flex items-center justify-center gap-2 mt-8">
+          {testimonials.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`h-2.5 rounded-full transition-all duration-300 ${i === current ? 'w-8 bg-cyan-400' : 'w-2.5 bg-white/20 hover:bg-white/40'}`}
+              aria-label={`Go to testimonial ${i + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   FAQ Data
+   ───────────────────────────────────────────── */
+const faqs = [
+  {
+    q: 'What courses does Lamka Coaching Center offer?',
+    a: 'We offer a wide range of courses including Competitive Exam Coaching (SSC CGL, IBPS, SBI PO, UPSC, Railway), Computer Training (CCC, Tally Prime with GST, Advanced Excel, Web Design, Python, Hindi & English Typing), and dedicated Study Cabin facilities for focused preparation.',
+  },
+  {
+    q: 'What is the fee structure for your courses?',
+    a: 'Our fee structure is very affordable and transparent. Computer courses start from ₹2,500 for Typing and go up to ₹15,000 for Web Design. Competitive exam coaching fees vary by program. We also offer installment payment options for eligible courses. Contact us for detailed fee information.',
+  },
+  {
+    q: 'How can I book a study cabin?',
+    a: 'You can book a study cabin directly through our website by visiting the Cabins page. Cabins are available on both hourly and monthly basis. Simply select your preferred cabin, choose the time slot, and complete the booking. You can also visit our center for walk-in bookings.',
+  },
+  {
+    q: 'What are the class timings and batch schedules?',
+    a: 'We offer flexible batch timings including morning (7 AM – 10 AM), afternoon (12 PM – 3 PM), and evening (4 PM – 7 PM) batches. Weekend batches are also available for working professionals. Each batch has limited seats to ensure quality interaction with instructors.',
+  },
+  {
+    q: 'Do you provide certifications after course completion?',
+    a: 'Yes! Our computer courses come with NIELIT certification (for CCC) and Lamka Coaching Center certification for other programs. Competitive exam coaching students receive course completion certificates. All our certifications are recognized and add value to your professional profile.',
+  },
+  {
+    q: 'Is there any demo or trial class available?',
+    a: 'Absolutely! We offer free demo classes for all our courses so you can experience our teaching methodology before enrolling. Simply contact us or visit our center to schedule a demo class at your convenience.',
+  },
+  {
+    q: 'What is the admission process?',
+    a: 'The admission process is simple — you can register online through our website or visit our center in person. Fill out the registration form, choose your course, submit the required documents (ID proof and passport-size photo), and pay the fee. You can start attending classes immediately after enrollment.',
+  },
+  {
+    q: 'Do you offer study materials and mock tests?',
+    a: 'Yes, we provide comprehensive study materials for all courses. Competitive exam students get access to regular mock tests, previous year question papers, and detailed performance analysis. Computer training students receive practical exercise books and project guides as part of their course.',
+  },
+];
+
+/* ─────────────────────────────────────────────
+   FAQ Accordion Section
+   ───────────────────────────────────────────── */
+function FAQSection() {
+  return (
+    <section className="py-20 sm:py-28">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-14">
+          <Badge variant="secondary" className="mb-3 bg-cyan-100 text-cyan-700">
+            Common Questions
+          </Badge>
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            Frequently Asked Questions
+          </h2>
+          <p className="mt-3 text-gray-500 max-w-xl mx-auto text-lg">
+            Got questions? We&apos;ve got answers. Find everything you need to know about our courses, fees, and facilities.
+          </p>
+        </div>
+
+        {/* Accordion */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, i) => (
+              <AccordionItem key={i} value={`faq-${i}`} className="border-gray-100">
+                <AccordionTrigger className="text-left text-base font-semibold text-gray-900 hover:text-cyan-700 hover:no-underline py-5 transition-colors">
+                  {faq.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-500 leading-relaxed text-base pb-5">
+                  {faq.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default function HomePage() {
@@ -201,6 +459,7 @@ export default function HomePage() {
       {/* ============================================
           TRUST BAR — Quick trust signals
           ============================================ */}
+      <ScrollReveal>
       <section className="py-8 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
@@ -218,6 +477,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* ============================================
           WHAT WE OFFER — 3-pillar layout
@@ -502,6 +762,7 @@ export default function HomePage() {
       {/* ============================================
           WHY CHOOSE US — Bento grid
           ============================================ */}
+      <ScrollReveal>
       <section className="py-20 sm:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
@@ -568,6 +829,21 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </ScrollReveal>
+
+      {/* ============================================
+          TESTIMONIALS — Student stories carousel
+          ============================================ */}
+      <ScrollReveal>
+      <TestimonialsSection />
+      </ScrollReveal>
+
+      {/* ============================================
+          FAQ — Frequently Asked Questions
+          ============================================ */}
+      <ScrollReveal>
+      <FAQSection />
+      </ScrollReveal>
 
       {/* ============================================
           CTA — Strong final push

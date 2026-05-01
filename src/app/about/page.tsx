@@ -26,6 +26,7 @@ import {
   Linkedin,
   Mail,
 } from 'lucide-react';
+import ScrollReveal from '@/components/public/scroll-reveal';
 
 // ─── Types ────────────────────────────────────────────
 interface TeamMemberData {
@@ -165,6 +166,7 @@ export default function AboutPage() {
       {/* ============================================
           OUR STORY — Main description
           ============================================ */}
+      <ScrollReveal>
       <section className="py-20 sm:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -211,10 +213,12 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* ============================================
           MISSION & VISION
           ============================================ */}
+      <ScrollReveal delay={0.1}>
       <section className="py-20 sm:py-28 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8">
@@ -238,10 +242,12 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* ============================================
           CORE VALUES
           ============================================ */}
+      <ScrollReveal delay={0.2}>
       <section className="py-20 sm:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
@@ -270,6 +276,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* ============================================
           OUR JOURNEY — Timeline
@@ -328,6 +335,7 @@ export default function AboutPage() {
       {/* ============================================
           WHAT WE OFFER — 3 pillars
           ============================================ */}
+      <ScrollReveal delay={0.3}>
       <section className="py-20 sm:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
@@ -400,6 +408,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* ============================================
           OUR TEAM
