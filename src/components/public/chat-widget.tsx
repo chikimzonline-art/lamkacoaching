@@ -136,6 +136,9 @@ export default function ChatWidget() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            role="dialog"
+            aria-label="Chat with Lamka AI Assistant"
+            aria-modal="true"
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -161,7 +164,7 @@ export default function ChatWidget() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 custom-scrollbar" role="log" aria-label="Chat messages" aria-live="polite">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -228,6 +231,7 @@ export default function ChatWidget() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask me anything..."
+                  aria-label="Type your message"
                   disabled={isLoading}
                   className="flex-1 h-9 text-sm rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus-visible:ring-cyan-500"
                 />

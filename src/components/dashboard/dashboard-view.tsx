@@ -96,32 +96,38 @@ interface DashboardData {
 }
 
 /* ─────────────────────────────────────────────
-   Mock Chart Data
+   Chart Data Interfaces & Fallback Mock Data
    ───────────────────────────────────────────── */
-const monthlyEnrollmentsData = [
-  { month: 'Oct', enrollments: 12 },
-  { month: 'Nov', enrollments: 18 },
-  { month: 'Dec', enrollments: 15 },
-  { month: 'Jan', enrollments: 22 },
-  { month: 'Feb', enrollments: 28 },
-  { month: 'Mar', enrollments: 24 },
-];
+interface ChartData {
+  monthlyEnrollments: { month: string; enrollments: number }[];
+  studentsByDepartment: { name: string; value: number; color: string }[];
+  revenueTrend: { month: string; revenue: number }[];
+}
 
-const departmentData = [
-  { name: 'Computer Training', value: 45, color: '#06b6d4' },
-  { name: 'Competitive Exams', value: 30, color: '#0ea5e9' },
-  { name: 'Banking Exams', value: 15, color: '#14b8a6' },
-  { name: 'Study Cabins', value: 10, color: '#38bdf8' },
-];
-
-const revenueTrendData = [
-  { month: 'Oct', revenue: 45000 },
-  { month: 'Nov', revenue: 52000 },
-  { month: 'Dec', revenue: 48000 },
-  { month: 'Jan', revenue: 68000 },
-  { month: 'Feb', revenue: 72000 },
-  { month: 'Mar', revenue: 65000 },
-];
+const fallbackChartData: ChartData = {
+  monthlyEnrollments: [
+    { month: 'Oct', enrollments: 12 },
+    { month: 'Nov', enrollments: 18 },
+    { month: 'Dec', enrollments: 15 },
+    { month: 'Jan', enrollments: 22 },
+    { month: 'Feb', enrollments: 28 },
+    { month: 'Mar', enrollments: 24 },
+  ],
+  studentsByDepartment: [
+    { name: 'Computer Training', value: 45, color: '#06b6d4' },
+    { name: 'Competitive Exams', value: 30, color: '#0ea5e9' },
+    { name: 'Banking Exams', value: 15, color: '#14b8a6' },
+    { name: 'Study Cabins', value: 10, color: '#38bdf8' },
+  ],
+  revenueTrend: [
+    { month: 'Oct', revenue: 45000 },
+    { month: 'Nov', revenue: 52000 },
+    { month: 'Dec', revenue: 48000 },
+    { month: 'Jan', revenue: 68000 },
+    { month: 'Feb', revenue: 72000 },
+    { month: 'Mar', revenue: 65000 },
+  ],
+};
 
 function StatCard({
   title,
@@ -193,10 +199,27 @@ function ListSkeleton({ rows = 3 }: { rows?: number }) {
   );
 }
 
+function ChartSkeleton() {
+  return (
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-2">
+        <Skeleton className="h-5 w-36" />
+      </CardHeader>
+      <CardContent>
+        <div className="h-[220px] w-full flex items-center justify-center">
+          <Skeleton className="h-[180px] w-full rounded-lg" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardView() {
   const { setActiveView } = useAppStore();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [chartLoading, setChartLoading] = useState(true);
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -212,9 +235,30 @@ export default function DashboardView() {
     }
   }, []);
 
+  const fetchChartData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard/charts');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.monthlyEnrollments && json.studentsByDepartment && json.revenueTrend) {
+          setChartData(json);
+          return;
+        }
+      }
+      // Fall back to mock data if API fails
+      setChartData(fallbackChartData);
+    } catch (err) {
+      console.error('Failed to fetch chart data, using fallback:', err);
+      setChartData(fallbackChartData);
+    } finally {
+      setChartLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard]);
+    fetchChartData();
+  }, [fetchDashboard, fetchChartData]);
 
   if (loading) {
     return (
@@ -223,6 +267,11 @@ export default function DashboardView() {
           {[...Array(4)].map((_, i) => (
             <StatSkeleton key={i} />
           ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <ChartSkeleton />
+          <ChartSkeleton />
+          <ChartSkeleton />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ListSkeleton rows={4} />
@@ -244,6 +293,14 @@ export default function DashboardView() {
   }
 
   const { stats, todayBookings, exclusiveBookings, expiringSoon, recentPayments, recentEnrollmentPayments, pendingBookingRequests, pendingBookingCount } = data;
+
+  // Use real chart data or fallback
+  const monthlyEnrollmentsData = chartData?.monthlyEnrollments || fallbackChartData.monthlyEnrollments;
+  const departmentData = chartData?.studentsByDepartment || fallbackChartData.studentsByDepartment;
+  const revenueTrendData = chartData?.revenueTrend || fallbackChartData.revenueTrend;
+
+  // Compute total for pie chart percentages
+  const departmentTotal = departmentData.reduce((sum, d) => sum + d.value, 0);
 
   return (
     <div className="space-y-6">
@@ -353,26 +410,32 @@ export default function DashboardView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyEnrollmentsData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:opacity-20" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                    }}
-                    formatter={(value: number) => [`${value} students`, 'Enrollments']}
-                  />
-                  <Bar dataKey="enrollments" fill="#06b6d4" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {chartLoading ? (
+              <div className="h-[220px] w-full flex items-center justify-center">
+                <Skeleton className="h-[180px] w-full rounded-lg" />
+              </div>
+            ) : (
+              <div className="h-[220px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyEnrollmentsData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:opacity-20" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                      }}
+                      formatter={(value: number) => [`${value} students`, 'Enrollments']}
+                    />
+                    <Bar dataKey="enrollments" fill="#06b6d4" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -385,45 +448,54 @@ export default function DashboardView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={departmentData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {departmentData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                    }}
-                    formatter={(value: number, name: string) => [`${value}%`, name]}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    iconType="circle"
-                    iconSize={8}
-                    formatter={(value: string) => (
-                      <span className="text-xs text-gray-500">{value}</span>
-                    )}
-                    wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            {chartLoading ? (
+              <div className="h-[220px] w-full flex items-center justify-center">
+                <Skeleton className="h-[180px] w-full rounded-lg" />
+              </div>
+            ) : (
+              <div className="h-[220px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={departmentData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {departmentData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                      }}
+                      formatter={(value: number, name: string) => {
+                        const pct = departmentTotal > 0 ? ((value / departmentTotal) * 100).toFixed(1) : '0';
+                        return [`${value} (${pct}%)`, name];
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value: string) => (
+                        <span className="text-xs text-gray-500">{value}</span>
+                      )}
+                      wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -436,33 +508,39 @@ export default function DashboardView() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={revenueTrendData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:opacity-20" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                    }}
-                    formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#06b6d4"
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: '#06b6d4', strokeWidth: 2, stroke: 'white' }}
-                    activeDot={{ r: 6, fill: '#06b6d4', stroke: 'white', strokeWidth: 2 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            {chartLoading ? (
+              <div className="h-[220px] w-full flex items-center justify-center">
+                <Skeleton className="h-[180px] w-full rounded-lg" />
+              </div>
+            ) : (
+              <div className="h-[220px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={revenueTrendData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:opacity-20" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                      }}
+                      formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#06b6d4"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: '#06b6d4', strokeWidth: 2, stroke: 'white' }}
+                      activeDot={{ r: 6, fill: '#06b6d4', stroke: 'white', strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

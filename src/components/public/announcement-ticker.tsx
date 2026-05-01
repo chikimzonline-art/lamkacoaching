@@ -77,7 +77,7 @@ export default function AnnouncementTicker() {
       : '🔥 New batches starting soon! Enroll now.   ●   Admissions Open 2025-26 — Register today!';
 
   return (
-    <div className="relative h-9 bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-700 dark:to-sky-700 overflow-hidden z-50">
+    <div role="status" aria-live="polite" aria-label="Announcements" className="relative h-9 bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-700 dark:to-sky-700 overflow-hidden z-50">
       {/* Left fade */}
       <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-cyan-600 dark:from-cyan-700 to-transparent z-10 pointer-events-none" />
       {/* Right fade */}
@@ -88,9 +88,13 @@ export default function AnnouncementTicker() {
         <Megaphone className="h-3.5 w-3.5 text-white/80" />
       </div>
 
+      {/* Screen reader accessible text */}
+      <span className="sr-only">{tickerText}</span>
+
       {/* Scrolling text container */}
       <div
         className="absolute inset-0 flex items-center pl-10"
+        aria-hidden="true"
         onMouseEnter={(e) => {
           const el = e.currentTarget.querySelector('.animate-marquee') as HTMLElement;
           if (el) el.style.animationPlayState = 'paused';

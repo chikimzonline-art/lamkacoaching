@@ -2129,3 +2129,141 @@ Hero → [wave] → Trust Bar → What We Offer → Student Journey → [divider
 5. Add image upload for team members and real gallery photos
 6. Implement email notification for contact form submissions
 7. Add keyboard navigation and accessibility improvements
+
+---
+Task ID: 4 and 6
+Agent: Loading Skeletons & Accessibility Agent
+Task: Add page loading skeletons and improve accessibility
+
+Work Log:
+- Created `/src/components/public/page-skeleton.tsx` — Reusable PageSkeleton component
+  - 'use client' directive
+  - Accepts variant prop: 'home' | 'about' | 'courses' | 'default'
+  - Shows full-page skeleton matching the general page layout
+  - Header skeleton (logo + nav items + right side buttons)
+  - Home variant: Hero skeleton (badge + title + subtitle + buttons), Trust Bar skeleton, Cards section skeleton
+  - About variant: Hero skeleton, Story section skeleton (text + stats grid), Mission & Vision skeleton
+  - Courses variant: Header skeleton, Filter bar skeleton, Course cards skeleton grid
+  - Default variant: Generic header + 3-card skeleton grid
+  - Footer skeleton (4-column grid with text bars)
+  - Uses shadcn/ui Skeleton component with pulse animation
+- Created `/src/app/loading.tsx` — Homepage loading skeleton using PageSkeleton variant="home"
+- Created `/src/app/about/loading.tsx` — About page loading skeleton using PageSkeleton variant="about"
+- Created `/src/app/courses/loading.tsx` — Courses page loading skeleton using PageSkeleton variant="courses"
+  - These use Next.js automatic loading UI — shown via React Suspense while page loads
+- Created `/src/components/public/page-transition.tsx` — PageTransition component
+  - 'use client' directive
+  - Wraps page content with framer-motion AnimatePresence
+  - Fade + slight upward motion on page enter (opacity 0→1, y 10→0, duration 0.3s)
+  - Uses pathname as key for AnimatePresence
+- Updated `/src/components/public/public-layout.tsx`:
+  - Added skip-to-content link: sr-only, focus-visible with cyan-600 bg, position top-2 left-2 z-[100]
+  - Added id="main-content" to main element
+  - Wrapped children with PageTransition component for smooth page transitions
+  - Added import for PageTransition
+- Improved `/src/components/public/public-header.tsx` accessibility:
+  - Added role="navigation" and aria-label="Main navigation" to desktop nav
+  - Added role="navigation" and aria-label="Mobile navigation" to mobile nav
+  - Added aria-current="page" on active desktop nav links
+  - Added aria-current="page" on active mobile nav links
+  - Added aria-expanded attribute to mobile menu SheetTrigger button (bound to mobileOpen state)
+  - Updated aria-label on mobile menu button to be dynamic ("Open menu" / "Close menu")
+- Improved `/src/components/public/chat-widget.tsx` accessibility:
+  - Added role="dialog" to chat panel
+  - Added aria-label="Chat with Lamka AI Assistant" to chat panel
+  - Added aria-modal="true" to chat panel
+  - Added role="log" and aria-label="Chat messages" and aria-live="polite" to messages area
+  - Added aria-label="Type your message" to chat input
+- Improved `/src/components/public/announcement-ticker.tsx` accessibility:
+  - Added role="status" and aria-live="polite" and aria-label="Announcements" to ticker container
+  - Added sr-only span with tickerText for screen readers
+  - Added aria-hidden="true" to scrolling text container (visual-only animation)
+  - Dismiss button already had aria-label="Dismiss announcement"
+- Verified: No new lint errors (only 42 pre-existing errors in studyspace examples)
+- Verified: Dev server compiles successfully
+
+Stage Summary:
+- Page skeleton component created with 4 variants (home, about, courses, default) matching page layouts
+- Loading.tsx files created for 3 key routes (/, /about, /courses) using Next.js automatic loading UI
+- Page transition animation added with framer-motion (fade + slide-up, 0.3s duration)
+- Skip-to-content link added for keyboard users (sr-only, focus-visible, cyan-600 style)
+- Header accessibility: aria-current on active links, role="navigation" with aria-label, aria-expanded on mobile menu
+- Chat widget accessibility: role="dialog" with aria-label, aria-modal, role="log" with aria-live on messages, labeled input
+- Announcement ticker accessibility: role="status" with aria-live="polite", sr-only text for screen readers, aria-hidden on animation
+- All accessibility improvements follow WCAG best practices without breaking existing functionality
+
+---
+Task ID: 8 (WebDevReview Round 7)
+Agent: Main Agent
+Task: Assess project status, perform QA, fix bugs, improve styling, add features
+
+### Project Status Assessment
+- Dev server runs on port 3000 with Turbopack but is severely unstable due to OOM kills
+- Homepage verified returning HTTP 200 between OOM crashes
+- No lint errors in project source code (42 pre-existing errors in studyspace examples only)
+- Previous round (Round 6) added: Announcement ticker, Wave dividers, Animated gradient text, Dashboard charts (mock data), AI gallery images + lightbox, Enhanced testimonials, Sitemap/robots, Course page sort/view toggle
+
+### Completed Modifications
+
+1. **Dashboard Charts API with Real DB Data** (Task 5 by main agent)
+   - Created `/src/app/api/dashboard/charts/route.ts`
+   - GET endpoint queries real database for chart data:
+     - Monthly Enrollments: queries Enrollment table, groups by month for last 6 months
+     - Students by Department: queries Department→Course→_count.enrollments
+     - Revenue Trend: queries EnrollmentPayment table, sums by month for last 6 months
+   - Returns `enrollments` key (matching dashboard's expected format)
+   - Department data includes `color` property matching dashboard's Pie chart colors
+   - Revenue converted from paise to rupees
+
+2. **Fixed charts API data format** (Bug fix by main agent)
+   - Changed `students` → `enrollments` in monthlyEnrollments response
+   - Added `color` property to studentsByDepartment response
+   - Dashboard already had fetch logic with fallback to mock data
+
+3. **Page Loading Skeletons** (Task 6 by subagent)
+   - Created `/src/components/public/page-skeleton.tsx` — 4 variants: home, about, courses, default
+   - Created `/src/app/loading.tsx` — Homepage loading skeleton
+   - Created `/src/app/about/loading.tsx` — About page loading skeleton
+   - Created `/src/app/courses/loading.tsx` — Courses page loading skeleton
+   - Uses Next.js automatic loading UI via React Suspense
+
+4. **Page Transition Animations** (Task 6 by subagent)
+   - Created `/src/components/public/page-transition.tsx`
+   - framer-motion AnimatePresence wrapper with fade + upward slide
+   - Uses pathname as key for transition triggers
+   - Integrated into public-layout.tsx wrapping children in main element
+
+5. **Accessibility Improvements** (Task 6 by subagent)
+   - Added skip-to-content link in public-layout.tsx (sr-only, focus-visible)
+   - Added id="main-content" to main element
+   - Header: role="navigation", aria-label, aria-current="page" on active links
+   - Mobile menu: aria-expanded on trigger button
+   - Chat widget: role="dialog", aria-modal, role="log", aria-live="polite"
+   - Announcement ticker: role="status", aria-live="polite", sr-only text for screen readers
+
+6. **Course Page Sort & View Mode** (Already added in Round 6, confirmed working)
+   - Sort dropdown: A-Z, Fee Low→High, Fee High→Low, Duration
+   - Grid/List view toggle with visual indicator
+   - Redesigned filter bar layout
+
+### Verification Results
+- Homepage returns HTTP 200 (when server is running)
+- No new lint errors in project source code
+- All new files verified existing on disk
+- Charts API code verified for correct data format
+
+### Unresolved Issues or Risks
+1. **Severe OOM** — Server dies after 2-3 page compilations; most critical issue
+2. No automated tests exist
+3. Dashboard charts API may need auth middleware (currently under /api/dashboard/)
+4. Gallery lightbox may have z-index conflicts with chat widget
+5. Some wave dividers may need mobile fine-tuning
+
+### Priority Recommendations for Next Phase
+1. **Critical**: Performance optimization to reduce OOM — consider lazy loading components, reducing bundle size
+2. Add auth middleware to dashboard charts API
+3. Add student portal/login for enrollment tracking
+4. Add PWA support with service worker
+5. Add image upload for team members
+6. Implement email notification for contact form
+7. Add keyboard shortcuts and focus management

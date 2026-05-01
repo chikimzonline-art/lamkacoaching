@@ -90,13 +90,14 @@ export default function PublicHeader() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
+                  aria-current={pathname === link.href ? 'page' : undefined}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                     pathname === link.href
@@ -156,9 +157,9 @@ export default function PublicHeader() {
           {/* Mobile Menu */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden h-10 w-10">
+              <Button variant="ghost" size="icon" className="md:hidden h-10 w-10" aria-expanded={mobileOpen} aria-label={mobileOpen ? 'Close menu' : 'Open menu'}>
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">{mobileOpen ? 'Close menu' : 'Open menu'}</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-72 p-0">
@@ -179,7 +180,7 @@ export default function PublicHeader() {
                   <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-300/50 to-transparent" />
                 </div>
                 <LayoutGroup>
-                <nav className="flex-1 px-3 py-4 space-y-1">
+                <nav role="navigation" aria-label="Mobile navigation" className="flex-1 px-3 py-4 space-y-1">
                   {navLinks.map((link, index) => {
                     const Icon = link.icon;
                     const isActive = pathname === link.href;
@@ -195,6 +196,7 @@ export default function PublicHeader() {
                         <Link
                           href={link.href}
                           onClick={() => setMobileOpen(false)}
+                          aria-current={isActive ? 'page' : undefined}
                           className={cn(
                             'flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                             isActive
