@@ -5,12 +5,14 @@ import PublicLayout from '@/components/public/public-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import {
   Megaphone,
   Pin,
   Calendar,
   Inbox,
   Loader2,
+  Search,
 } from 'lucide-react';
 
 interface Notice {
@@ -45,6 +47,7 @@ function formatRelativeTime(date: string): string {
 export default function NoticesPage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetch('/api/public/notices')
@@ -54,8 +57,20 @@ export default function NoticesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const pinnedNotices = notices.filter((n) => n.pinned);
-  const regularNotices = notices.filter((n) => !n.pinned);
+  const query = search.toLowerCase().trim();
+
+  const filteredNotices = query
+    ? notices.filter(
+        (n) =>
+          n.title.toLowerCase().includes(query) ||
+          n.content.toLowerCase().includes(query)
+      )
+    : notices;
+
+  const pinnedNotices = filteredNotices.filter((n) => n.pinned);
+  const regularNotices = filteredNotices.filter((n) => !n.pinned);
+
+  const hasResults = filteredNotices.length > 0;
 
   return (
     <PublicLayout>
@@ -71,6 +86,24 @@ export default function NoticesPage() {
 
       <section className="py-8 sm:py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Search Bar */}
+          {!loading && notices.length > 0 && (
+            <div className="flex items-center gap-3 mb-8">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search notices..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-10"
+                />
+              </div>
+              <span className="text-sm text-gray-500 whitespace-nowrap">
+                {filteredNotices.length} notice{filteredNotices.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
+
           {/* Loading */}
           {loading && (
             <div className="space-y-4">
@@ -86,13 +119,24 @@ export default function NoticesPage() {
             </div>
           )}
 
-          {/* Empty State */}
+          {/* Empty State — no notices at all */}
           {!loading && notices.length === 0 && (
             <div className="text-center py-20">
               <Inbox className="h-16 w-16 text-gray-200 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900">No Notices Yet</h3>
               <p className="text-sm text-gray-500 mt-1">
                 There are no announcements at the moment. Check back later for updates.
+              </p>
+            </div>
+          )}
+
+          {/* Search Empty State */}
+          {!loading && notices.length > 0 && !hasResults && (
+            <div className="text-center py-20">
+              <Search className="h-12 w-12 text-gray-200 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900">No notices found</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Try adjusting your search terms
               </p>
             </div>
           )}

@@ -237,3 +237,226 @@ Task: Assess project status, perform QA, fix bugs, improve styling, add features
 4. Improve mobile menu with smooth slide-in animation
 5. Add page transition animations
 6. SEO optimization with metadata and structured data
+
+---
+
+## Task ID: 3+5
+Agent: Achievements & Counter Agent
+Task: Add animated counter component and achievements section
+
+Work Log:
+- Created `/src/components/public/animated-counter.tsx` — reusable AnimatedCounter component
+  - Uses IntersectionObserver (not framer-motion) for performance
+  - Props: end, duration (default 2000ms), suffix, prefix, className
+  - Animates from 0 to target number when scrolled into view (threshold: 0.3)
+  - Ease-out-cubic animation curve for smooth feel
+  - Uses hasAnimated ref to ensure animation only triggers once
+  - Formats numbers with toLocaleString('en-IN')
+- Created `/src/components/public/achievements-section.tsx` — AchievementsSection component
+  - Dark-themed section (bg-gray-950) matching existing dark section design language
+  - Background accents: radial-gradient cyan accents
+  - Header: "Our Impact" badge (Trophy icon, cyan-500/10 bg), "Results That Speak for Themselves" title
+  - Stats Row (4 columns desktop, 2 mobile): 500+ Students Trained, 90%+ Success Rate, 150+ Govt Jobs Secured, 7+ Years of Excellence
+  - Each stat card: bg-white/5, border-white/10, rounded-2xl, p-6, centered, icon + animated number + label
+  - Achievement Cards Row (3 columns desktop): SSC CGL 2024, NIELIT CCC, Banking Exams 2024
+  - Each card: bg-white/5, border-white/10, rounded-2xl, p-6, hover effects, badge, title, description, decorative progress bar
+- Updated `/src/app/page.tsx`:
+  - Added import for AchievementsSection component
+  - Inserted <AchievementsSection /> wrapped in <ScrollReveal> after "What We Offer" section and before "Computer Training" section
+  - Did NOT modify any existing sections
+- Verified: No lint errors in our files (only pre-existing errors in studyspace examples)
+- Verified: Dev server compiles successfully, homepage returns HTTP 200
+
+Stage Summary:
+- AnimatedCounter component ready for reuse across the project — lightweight, IntersectionObserver-based, animate-once
+- Achievements section integrated into homepage with animated stats and achievement cards
+- Updated section order: Hero → Trust Bar → What We Offer → **Achievements** → Computer Training → Competitive Exams → Notices → Why Choose Us → Testimonials → FAQ → CTA
+- All existing sections remain intact
+
+## Task ID: 6+7
+Agent: Footer & Notices Agent
+Task: Improve footer with social links and add search to notices page
+
+Work Log:
+- Enhanced `/src/components/public/public-footer.tsx` with 5 improvements:
+  - Added social media icon row (Facebook, Instagram, Youtube, Twitter) after business description — h-8 w-8 rounded-lg icons with hover:bg-cyan-600/20 hover:text-cyan-400 transitions, flex row with gap-2
+  - Added newsletter CTA box at bottom of first column — "Stay updated" text, inline email input + Subscribe button in bg-white/5 rounded-lg border border-white/10 container
+  - Improved bottom bar with flex justify-between layout — "Made with ❤️ in Lamka" on left, copyright on right, responsive with flex-col on mobile
+  - Added animated gradient separator above bottom bar — h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent
+  - Added "Quick Actions" column replacing Timings — DoorOpen (Book a Cabin), GraduationCap (Register for Course), Megaphone (View Notices) links with icons; Study Hours moved to sub-section below with existing CTA card
+- Enhanced `/src/app/notices/page.tsx` with search functionality:
+  - Added search state and search input bar (same style as courses page — relative container with Search icon, Input with pl-9)
+  - Added notice count indicator ("X notices") next to search bar
+  - Implemented search filtering — matches against notice title and content (case-insensitive)
+  - Search filters both pinned and regular notices
+  - Added "No notices found" empty state with Search icon when search yields no results (distinct from the "No Notices Yet" state for empty data)
+  - Search bar only appears when notices exist and loading is complete
+- Verified all lucide-react icons exist (Facebook, Instagram, Youtube, Twitter, Megaphone, DoorOpen, Search)
+- Build succeeds with no compilation errors
+
+Stage Summary:
+- Footer now has social links, newsletter CTA, quick actions column, gradient separator, and improved bottom bar
+- Notices page has full search functionality with real-time filtering, count indicator, and empty state
+- All changes match existing design language (cyan theme, rounded corners, consistent spacing)
+- Responsive design maintained across all breakpoints
+
+---
+Task ID: 4-a
+Agent: Contact Form Agent
+Task: Add Contact Form section to homepage with backend API
+
+Work Log:
+- Created `/src/components/public/contact-section.tsx` — ContactSection component
+  - 'use client' directive for client-side interactivity
+  - 2-column grid layout on desktop (left: info, right: form), stacks on mobile
+  - Left column: "Get in Touch" badge (bg-cyan-100 text-cyan-700), title "Have Questions? We're Here to Help", subtitle paragraph, 3 contact info cards
+  - Contact info cards fetch phone, email, address from /api/public/settings with fallbacks
+  - Each card: rounded-xl, bg-white, border, p-4, icon in cyan-50/cyan-600 circle
+  - Phone and Email cards have clickable links (tel: and mailto:)
+  - Right column: White card with shadow-lg, rounded-2xl, p-6 sm:p-8
+  - Form fields: Name (required), Phone (required, 10-digit enforced), Email (optional), Subject (Select dropdown with Course Inquiry, Cabin Booking, Fee Structure, General Inquiry), Message (Textarea, required)
+  - Submit button: bg-cyan-600 hover:bg-cyan-700, full width, with Send icon
+  - Loading state: Loader2 spinner with "Sending..." text
+  - Success state: green CheckCircle2 icon + "Thank you! We'll get back to you soon." message, auto-resets after 5 seconds
+  - Error handling with toast notifications from sonner
+  - Form resets after successful submission
+  - Client-side validation for name, 10-digit phone, and message
+- Created `/src/app/api/contact/route.ts` — Backend API route
+  - POST handler with validation: name required, phone required + 10-digit check, message required
+  - Returns 400 for validation errors with descriptive messages
+  - Returns 500 for server errors
+  - Returns success JSON with message "Your message has been received. We will contact you shortly."
+  - Console logs submissions for production integration
+- Updated `/src/app/page.tsx`:
+  - Added import for ContactSection component from '@/components/public/contact-section'
+  - Inserted <ContactSection /> wrapped in <ScrollReveal> between TestimonialsSection and FAQSection
+  - Updated section order: ... → Testimonials → **Contact** → FAQ → CTA
+  - Did NOT modify any existing sections
+- Verified: No lint errors in our source files (only pre-existing errors in studyspace examples)
+
+Stage Summary:
+- Contact form section integrated into homepage between Testimonials and FAQ
+- 2-column layout with contact info (left) and form (right)
+- Form has 5 fields with validation, loading state, success state, and error handling
+- Backend API /api/contact with proper validation and error responses
+- Settings fetched dynamically from /api/public/settings with fallback values
+- All design matches existing language: rounded-2xl, cyan theme, Badge, shadow-lg, ScrollReveal wrapper
+
+---
+Task ID: 8
+Agent: Upcoming Batches Agent
+Task: Add upcoming batches/schedule section to homepage
+
+Work Log:
+- Created `/src/components/public/upcoming-batches-section.tsx` — UpcomingBatchesSection component
+  - 'use client' directive for client-side interactivity
+  - White background section (bg-white), clean look
+  - Header: "New Batches" badge (bg-green-100 text-green-700, Calendar icon), "Upcoming Batch Schedule" title, subtitle
+  - 6 hardcoded batch cards in a responsive grid (1 col mobile, 2 col sm, 3 col lg)
+  - Batch data: SSC CGL 2025, CCC Computer Course, Tally Prime with GST, IBPS PO 2025, Web Design & Development, Advanced Excel
+  - Each card design: white bg, border-gray-100, rounded-2xl, overflow-hidden, hover:shadow-lg transition
+  - Top colored bar per department: blue gradient (Competitive Exams), cyan gradient (Computer Training), green gradient (Banking Exams)
+  - Content: department badge, status badge (green/orange/red), course name, 4 info rows with icons (CalendarDays, Clock, Hourglass, Users), Enroll button
+  - Seats color coding: green (normal), orange (low seats ≤5), red (very low ≤3)
+  - Status badges: "Enrolling Now" (green), "Almost Full" (orange), "Last Few Seats" (red)
+  - Bottom CTA: "Can't find a suitable batch?" with "Contact Us" and "View All Courses" buttons
+  - Imports: Badge, Button from shadcn/ui; Calendar, CalendarDays, Clock, Users, Hourglass, ArrowRight, GraduationCap from lucide-react; Link from next/link
+- Updated `/src/app/page.tsx`:
+  - Added import for UpcomingBatchesSection from '@/components/public/upcoming-batches-section'
+  - Inserted <UpcomingBatchesSection /> wrapped in <ScrollReveal> AFTER Notices section and BEFORE Why Choose Us section
+  - Updated section order: Hero → Trust Bar → What We Offer → Achievements → Computer Training → Competitive Exams → Notices → **Upcoming Batches** → Why Choose Us → Testimonials → Contact → FAQ → CTA
+  - Did NOT modify any existing sections
+- Verified: No new lint errors (only pre-existing errors in studyspace examples)
+- Verified: Dev server compiles successfully, homepage returns HTTP 200
+
+Stage Summary:
+- Upcoming Batches section integrated into homepage between Notices and Why Choose Us
+- 6 batch cards with department-specific color coding, status indicators, and seat availability warnings
+- Responsive grid layout (1/2/3 columns) with hover effects
+- Bottom CTA with Contact Us and View All Courses buttons
+- All design matches existing language: rounded-2xl, Badge, Button, ScrollReveal wrapper, cyan/green/blue gradient accents
+
+---
+
+## Task ID: 4 (WebDevReview Round 2)
+Agent: Main Agent
+Task: Assess project status, perform QA, fix bugs, improve styling, add features
+
+### Project Status Assessment
+- All existing pages render correctly (HTTP 200): `/`, `/about`, `/courses`, `/admin`, etc.
+- All public APIs working: `/api/public/settings`, `/api/public/courses`, `/api/public/notices`, `/api/public/about`
+- Database is seeded with sample data: 6 team members, 6 milestones, 5 departments with courses
+- Dev server compiles successfully with no source lint errors (only pre-existing errors in studyspace examples)
+- Server connectivity issue: curl to localhost doesn't work in this sandbox, but pages serve correctly via Caddy gateway
+
+### Completed Modifications
+
+1. **Fixed `next.config.ts` allowedDevOrigins warning**
+   - Changed from regex pattern `"preview-chat-.*\\.z\\.ai"` to simple string `".z.ai"`
+   - Resolves the "Expected string, received object" warning from Next.js 16
+
+2. **Added Animated Counter Component** (Task 3+5 by subagent)
+   - Created `/src/components/public/animated-counter.tsx`
+   - Uses IntersectionObserver for performance (no framer-motion dependency)
+   - Ease-out-cubic animation curve, counts from 0 to target when scrolled into view
+   - Configurable: end, duration, suffix, prefix, className
+
+3. **Added Achievements/Results Section** (Task 3+5 by subagent)
+   - Created `/src/components/public/achievements-section.tsx`
+   - Dark-themed section with 4 animated stats (500+ Students, 90%+ Success, 150+ Jobs, 7+ Years)
+   - 3 achievement cards: SSC CGL 2024, NIELIT CCC, Banking Exams 2024
+   - Each card has progress bars and hover effects
+   - Integrated between "What We Offer" and "Computer Training" sections
+
+4. **Added Contact Form Section** (Task 4-a by subagent)
+   - Created `/src/components/public/contact-section.tsx`
+   - 2-column layout: contact info (left) + form (right)
+   - 5 fields: Name, Phone, Email, Subject (dropdown), Message
+   - Loading/success/error states with toast notifications
+   - Created `/src/app/api/contact/route.ts` — POST API with validation
+   - Integrated between Testimonials and FAQ sections
+
+5. **Improved Footer** (Task 6+7 by subagent)
+   - Added social media icons (Facebook, Instagram, Youtube, Twitter)
+   - Added newsletter CTA with email input
+   - Added "Quick Actions" column with icon links
+   - Added gradient separator line
+   - Improved bottom bar with "Made with ❤️ in Lamka"
+
+6. **Added Search to Notices Page** (Task 6+7 by subagent)
+   - Search input with icon, filters pinned and regular notices
+   - Notice count indicator
+   - Distinct empty state for no search results
+
+7. **Added Upcoming Batches Section** (Task 8 by subagent)
+   - Created `/src/components/public/upcoming-batches-section.tsx`
+   - 6 batch cards with department color coding
+   - Status badges (green/orange/red), seat availability warnings
+   - Bottom CTA with Contact and View Courses buttons
+   - Integrated between Notices and Why Choose Us sections
+
+### Updated Homepage Section Order
+1. Hero → 2. Trust Bar → 3. What We Offer → 4. **Achievements** → 5. Computer Training → 6. Competitive Exams → 7. Notices → 8. **Upcoming Batches** → 9. Why Choose Us → 10. Testimonials → 11. **Contact** → 12. FAQ → 13. CTA
+
+### Verification Results
+- Homepage returns HTTP 200 with all new sections rendered
+- All new sections use ScrollReveal animations
+- No lint errors in project source code
+- All new API route `/api/contact` returns proper responses
+- Dev server compiles and serves pages correctly
+
+### Unresolved Issues or Risks
+1. Dev server process management — background process dies between shell sessions
+2. `allowedDevOrigins` pattern may need adjustment if preview domain changes
+3. No automated tests exist
+4. Contact form is frontend-only (logs to console, no email integration)
+5. Upcoming batches are hardcoded (not admin-managed)
+
+### Priority Recommendations for Next Phase
+1. Add image upload capability for team members
+2. Make upcoming batches admin-managed (database-driven)
+3. Add email integration for contact form submissions
+4. Add dark mode toggle
+5. SEO optimization with metadata and structured data
+6. Add page transition animations
+7. Performance optimization and lazy loading

@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   allowedDevOrigins: [
-    "preview-chat-.*\\.z\\.ai",
+    ".z.ai",
   ],
 };
 

@@ -37,6 +37,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import ScrollReveal from '@/components/public/scroll-reveal';
+import ContactSection from '@/components/public/contact-section';
+import AchievementsSection from '@/components/public/achievements-section';
+import UpcomingBatchesSection from '@/components/public/upcoming-batches-section';
 
 interface Department {
   id: string;
@@ -559,6 +562,13 @@ export default function HomePage() {
       </section>
 
       {/* ============================================
+          ACHIEVEMENTS — Results & Impact
+          ============================================ */}
+      <ScrollReveal>
+        <AchievementsSection />
+      </ScrollReveal>
+
+      {/* ============================================
           COMPUTER TRAINING — Dedicated feature section
           ============================================ */}
       {!loading && computerDept && (
@@ -760,6 +770,13 @@ export default function HomePage() {
       )}
 
       {/* ============================================
+          UPCOMING BATCHES — Schedule section
+          ============================================ */}
+      <ScrollReveal>
+        <UpcomingBatchesSection />
+      </ScrollReveal>
+
+      {/* ============================================
           WHY CHOOSE US — Bento grid
           ============================================ */}
       <ScrollReveal>
@@ -836,6 +853,13 @@ export default function HomePage() {
           ============================================ */}
       <ScrollReveal>
       <TestimonialsSection />
+      </ScrollReveal>
+
+      {/* ============================================
+          CONTACT — Get in touch form
+          ============================================ */}
+      <ScrollReveal>
+      <ContactSection />
       </ScrollReveal>
 
       {/* ============================================
