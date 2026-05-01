@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import PublicHeader from './public-header';
 import PublicFooter from './public-footer';
@@ -7,10 +8,13 @@ import BackToTop from './back-to-top';
 import ChatWidget from './chat-widget';
 import AnnouncementTicker from './announcement-ticker';
 import PageTransition from './page-transition';
+import GlobalSearch from './global-search';
+import WhatsAppButton from './whatsapp-button';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith('/admin');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
@@ -18,13 +22,15 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         Skip to main content
       </a>
       {!isAdmin && <AnnouncementTicker />}
-      <PublicHeader />
+      <PublicHeader onSearchOpen={() => setSearchOpen(true)} />
       <main id="main-content" className="flex-1">
         <PageTransition>{children}</PageTransition>
       </main>
       <PublicFooter />
       <BackToTop />
       <ChatWidget />
+      {!isAdmin && <WhatsAppButton />}
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

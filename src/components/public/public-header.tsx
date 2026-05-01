@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { BookOpen, Menu, LogIn, GraduationCap, DoorOpen, ChevronDown, Monitor, Info, Sun, Moon } from 'lucide-react';
+import { BookOpen, Menu, LogIn, GraduationCap, DoorOpen, ChevronDown, Monitor, Info, Sun, Moon, Search } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -67,7 +67,7 @@ function ThemeToggle() {
   );
 }
 
-export default function PublicHeader() {
+export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => void }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -143,8 +143,17 @@ export default function PublicHeader() {
             </DropdownMenu>
           </nav>
 
-          {/* Desktop Admin Login + Theme Toggle */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Desktop Admin Login + Search + Theme Toggle */}
+          <div className="hidden md:flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-lg h-9 w-9"
+              onClick={onSearchOpen}
+              aria-label="Search"
+            >
+              <Search className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+            </Button>
             <ThemeToggle />
             <Link href="/admin">
               <Button variant="outline" size="sm" className="gap-2 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/50">
@@ -272,6 +281,18 @@ export default function PublicHeader() {
                   animate="visible"
                   className="px-3 pb-6 pt-3 border-t border-gray-100 dark:border-gray-800 space-y-3"
                 >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Search</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-lg h-9 w-9"
+                      onClick={() => { setMobileOpen(false); onSearchOpen(); }}
+                      aria-label="Search"
+                    >
+                      <Search className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    </Button>
+                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500 dark:text-gray-400">Theme</span>
                     <ThemeToggle />

@@ -46,6 +46,8 @@ import AnimatedCounter from '@/components/public/animated-counter';
 import StudentJourneySection from '@/components/public/student-journey-section';
 import StudyTipsSection from '@/components/public/study-tips-section';
 import WaveDivider from '@/components/public/wave-divider';
+import CourseDetailModal from '@/components/public/course-detail-modal';
+import MotivationalQuotesSection from '@/components/public/motivational-quotes-section';
 
 interface Department {
   id: string;
@@ -471,11 +473,132 @@ function FAQSection() {
   );
 }
 
+/* ─────────────────────────────────────────────
+   TypewriterText — Rotating typewriter effect
+   ───────────────────────────────────────────── */
+const typewriterPhrases = [
+  'Competitive exam coaching for SSC, Banking & UPSC',
+  'Professional computer training from CCC to Web Design',
+  'Focused study spaces with flexible timings',
+  'Everything you need to succeed, all in one place',
+];
+
+function TypewriterText() {
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentPhrase = typewriterPhrases[phraseIndex];
+    const speed = isDeleting ? 30 : 50;
+
+    // Pause at end of phrase before deleting
+    if (!isDeleting && charIndex === currentPhrase.length) {
+      const pauseTimer = setTimeout(() => {
+        setIsDeleting(true);
+      }, 2000);
+      return () => clearTimeout(pauseTimer);
+    }
+
+    // Move to next phrase after deletion completes
+    if (isDeleting && charIndex === 0) {
+      const switchTimer = setTimeout(() => {
+        setIsDeleting(false);
+        setPhraseIndex((prev) => (prev + 1) % typewriterPhrases.length);
+      }, 30);
+      return () => clearTimeout(switchTimer);
+    }
+
+    const timer = setTimeout(() => {
+      setCharIndex((prev) => isDeleting ? prev - 1 : prev + 1);
+    }, speed);
+
+    return () => clearTimeout(timer);
+  }, [charIndex, isDeleting, phraseIndex]);
+
+  const displayText = typewriterPhrases[phraseIndex].slice(0, charIndex);
+
+  return (
+    <span>
+      {displayText}
+      <span className="inline-block w-[3px] h-[1.1em] bg-cyan-300 ml-1 align-middle animate-[blink_1s_step-end_infinite]" />
+    </span>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   TiltCard — 3D tilt hover effect
+   ───────────────────────────────────────────── */
+function TiltCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [transform, setTransform] = useState('');
+  const [shinePosition, setShinePosition] = useState({ x: 50, y: 50 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((y - centerY) / centerY) * -8;
+    const rotateY = ((x - centerX) / centerX) * 8;
+    setTransform(`perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`);
+    setShinePosition({ x: (x / rect.width) * 100, y: (y / rect.height) * 100 });
+  };
+
+  const handleMouseLeave = () => {
+    setTransform('');
+    setIsHovering(false);
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      className={className}
+      style={{
+        transform,
+        transition: isHovering ? 'transform 0.1s ease-out' : 'transform 0.5s ease-out',
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onMouseEnter={handleMouseEnter}
+    >
+      {children}
+      {/* Gradient shine overlay that follows cursor */}
+      {isHovering && (
+        <div
+          className="absolute inset-0 pointer-events-none rounded-2xl opacity-20 transition-opacity duration-300"
+          style={{
+            background: `radial-gradient(circle at ${shinePosition.x}% ${shinePosition.y}%, rgba(255,255,255,0.4), transparent 60%)`,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
+
+  // Course detail modal state
+  const [selectedCourse, setSelectedCourse] = useState<{
+    id: string;
+    name: string;
+    duration: string | null;
+    totalFee: number;
+    description: string | null;
+    departmentName: string;
+  } | null>(null);
+  const [courseModalOpen, setCourseModalOpen] = useState(false);
 
   // Parallax scroll state for hero floating shapes
   const [scrollY, setScrollY] = useState(0);
@@ -512,6 +635,12 @@ export default function HomePage() {
   const totalCourses = departments.reduce((sum, d) => sum + d.courses.length, 0);
   const computerDept = departments.find((d) => d.name === 'Computer Training');
   const otherDepts = departments.filter((d) => d.name !== 'Computer Training');
+
+  // Open course detail modal
+  const openCourseModal = (course: { id: string; name: string; duration: string | null; totalFee: number; description: string | null }, departmentName: string) => {
+    setSelectedCourse({ ...course, departmentName });
+    setCourseModalOpen(true);
+  };
 
   // Dynamic text from settings with fallbacks
   const heroBadgeText = siteSettings.heroBadgeText || 'Admissions Open 2025-26';
@@ -606,14 +735,14 @@ export default function HomePage() {
                 <span className="bg-gradient-to-r from-cyan-500 via-sky-400 to-teal-400 bg-clip-text text-transparent animate-gradient-text">Future</span> With Us
               </motion.h1>
 
-              <motion.p
-                className="mt-5 text-lg sm:text-xl text-cyan-100/80 leading-relaxed max-w-lg"
+              <motion.div
+                className="mt-5 text-lg sm:text-xl text-cyan-100/80 leading-relaxed max-w-lg h-[4.5rem] sm:h-[3.5rem]"
                 initial={{ opacity: 0, y: 25 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.4, ease: 'easeOut' }}
               >
-                Competitive exam coaching, professional computer training, and focused study spaces — everything you need to succeed, all in one place.
-              </motion.p>
+                <TypewriterText />
+              </motion.div>
 
               <motion.div
                 className="mt-8 flex flex-wrap gap-3"
@@ -693,7 +822,7 @@ export default function HomePage() {
           TRUST BAR — Quick trust signals
           ============================================ */}
       <ScrollReveal>
-      <section className="py-8 border-b border-gray-100">
+      <section className="py-8 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 text-sm text-gray-500">
             {[
@@ -702,8 +831,8 @@ export default function HomePage() {
               { icon: <Award className="h-4 w-4 text-blue-600" />, text: 'Experienced Faculty' },
               { icon: <CheckCircle2 className="h-4 w-4 text-purple-600" />, text: 'Affordable Fee Structure' },
             ].map((item, index, arr) => (
-              <div key={item.text} className="flex items-center gap-2">
-                {item.icon}
+              <div key={item.text} className="flex items-center gap-2 hover-icon-bounce cursor-default">
+                <span className="trust-icon">{item.icon}</span>
                 <span className="font-medium text-gray-600 dark:text-gray-400">{item.text}</span>
                 {index < arr.length - 1 && (
                   <span className="hidden sm:inline-block ml-6 w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
@@ -718,7 +847,7 @@ export default function HomePage() {
       {/* ============================================
           WHAT WE OFFER — 3-pillar layout
           ============================================ */}
-      <section className="py-20 sm:py-28">
+      <section className="py-20 sm:py-28 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge variant="secondary" className="mb-3 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400">Our Programs</Badge>
@@ -732,7 +861,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Card 1: Competitive Exams */}
-            <div className="group relative bg-gradient-to-br from-blue-50 to-sky-50 dark:from-gray-800 dark:to-gray-800 border border-blue-100 dark:border-gray-700 rounded-2xl p-7 hover:shadow-xl hover:shadow-blue-100/50 hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+            <TiltCard className="group relative bg-gradient-to-br from-blue-50 to-sky-50 dark:from-gray-800 dark:to-gray-800 border border-blue-100 dark:border-gray-700 rounded-2xl p-7 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 overflow-hidden">
               {/* Top gradient bar */}
               <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-400 to-cyan-400" />
               <div className="h-14 w-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-blue-200">
@@ -750,10 +879,10 @@ export default function HomePage() {
               <Link href="/courses" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 group-hover:gap-2 transition-all">
                 Explore Courses <ChevronRight className="h-4 w-4" />
               </Link>
-            </div>
+            </TiltCard>
 
             {/* Card 2: Computer Training */}
-            <div className="group relative bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-gray-800 dark:to-gray-800 border border-cyan-100 dark:border-gray-700 rounded-2xl p-7 hover:shadow-xl hover:shadow-cyan-100/50 hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+            <TiltCard className="group relative bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-gray-800 dark:to-gray-800 border border-cyan-100 dark:border-gray-700 rounded-2xl p-7 hover:shadow-xl hover:shadow-cyan-100/50 transition-all duration-300 overflow-hidden">
               {/* Top gradient bar */}
               <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 to-teal-400" />
               <div className="absolute top-4 right-4">
@@ -774,10 +903,10 @@ export default function HomePage() {
               <Link href="/computer-training" className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-700 group-hover:gap-2 transition-all">
                 Explore Programs <ChevronRight className="h-4 w-4" />
               </Link>
-            </div>
+            </TiltCard>
 
             {/* Card 3: Study Cabins */}
-            <div className="group relative bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 border border-green-100 dark:border-gray-700 rounded-2xl p-7 hover:shadow-xl hover:shadow-green-100/50 hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+            <TiltCard className="group relative bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 border border-green-100 dark:border-gray-700 rounded-2xl p-7 hover:shadow-xl hover:shadow-green-100/50 transition-all duration-300 overflow-hidden">
               {/* Top gradient bar */}
               <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-teal-400 to-emerald-400" />
               <div className="h-14 w-14 rounded-2xl bg-green-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-green-200">
@@ -795,7 +924,7 @@ export default function HomePage() {
               <Link href="/cabins" className="inline-flex items-center gap-1 text-sm font-semibold text-green-700 group-hover:gap-2 transition-all">
                 Book a Cabin <ChevronRight className="h-4 w-4" />
               </Link>
-            </div>
+            </TiltCard>
           </div>
         </div>
       </section>
@@ -888,7 +1017,7 @@ export default function HomePage() {
             {/* Course cards on dark */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {computerDept.courses.slice(0, 6).map((course) => (
-                <div key={course.id} className="group bg-white/5 border border-white/10 border-l-4 border-l-cyan-500 rounded-2xl p-5 hover:bg-cyan-50/5 dark:hover:bg-cyan-950/30 hover:border-cyan-500/30 transition-all duration-300">
+                <div key={course.id} className="group bg-white/5 border border-white/10 border-l-4 border-l-cyan-500 rounded-2xl p-5 hover:bg-cyan-50/5 dark:hover:bg-cyan-950/30 hover:border-cyan-500/30 transition-all duration-300 cursor-pointer" onClick={() => openCourseModal(course, computerDept.name)}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="font-semibold text-white group-hover:text-cyan-300 transition-colors leading-snug">{course.name}</h3>
                   </div>
@@ -904,18 +1033,18 @@ export default function HomePage() {
                   {course.description && (
                     <p className="text-sm text-gray-400 line-clamp-2 mb-4">{course.description}</p>
                   )}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                     <Link href={`/register?courseId=${course.id}`}>
                       <Button size="sm" className="bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg">
                         Enroll Now <ArrowRight className="h-3.5 w-3.5 ml-1" />
                       </Button>
                     </Link>
-                    <a
-                      href="#register-section"
+                    <button
+                      onClick={() => openCourseModal(course, computerDept.name)}
                       className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
                     >
                       View Details
-                    </a>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -944,7 +1073,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {otherDepts.filter((d) => d.courses.length > 0).flatMap((dept) =>
                 dept.courses.map((course) => (
-                  <Card key={course.id} className="border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50 transition-all duration-300 group overflow-hidden">
+                  <Card key={course.id} className="border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50 transition-all duration-300 group overflow-hidden cursor-pointer" onClick={() => openCourseModal(course, dept.name)}>
                     <div className="h-1.5 bg-gradient-to-r from-blue-500 to-sky-400" />
                     <CardContent className="p-5">
                       <h4 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
@@ -969,11 +1098,13 @@ export default function HomePage() {
                       {course.description && (
                         <p className="mt-2 text-sm text-gray-500 line-clamp-2">{course.description}</p>
                       )}
-                      <Link href={`/register?courseId=${course.id}`}>
-                        <Button size="sm" variant="ghost" className="mt-3 text-blue-700 hover:text-blue-800 hover:bg-blue-50 p-0 h-auto font-semibold">
-                          Enroll Now <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                        </Button>
-                      </Link>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Link href={`/register?courseId=${course.id}`}>
+                          <Button size="sm" variant="ghost" className="mt-3 text-blue-700 hover:text-blue-800 hover:bg-blue-50 p-0 h-auto font-semibold">
+                            Enroll Now <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
                     </CardContent>
                   </Card>
                 ))
@@ -1072,10 +1203,17 @@ export default function HomePage() {
       </ScrollReveal>
 
       {/* ============================================
+          MOTIVATIONAL QUOTES — Daily inspiration
+          ============================================ */}
+      <ScrollReveal>
+        <MotivationalQuotesSection />
+      </ScrollReveal>
+
+      {/* ============================================
           WHY CHOOSE US — Bento grid
           ============================================ */}
       <ScrollReveal>
-      <section className="py-20 sm:py-28">
+      <section className="py-20 sm:py-28 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <Badge variant="secondary" className="mb-3 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">Why Lamka?</Badge>
@@ -1180,6 +1318,7 @@ export default function HomePage() {
         <div className="absolute inset-0 dot-grid-bg pointer-events-none" />
 
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="cta-border-glow rounded-3xl cta-glow-shadow bg-gray-950 p-10 sm:p-14">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
             Your Success Story
             <br />
@@ -1227,6 +1366,7 @@ export default function HomePage() {
               </div>
             )}
           </div>
+          </div>
         </div>
       </section>
 
@@ -1239,6 +1379,15 @@ export default function HomePage() {
       <ScrollReveal>
         <PartnersSection />
       </ScrollReveal>
+
+      {/* Course Detail Modal */}
+      {selectedCourse && (
+        <CourseDetailModal
+          course={selectedCourse}
+          open={courseModalOpen}
+          onOpenChange={setCourseModalOpen}
+        />
+      )}
     </PublicLayout>
   );
 }

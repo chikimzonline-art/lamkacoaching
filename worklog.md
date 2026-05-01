@@ -2267,3 +2267,255 @@ Task: Assess project status, perform QA, fix bugs, improve styling, add features
 5. Add image upload for team members
 6. Implement email notification for contact form
 7. Add keyboard shortcuts and focus management
+
+---
+Task ID: 6-a
+Agent: Styling Improvements Agent (Round 6)
+Task: Detailed styling improvements — typewriter effect, 3D tilt cards, CTA gradient border glow, dark mode consistency, icon bounce animation
+
+### Changes Made
+
+1. **TypewriterText Rotating Effect in Hero Section** (`src/app/page.tsx`)
+   - Created `TypewriterText` inline component with rotating typewriter effect
+   - 4 phrases that cycle: competitive exam coaching, computer training, study spaces, everything you need
+   - Types at 50ms per character, deletes at 30ms per character, pauses 2s at end
+   - Blinking cursor (vertical bar) using CSS `@keyframes blink` animation (1s step-end infinite)
+   - Replaced static hero subtitle `<motion.p>` with `<motion.div>` containing `<TypewriterText />`
+   - Fixed lint error: used `charIndex` state instead of string comparison, and `setTimeout` wrappers for all setState calls in effects
+
+2. **TiltCard 3D Hover Effect on "What We Offer" Cards** (`src/app/page.tsx`)
+   - Created `TiltCard` inline component with onMouseMove-based 3D tilt
+   - Calculates `rotateX` and `rotateY` from cursor position relative to card center (max ±8 degrees)
+   - Applies `perspective(1000px) rotateX(Xdeg) rotateY(Ydeg)` transform
+   - Smooth transition: 0.1s during hover, 0.5s ease-out when leaving
+   - Gradient shine overlay follows cursor using `radial-gradient` at mouse position
+   - Replaced all 3 `<div>` wrappers for What We Offer cards with `<TiltCard>` components
+   - Removed `hover:-translate-y-1` from cards (tilt effect replaces it)
+
+3. **Animated Gradient Border Glow on CTA Section** (`src/app/page.tsx` + `src/app/globals.css`)
+   - Added `.cta-border-glow` CSS class with `::before` pseudo-element
+   - `::before` uses `conic-gradient` (cyan → teal → sky → cyan) with `@keyframes border-rotate` (4s linear infinite)
+   - `::after` pseudo-element covers inner area with inherited background
+   - Added `.cta-glow-shadow` class with cyan box-shadow glow
+   - Wrapped CTA content in a `<div className="cta-border-glow rounded-3xl cta-glow-shadow bg-gray-950 p-10 sm:p-14">` container
+   - Rotating border creates a spinning gradient light effect around the CTA card
+
+4. **Enhanced Dark Mode Consistency** (`src/app/page.tsx`)
+   - Trust Bar section: added `bg-white dark:bg-gray-900` and `dark:border-gray-800`
+   - "What We Offer" section: added `bg-white dark:bg-gray-900` to section
+   - "Why Choose Us" section: added `bg-white dark:bg-gray-900` to section
+   - All sections now have proper dark mode backgrounds and borders
+
+5. **Subtle Icon Bounce Animation on Trust Bar** (`src/app/globals.css` + `src/app/page.tsx`)
+   - Added `@keyframes icon-bounce` animation: scale(1) → scale(1.2) → scale(1) at 0.4s
+   - Added `.hover-icon-bounce:hover svg, .hover-icon-bounce:hover .trust-icon` CSS rule
+   - Trust bar items now have `hover-icon-bounce cursor-default` class
+   - Icons wrapped in `<span className="trust-icon">` for targeted animation
+   - Icons bounce on hover with a subtle scale-up animation
+
+### CSS Additions to `src/app/globals.css`
+- `@keyframes blink` — blinking cursor for typewriter
+- `@keyframes icon-bounce` — trust bar icon hover bounce
+- `.hover-icon-bounce:hover svg, .hover-icon-bounce:hover .trust-icon` — hover trigger
+- `@keyframes border-rotate` — CTA border rotation (0→360deg)
+- `.cta-border-glow` — CTA card with rotating gradient border (::before/::after pseudo-elements)
+- `.cta-glow-shadow` — cyan glow box-shadow for CTA card
+
+### Verification
+- No lint errors in modified source files (`src/app/page.tsx`, `src/app/globals.css`)
+- Only pre-existing errors in `studyspace/examples/` and `global-search.tsx`
+- Dev server compiles successfully, homepage returns HTTP 200
+- All existing functionality preserved
+
+---
+
+## Task ID: 6-b
+Agent: New Features Agent
+Task: Add new features — Course Detail Modal, Global Search Overlay, WhatsApp Button, Motivational Quotes Section
+
+### Work Completed
+
+#### 1. Course Detail Modal Component
+- Created `/src/components/public/course-detail-modal.tsx`
+- Uses shadcn/ui Dialog component with beautiful gradient design
+- Shows: course name, department badge, duration/fee/department info cards, full description, key highlights as bullet points
+- Top gradient bar (cyan-to-teal) matching batch cards
+- Info cards with Clock (duration), Wallet (fee), GraduationCap (department) icons
+- "Register Now" CTA button linking to /register?courseId={id}
+- "Compare" button (visual only for now)
+- Fee formatted in INR: ₹${(totalFee / 100).toLocaleString("en-IN")}
+- Integrated into homepage: added selectedCourse/courseModalOpen state, openCourseModal handler, click handlers on Computer Training and Competitive Exams course cards
+
+#### 2. Global Search Overlay
+- Created `/src/components/public/global-search.tsx`
+- Exports: GlobalSearch component and SearchButton component
+- Spotlight/Alfred-style design: centered modal, max-w-2xl, rounded-2xl
+- Real-time filtering across courses, notices, and FAQs
+- Results grouped by category (Courses, Notices, FAQs) with icons
+- Keyboard navigation: ArrowUp/Down, Enter to select, ESC to close
+- Keyboard shortcut: Ctrl+K / Cmd+K to toggle search
+- Framer-motion open/close animation (scale + opacity + y)
+- Semi-transparent backdrop with blur
+- "Type to search..." placeholder with Ctrl+K hint when empty
+- Data fetched from /api/public/courses, /api/public/notices, /api/public/faqs
+- Integrated: added to public-layout.tsx with searchOpen state, SearchButton added to public-header.tsx desktop and mobile nav
+
+#### 3. WhatsApp Floating Contact Button
+- Created `/src/components/public/whatsapp-button.tsx`
+- Fixed position: bottom-6 left-6, z-40 (opposite side of back-to-top button)
+- Green circle button (h-14 w-14) with WhatsApp SVG icon
+- Opens wa.me/{phone} with pre-filled message
+- Phone number fetched from /api/public/settings (fallback: 919876543210)
+- Bounce animation on load (framer-motion spring with 1s delay)
+- CSS tooltip on hover: "Chat with us on WhatsApp"
+- Pulse ring animation (animate-ping opacity-20)
+- Integrated into public-layout.tsx (only on non-admin pages)
+
+#### 4. Motivational Quotes Section
+- Created `/src/components/public/motivational-quotes-section.tsx`
+- Light gradient background (from-cyan-50 to-sky-50, dark from-gray-900 to-gray-800)
+- Header: "Daily Inspiration" badge with Sparkles icon, "Words That Inspire Success" title
+- 8 hardcoded motivational quotes for Indian students (Churchill, Jobs, Mandela, Levenson, Roosevelt, etc.)
+- Auto-rotates every 8 seconds with smooth fade transition
+- Manual navigation: left/right arrow buttons + dot indicators
+- Large decorative quotation marks (text-8xl text-cyan-200/30)
+- Glass card container with backdrop-blur
+- Integrated into homepage between Upcoming Batches and Why Choose Us sections, wrapped in ScrollReveal
+
+### Files Modified
+- `/src/app/page.tsx` — Added imports, modal state, click handlers, MotivationalQuotesSection, CourseDetailModal
+- `/src/components/public/public-layout.tsx` — Added GlobalSearch, WhatsAppButton, searchOpen state, onSearchOpen prop
+- `/src/components/public/public-header.tsx` — Added Search icon import, onSearchOpen prop, SearchButton in desktop and mobile
+
+### Files Created
+- `/src/components/public/course-detail-modal.tsx`
+- `/src/components/public/global-search.tsx`
+- `/src/components/public/whatsapp-button.tsx`
+- `/src/components/public/motivational-quotes-section.tsx`
+
+### Updated Homepage Section Order
+Hero → Trust Bar → What We Offer → Student Journey → Achievements → Success Stories → AI Study Tips → Computer Training → Competitive Exams → Notices → Upcoming Batches → **Motivational Quotes** → Why Choose Us → Testimonials → Contact → FAQ → CTA → Partners
+
+### Verification
+- No lint errors in src/ directory
+- Dev server compiles successfully (HTTP 200)
+- All existing functionality preserved
+
+
+---
+Task ID: 7 (WebDevReview Round 6)
+Agent: Main Agent
+Task: Assess project status, perform QA, fix bugs, improve styling, add features
+
+### Project Status Assessment
+- Dev server compiles and serves homepage (HTTP 200) — verified via curl
+- All public APIs return 200 (settings, courses, notices, about, batches, faqs, cabins)
+- Server is prone to OOM kills in sandbox environment after multiple compilations — known issue from previous rounds
+- No new lint errors introduced; pre-existing TS errors in examples/ and some admin routes remain unchanged
+- Homepage now has 18+ sections with rich visual design, animations, and interactivity
+- Dark mode fully functional with next-themes
+
+### Completed Modifications
+
+#### Styling Improvements (Mandatory)
+
+1. **Typewriter Text Effect in Hero**
+   - Created `TypewriterText` inline component in page.tsx
+   - Cycles through 4 phrases with character-by-character typing (50ms/char), deletion (30ms/char), 2s pause
+   - Blinking cursor animation (vertical bar) with CSS keyframes
+   - Phrases: competitive exams, computer training, study spaces, all-in-one
+
+2. **3D Tilt Hover Effect on "What We Offer" Cards**
+   - Created `TiltCard` inline component in page.tsx
+   - Uses onMouseMove to calculate tilt based on cursor position (±8° max rotation)
+   - Applies perspective(1000px) rotateX/Y transform
+   - Cursor-following gradient shine overlay on hover
+   - Smooth transition back to flat on mouse leave
+   - Applied to all 3 pillar cards (Competitive Exams, Computer Training, Study Cabins)
+
+3. **Animated Gradient Border Glow on CTA Section**
+   - Added `@keyframes border-rotate` animation in globals.css
+   - Rotating conic-gradient border (cyan → teal → sky → cyan) at 4s/revolution
+   - Cyan glow box-shadow behind the CTA card
+   - `.animate-border-glow` utility class for reuse
+
+4. **Dark Mode Consistency Improvements**
+   - Added `dark:bg-gray-900` and `dark:border-gray-800` to Trust Bar section
+   - Added `dark:bg-gray-900` to "What We Offer" section background
+   - Added `dark:bg-gray-900` to "Why Choose Us" section background
+   - Ensures seamless dark mode transitions across all homepage sections
+
+5. **Icon Bounce Animation in Trust Bar**
+   - Added `@keyframes icon-bounce` in globals.css (scale 1→1.2→1)
+   - `.hover-icon-bounce` class applies bounce on hover
+   - Trust bar items now have interactive icon bounce effect
+
+#### New Features (Mandatory)
+
+6. **Course Detail Modal** (`/src/components/public/course-detail-modal.tsx`)
+   - Click any course card in Computer Training or Competitive Exams sections to open
+   - Shows: course name, department, duration, fee (INR formatted), full description, key highlights
+   - Top cyan-to-teal gradient bar, info cards with Clock/Wallet/GraduationCap icons
+   - "Register Now" CTA linking to /register
+   - "Compare" button (visual placeholder)
+   - Uses shadcn/ui Dialog component with framer-motion
+
+7. **Global Search Overlay** (`/src/components/public/global-search.tsx`)
+   - Spotlight/Alfred-style search with Ctrl+K / Cmd+K keyboard shortcut
+   - Real-time search across courses, notices, and FAQs simultaneously
+   - Results grouped by category with color-coded icons
+   - Full keyboard navigation (↑↓ arrows, Enter to select, ESC to close)
+   - framer-motion scale+opacity animation for open/close
+   - Search button added to header (desktop + mobile)
+   - Integrated in public-layout.tsx with searchOpen state management
+
+8. **WhatsApp Floating Contact Button** (`/src/components/public/whatsapp-button.tsx`)
+   - Green floating button at bottom-left (opposite back-to-top)
+   - WhatsApp SVG icon with pulse ring animation and bounce entrance
+   - Click opens WhatsApp with pre-filled inquiry message
+   - Phone number fetched dynamically from /api/public/settings
+   - CSS tooltip on hover: "Chat with us on WhatsApp"
+   - Integrated in public-layout.tsx
+
+9. **Motivational Quotes Section** (`/src/components/public/motivational-quotes-section.tsx`)
+   - Light gradient section (cyan-50 to sky-50 / dark: gray-900 to gray-800)
+   - 8 inspirational quotes for Indian students (Churchill, Jobs, Mandela, etc.)
+   - Auto-rotates every 8 seconds with smooth fade transitions
+   - Manual arrow navigation and dot indicators
+   - Decorative quotation marks (text-8xl) with glass card design
+   - Positioned between Upcoming Batches and Why Choose Us sections
+
+### Updated Homepage Section Order
+1. Hero (with TypewriterText) → 2. Wave Divider → 3. Trust Bar (icon bounce) → 4. What We Offer (3D TiltCards) → 5. Achievements → 6. Computer Training → 7. Competitive Exams → 8. Notices → 9. Upcoming Batches → 10. **Motivational Quotes** → 11. Why Choose Us → 12. Testimonials → 13. Contact → 14. FAQ → 15. CTA (gradient border glow)
+
+### Global UI Additions
+- **Search button** in header (desktop + mobile) with Ctrl+K shortcut
+- **WhatsApp floating button** at bottom-left on all public pages
+- **Global Search overlay** accessible from any public page
+- **Course Detail Modal** on course card clicks
+
+### Verification Results
+- Homepage compiles and returns HTTP 200
+- No new lint errors in source files
+- TypeScript check shows only pre-existing errors (examples, admin routes)
+- All new components properly imported and integrated
+- Dark mode consistency improved across homepage sections
+
+### Unresolved Issues or Risks
+1. Dev server OOM kills in sandbox — known issue, workaround: NODE_OPTIONS='--max-old-space-size=256'
+2. Pre-existing TypeScript errors in admin routes and examples (not from our code)
+3. No automated tests exist
+4. Contact form submissions logged to console only (no email integration)
+5. Upcoming batches are hardcoded (not admin-managed)
+6. Course Comparison button in modal is visual placeholder only
+7. WhatsApp button uses fallback phone number if settings API fails
+
+### Priority Recommendations for Next Phase
+1. Make upcoming batches admin-managed (database-driven via Batch model)
+2. Add image upload for team members and gallery
+3. Implement course comparison functionality (select 2-3 courses, compare side-by-side)
+4. Add email integration for contact form submissions
+5. Add lazy loading / dynamic imports for heavy components (framer-motion, charts)
+6. Performance optimization and Core Web Vitals improvements
+7. Add structured data (JSON-LD) for SEO
+8. Add PWA support with service worker
