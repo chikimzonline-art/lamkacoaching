@@ -5,9 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DoorOpen, Calendar, Banknote, AlertCircle, Clock, Users, ArrowUpRight, AlertTriangle, ArrowRight } from 'lucide-react';
+import { DoorOpen, Calendar, Banknote, AlertCircle, Clock, Users, ArrowUpRight, AlertTriangle, ArrowRight, TrendingUp, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import { formatCurrency, formatDate, formatTime } from '@/lib/helpers';
 import { useAppStore } from '@/store/app-store';
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 
 interface DashboardStats {
   totalCabins: number;
@@ -79,6 +94,34 @@ interface DashboardData {
   pendingBookingRequests: PendingBooking[];
   pendingBookingCount: number;
 }
+
+/* ─────────────────────────────────────────────
+   Mock Chart Data
+   ───────────────────────────────────────────── */
+const monthlyEnrollmentsData = [
+  { month: 'Oct', enrollments: 12 },
+  { month: 'Nov', enrollments: 18 },
+  { month: 'Dec', enrollments: 15 },
+  { month: 'Jan', enrollments: 22 },
+  { month: 'Feb', enrollments: 28 },
+  { month: 'Mar', enrollments: 24 },
+];
+
+const departmentData = [
+  { name: 'Computer Training', value: 45, color: '#06b6d4' },
+  { name: 'Competitive Exams', value: 30, color: '#0ea5e9' },
+  { name: 'Banking Exams', value: 15, color: '#14b8a6' },
+  { name: 'Study Cabins', value: 10, color: '#38bdf8' },
+];
+
+const revenueTrendData = [
+  { month: 'Oct', revenue: 45000 },
+  { month: 'Nov', revenue: 52000 },
+  { month: 'Dec', revenue: 48000 },
+  { month: 'Jan', revenue: 68000 },
+  { month: 'Feb', revenue: 72000 },
+  { month: 'Mar', revenue: 65000 },
+];
 
 function StatCard({
   title,
@@ -295,6 +338,133 @@ export default function DashboardView() {
           color="bg-sky-50"
           subtitle="Enrollment dues"
         />
+      </div>
+
+      {/* ─────────────────────────────────────────────
+         Charts Section
+         ───────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Monthly Enrollments Bar Chart */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-cyan-600" />
+              Monthly Enrollments
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyEnrollmentsData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:opacity-20" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                    }}
+                    formatter={(value: number) => [`${value} students`, 'Enrollments']}
+                  />
+                  <Bar dataKey="enrollments" fill="#06b6d4" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Students by Department Pie Chart */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <PieChartIcon className="h-4 w-4 text-cyan-600" />
+              Students by Department
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={departmentData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={4}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {departmentData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                    }}
+                    formatter={(value: number, name: string) => [`${value}%`, name]}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    iconType="circle"
+                    iconSize={8}
+                    formatter={(value: string) => (
+                      <span className="text-xs text-gray-500">{value}</span>
+                    )}
+                    wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Revenue Trend Line Chart */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-cyan-600" />
+              Revenue Trend
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={revenueTrendData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:opacity-20" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                    }}
+                    formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#06b6d4"
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: '#06b6d4', strokeWidth: 2, stroke: 'white' }}
+                    activeDot={{ r: 6, fill: '#06b6d4', stroke: 'white', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">

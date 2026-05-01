@@ -45,6 +45,7 @@ import PartnersSection from '@/components/public/partners-section';
 import AnimatedCounter from '@/components/public/animated-counter';
 import StudentJourneySection from '@/components/public/student-journey-section';
 import StudyTipsSection from '@/components/public/study-tips-section';
+import WaveDivider from '@/components/public/wave-divider';
 
 interface Department {
   id: string;
@@ -95,46 +96,72 @@ const testimonials = [
   {
     name: 'Priya Sharma',
     course: 'SSC CGL Coaching',
+    badge: 'SSC CGL 2024',
+    badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
     text: 'I cleared SSC CGL in my very first attempt thanks to the structured guidance at Lamka Coaching Center. The mock tests and personal attention made all the difference!',
     rating: 5,
+    avatar: 'PS',
+    gradient: 'from-blue-500 to-cyan-500',
   },
   {
     name: 'Rahul Verma',
     course: 'CCC Computer Course',
+    badge: 'NIELIT CCC',
+    badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
     text: 'The CCC course here is excellent. The hands-on practice and patient instructors helped me score 85% in the NIELIT exam. Highly recommended for anyone starting their computer journey.',
     rating: 5,
+    avatar: 'RV',
+    gradient: 'from-cyan-500 to-teal-500',
   },
   {
     name: 'Anjali Kumari',
     course: 'IBPS PO Coaching',
+    badge: 'IBPS PO 2024',
+    badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
     text: 'I was struggling with quantitative aptitude until I joined Lamka. The faculty broke down complex problems into simple steps. I finally cleared IBPS PO with confidence!',
     rating: 4,
+    avatar: 'AK',
+    gradient: 'from-purple-500 to-pink-500',
   },
   {
     name: 'Mohit Singh',
     course: 'Tally Prime with GST',
+    badge: 'Tally Certified',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     text: 'Best Tally course in Lamka! The practical accounting exercises and real GST return filing practice gave me the skills to land an accountant job within 2 months of finishing.',
     rating: 5,
+    avatar: 'MS',
+    gradient: 'from-emerald-500 to-green-500',
   },
   {
     name: 'Sneha Patel',
     course: 'Web Design & Development',
+    badge: 'Web Dev Pro',
+    badgeColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
     text: 'From zero coding knowledge to building my own website — the web design course here is incredibly practical. The project-based learning approach is exactly what I needed.',
     rating: 5,
+    avatar: 'SP',
+    gradient: 'from-orange-500 to-amber-500',
   },
   {
     name: 'Arun Thakur',
     course: 'Study Cabin (Monthly)',
+    badge: 'UPSC Prep',
+    badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
     text: 'The study cabin facility is a game-changer. Quiet, comfortable, and available at flexible hours. It helped me maintain a consistent study routine during my UPSC preparation.',
     rating: 4,
+    avatar: 'AT',
+    gradient: 'from-rose-500 to-red-500',
   },
 ];
 
 /* ─────────────────────────────────────────────
-   Testimonials Carousel Section
+   Testimonials Carousel Section (Enhanced)
    ───────────────────────────────────────────── */
 function TestimonialsSection() {
   const [current, setCurrent] = useState(0);
+  const [parallaxOffset, setParallaxOffset] = useState(0);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const total = testimonials.length;
 
@@ -152,6 +179,21 @@ function TestimonialsSection() {
     };
   }, [startAutoPlay]);
 
+  // Parallax effect on background pattern
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!sectionRef.current) return;
+      const rect = sectionRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      if (rect.top < windowHeight && rect.bottom > 0) {
+        const progress = (windowHeight - rect.top) / (windowHeight + rect.height);
+        setParallaxOffset(progress * 40 - 20);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const goTo = (index: number) => {
     setCurrent(index);
     startAutoPlay();
@@ -168,10 +210,19 @@ function TestimonialsSection() {
   const t = testimonials[current];
 
   return (
-    <section className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
-      {/* Background accents */}
-      <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(6,182,212,0.07) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(6,182,212,0.05) 0%, transparent 40%)' }} />
-      <div className="absolute inset-0 dot-grid-bg pointer-events-none" />
+    <section ref={sectionRef} className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
+      {/* Background accents with parallax */}
+      <div
+        className="absolute inset-0 transition-transform duration-100"
+        style={{
+          backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(6,182,212,0.07) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(6,182,212,0.05) 0%, transparent 40%)',
+          transform: `translateY(${parallaxOffset}px)`,
+        }}
+      />
+      <div
+        className="absolute inset-0 dot-grid-bg pointer-events-none transition-transform duration-100"
+        style={{ transform: `translateY(${parallaxOffset * 0.5}px)` }}
+      />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -190,72 +241,123 @@ function TestimonialsSection() {
           {/* Navigation Arrows */}
           <button
             onClick={prev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-6 z-10 h-10 w-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-cyan-400 hover:bg-white/20 hover:border-cyan-500/40 transition-all"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-6 z-10 h-11 w-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-cyan-400 hover:bg-white/20 hover:border-cyan-500/40 transition-all shadow-lg"
             aria-label="Previous testimonial"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             onClick={next}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-6 z-10 h-10 w-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-cyan-400 hover:bg-white/20 hover:border-cyan-500/40 transition-all"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-6 z-10 h-11 w-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-cyan-400 hover:bg-white/20 hover:border-cyan-500/40 transition-all shadow-lg"
             aria-label="Next testimonial"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
 
-          {/* Testimonial Card */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current}
-              initial={{ opacity: 0, x: 60 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -60 }}
-              transition={{ duration: 0.4, ease: 'easeInOut' }}
-              className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-8 sm:p-10"
-            >
-              {/* Quote icon */}
-              <div className="mb-5">
-                <Quote className="h-10 w-10 text-cyan-500/40" />
-              </div>
-
-              {/* Text */}
-              <p className="text-gray-200 text-lg leading-relaxed mb-6">
-                &ldquo;{t.text}&rdquo;
-              </p>
-
-              {/* Stars */}
-              <div className="flex items-center gap-1 mb-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-5 w-5 ${i < t.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`}
-                  />
-                ))}
-              </div>
-
-              {/* Name & Course */}
-              <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-full bg-gradient-to-br from-cyan-500 to-sky-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-cyan-500/20">
-                  {t.name.charAt(0)}
+          {/* Testimonial Card with gradient border */}
+          <div className="relative rounded-2xl p-[2px] bg-gradient-to-br from-cyan-500/60 via-cyan-400/20 to-sky-500/60">
+            {/* Inner card with glassmorphism */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current}
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -60 }}
+                transition={{ duration: 0.4, ease: 'easeInOut' }}
+                className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl p-8 sm:p-10 overflow-hidden"
+              >
+                {/* Decorative large quote watermark */}
+                <div className="absolute top-4 right-6 pointer-events-none select-none">
+                  <Quote className="h-32 w-32 text-white/[0.04]" />
                 </div>
-                <div>
-                  <p className="font-semibold text-white">{t.name}</p>
-                  <p className="text-sm text-cyan-400">{t.course}</p>
+                {/* Secondary smaller watermark */}
+                <div className="absolute bottom-8 left-6 pointer-events-none select-none">
+                  <Quote className="h-16 w-16 text-white/[0.03] rotate-180" />
                 </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+
+                {/* Quote icon */}
+                <div className="mb-5">
+                  <Quote className="h-10 w-10 text-cyan-500/40" />
+                </div>
+
+                {/* Text */}
+                <p className="text-gray-200 text-lg leading-relaxed mb-6 relative z-10">
+                  &ldquo;{t.text}&rdquo;
+                </p>
+
+                {/* Rating stars */}
+                <div className="flex items-center gap-1.5 mb-5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-5 w-5 ${i < t.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`}
+                    />
+                  ))}
+                  <span className="ml-2 text-sm text-gray-400 font-medium">{t.rating}.0</span>
+                </div>
+
+                {/* Course badge */}
+                <div className="mb-5">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${t.badgeColor}`}>
+                    <Award className="h-3 w-3 mr-1.5" />
+                    {t.badge}
+                  </span>
+                </div>
+
+                {/* Name & Course */}
+                <div className="flex items-center gap-3">
+                  <div className={`h-12 w-12 rounded-full bg-gradient-to-br ${t.gradient} flex items-center justify-center text-white font-bold text-base shadow-lg ring-2 ring-white/10`}>
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white text-lg">{t.name}</p>
+                    <p className="text-sm text-cyan-400">{t.course}</p>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
 
-        {/* Navigation Dots */}
-        <div className="flex items-center justify-center gap-2 mt-8">
+        {/* Navigation Dots (larger) */}
+        <div className="flex items-center justify-center gap-3 mt-10">
           {testimonials.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
-              className={`h-2.5 rounded-full transition-all duration-300 ${i === current ? 'w-8 bg-cyan-400' : 'w-2.5 bg-white/20 hover:bg-white/40'}`}
+              className={`h-3 rounded-full transition-all duration-300 ${i === current ? 'w-10 bg-cyan-400 shadow-lg shadow-cyan-400/30' : 'w-3 bg-white/20 hover:bg-white/40'}`}
               aria-label={`Go to testimonial ${i + 1}`}
             />
+          ))}
+        </div>
+
+        {/* Thumbnail avatar navigation */}
+        <div className="flex items-center justify-center gap-3 mt-6">
+          {testimonials.map((item, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`relative transition-all duration-300 ${
+                i === current
+                  ? 'scale-110'
+                  : 'scale-90 opacity-50 hover:opacity-80'
+              }`}
+              aria-label={`View ${item.name}'s testimonial`}
+            >
+              <div className={`h-11 w-11 rounded-full bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white font-bold text-sm shadow-md transition-all duration-300 ${
+                i === current ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-gray-950 shadow-lg shadow-cyan-500/20' : ''
+              }`}>
+                {item.avatar}
+              </div>
+              {/* Active indicator dot below thumbnail */}
+              {i === current && (
+                <motion.div
+                  layoutId="testimonial-thumb-indicator"
+                  className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full bg-cyan-400"
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+            </button>
           ))}
         </div>
       </div>
@@ -501,7 +603,7 @@ export default function HomePage() {
               >
                 Build Your
                 <br />
-                <span className="bg-gradient-to-r from-sky-300 to-cyan-300 bg-clip-text text-transparent">Future</span> With Us
+                <span className="bg-gradient-to-r from-cyan-500 via-sky-400 to-teal-400 bg-clip-text text-transparent animate-gradient-text">Future</span> With Us
               </motion.h1>
 
               <motion.p
@@ -581,9 +683,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent" />
+        {/* Bottom wave — dark to light transition */}
       </section>
+
+      {/* Wave: Hero (dark) → Trust Bar (light) */}
+      <WaveDivider type="wave" fillLight="#ffffff" fillDark="#111827" />
 
       {/* ============================================
           TRUST BAR — Quick trust signals
@@ -721,7 +825,8 @@ export default function HomePage() {
         <SuccessStoriesSection />
       </ScrollReveal>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent" />
+      {/* Wave: Achievements + Success Stories (dark) → AI Study Tips (light) */}
+      <WaveDivider type="wave" fillLight="#ffffff" fillDark="#111827" />
 
       {/* ============================================
           AI STUDY TIPS — Personalized learning advice
@@ -729,6 +834,9 @@ export default function HomePage() {
       <ScrollReveal>
         <StudyTipsSection />
       </ScrollReveal>
+
+      {/* Wave: AI Study Tips (light) → Computer Training (dark) */}
+      <WaveDivider type="wave" fillLight="#030712" fillDark="#030712" flip />
 
       {/* ============================================
           COMPUTER TRAINING — Dedicated feature section
@@ -815,6 +923,9 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Wave: Computer Training (dark) → Competitive Exams (light) */}
+      <WaveDivider type="curve" fillLight="#ffffff" fillDark="#111827" />
 
       {/* ============================================
           COMPETITIVE EXAMS COURSES
@@ -904,8 +1015,6 @@ export default function HomePage() {
           </div>
         </section>
       )}
-
-      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
       {/* ============================================
           NOTICES — Clean announcement ticker
@@ -1036,6 +1145,9 @@ export default function HomePage() {
       </section>
       </ScrollReveal>
 
+      {/* Wave: Why Choose Us (light) → Testimonials (dark) */}
+      <WaveDivider type="wave" fillLight="#030712" fillDark="#030712" flip />
+
       {/* ============================================
           TESTIMONIALS — Student stories carousel
           ============================================ */}
@@ -1057,6 +1169,9 @@ export default function HomePage() {
       <FAQSection />
       </ScrollReveal>
 
+      {/* Wave: FAQ (light) → CTA (dark) */}
+      <WaveDivider type="wave" fillLight="#030712" fillDark="#030712" flip />
+
       {/* ============================================
           CTA — Strong final push
           ============================================ */}
@@ -1068,7 +1183,7 @@ export default function HomePage() {
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
             Your Success Story
             <br />
-            <span className="bg-gradient-to-r from-sky-300 to-cyan-400 bg-clip-text text-transparent">Starts Here</span>
+            <span className="bg-gradient-to-r from-cyan-500 via-sky-400 to-teal-400 bg-clip-text text-transparent animate-gradient-text">Starts Here</span>
           </h2>
           <p className="mt-4 text-gray-400 text-lg leading-relaxed max-w-lg mx-auto">
             Join hundreds of students who turned their aspirations into achievements with Lamka Coaching Center. Take the first step today.
@@ -1114,6 +1229,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Wave: CTA (dark) → Partners (light) */}
+      <WaveDivider type="curve" fillLight="#ffffff" fillDark="#111827" />
 
       {/* ============================================
           PARTNERS — Placement partners / recruiters

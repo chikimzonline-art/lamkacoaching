@@ -22,6 +22,9 @@ import {
   Sparkles,
   CheckCircle2,
   ExternalLink,
+  ArrowUpDown,
+  LayoutGrid,
+  LayoutList,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -69,6 +72,8 @@ export default function CoursesPage() {
     departmentName: string;
   } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'fee-low' | 'fee-high' | 'duration'>('name');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     fetch('/api/public/courses')
@@ -88,12 +93,21 @@ export default function CoursesPage() {
     .filter((d) => activeDept === 'all' || d.id === activeDept)
     .map((d) => ({
       ...d,
-      courses: d.courses.filter(
-        (c) =>
-          !search ||
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.description?.toLowerCase().includes(search.toLowerCase())
-      ),
+      courses: d.courses
+        .filter(
+          (c) =>
+            !search ||
+            c.name.toLowerCase().includes(search.toLowerCase()) ||
+            c.description?.toLowerCase().includes(search.toLowerCase())
+        )
+        .sort((a, b) => {
+          switch (sortBy) {
+            case 'fee-low': return a.totalFee - b.totalFee;
+            case 'fee-high': return b.totalFee - a.totalFee;
+            case 'duration': return (a.duration || '').localeCompare(b.duration || '');
+            default: return a.name.localeCompare(b.name);
+          }
+        }),
     }))
     .filter((d) => d.courses.length > 0);
 
@@ -156,24 +170,70 @@ export default function CoursesPage() {
 
       <section className="py-8 sm:py-12 bg-white dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search courses..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              />
+          {/* Filters & Sort Bar */}
+          <div className="space-y-4 mb-8">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search courses..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Sort Dropdown */}
+                <div className="relative">
+                  <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                    className="appearance-none pl-9 pr-8 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500"
+                  >
+                    <option value="name">Sort: A-Z</option>
+                    <option value="fee-low">Fee: Low to High</option>
+                    <option value="fee-high">Fee: High to Low</option>
+                    <option value="duration">Duration</option>
+                  </select>
+                </div>
+                {/* View Mode Toggle */}
+                <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      'p-2 transition-colors',
+                      viewMode === 'grid'
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    )}
+                    title="Grid view"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={cn(
+                      'p-2 transition-colors',
+                      viewMode === 'list'
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    )}
+                    title="List view"
+                  >
+                    <LayoutList className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
+            {/* Department Filter Pills */}
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setActiveDept('all')}
                 className={cn(
                   'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                   activeDept === 'all'
-                    ? 'bg-cyan-600 text-white'
+                    ? 'bg-cyan-600 text-white shadow-sm'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                 )}
               >
@@ -186,7 +246,7 @@ export default function CoursesPage() {
                   className={cn(
                     'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                     activeDept === dept.id
-                      ? 'bg-cyan-600 text-white'
+                      ? 'bg-cyan-600 text-white shadow-sm'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                   )}
                 >
@@ -314,7 +374,12 @@ export default function CoursesPage() {
                     {dept.courses.length} course{dept.courses.length !== 1 ? 's' : ''}
                   </Badge>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className={cn(
+                  "gap-5",
+                  viewMode === 'grid'
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    : "flex flex-col"
+                )}>
                   {dept.courses.map((course) => (
                     <Card
                       key={course.id}
@@ -349,36 +414,47 @@ export default function CoursesPage() {
                           <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 select-none">Compare</span>
                         </label>
                       </div>
-                      <CardContent className="p-5 flex flex-col h-full">
-                        <div className="flex items-start justify-between gap-2 pr-16">
+                      <CardContent className={cn(
+                        "p-5 flex h-full",
+                        viewMode === 'list'
+                          ? "flex-row items-center gap-4"
+                          : "flex-col"
+                      )}>
+                        <div className={cn("flex items-start justify-between gap-2", viewMode === 'list' ? "flex-1 min-w-0" : "pr-16")}>
                           <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-cyan-700 dark:group-hover:text-cyan-400 transition-colors leading-snug">
                             {course.name}
                           </h3>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3 mt-2.5">
+                        <div className={cn("flex items-center gap-3 mt-2.5", viewMode === 'list' ? "shrink-0" : "flex-wrap")}>
                           {course.duration && (
                             <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                               <Clock className="h-3 w-3" />
                               {course.duration}
                             </span>
                           )}
-                          <span className="text-base font-bold text-cyan-700">
+                          <span className="text-base font-bold text-cyan-700 dark:text-cyan-400">
                             {formatCurrency(course.totalFee)}
                           </span>
                         </div>
 
                         {course.description && (
-                          <p className="mt-2.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2 flex-1">
+                          <p className={cn(
+                            "text-sm text-gray-500 dark:text-gray-400 leading-relaxed flex-1",
+                            viewMode === 'list' ? "mt-0 ml-4 line-clamp-1" : "mt-2.5 line-clamp-2"
+                          )}>
                             {course.description}
                           </p>
                         )}
 
-                        <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-700">
+                        <div className={cn(
+                          "mt-4 pt-3 border-t border-gray-50 dark:border-gray-700",
+                          viewMode === 'list' ? "mt-0 pt-0 border-t-0 border-l-0 ml-4 shrink-0" : ""
+                        )}>
                           <Link href={`/register?courseId=${course.id}`}>
                             <Button
                               size="sm"
-                              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium"
+                              className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium whitespace-nowrap"
                             >
                               Enroll Now
                               <ArrowRight className="h-3.5 w-3.5 ml-1.5" />

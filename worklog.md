@@ -1875,3 +1875,257 @@ Task: Assess project status, perform QA, fix bugs, improve styling, add features
 5. Add sitemap.xml and robots.txt for SEO
 6. Add loading states/skeleton for data-fetching sections
 7. Add PWA support with service worker
+
+---
+Task ID: 3-a and 5
+Agent: Animated Text & Dashboard Charts Agent
+Task: Add animated gradient text to hero and charts to admin dashboard
+
+Work Log:
+- Added animated gradient text CSS to `/src/app/globals.css`:
+  - Added `@keyframes gradient-shift` keyframes: 0% → 0% 50%, 50% → 100% 50%, 100% → 0% 50%
+  - Added `.animate-gradient-text` class: background-size 200% 200%, animation gradient-shift 4s ease infinite
+- Applied animated gradient text to hero title in `/src/app/page.tsx`:
+  - Changed "Future" span from `bg-gradient-to-r from-sky-300 to-cyan-300` to `bg-gradient-to-r from-cyan-500 via-sky-400 to-teal-400 bg-clip-text text-transparent animate-gradient-text`
+  - Creates a subtle shifting gradient animation on the key hero word
+- Applied animated gradient text to CTA section highlight in `/src/app/page.tsx`:
+  - Changed "Starts Here" span from `bg-gradient-to-r from-sky-300 to-cyan-400` to `bg-gradient-to-r from-cyan-500 via-sky-400 to-teal-400 bg-clip-text text-transparent animate-gradient-text`
+  - Consistent animated gradient effect across both hero and CTA highlight text
+- Verified section spacing consistency:
+  - All homepage sections already use consistent `py-20 sm:py-28` spacing
+  - Trust Bar uses `py-8` (appropriate for thin bar)
+  - Hero uses `min-h-[90vh]` (full viewport)
+  - No inconsistent padding found — all sections follow the standard
+- Enhanced admin dashboard with Recharts charts in `/src/components/dashboard/dashboard-view.tsx`:
+  - Added Recharts imports: BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  - Added lucide-react icon imports: TrendingUp, BarChart3, PieChart as PieChartIcon
+  - Created mock data: monthlyEnrollmentsData (6 months), departmentData (4 departments), revenueTrendData (6 months)
+  - Added BarChart for "Monthly Enrollments": cyan bars (#06b6d4), rounded corners, grid, tooltips with "X students" format
+  - Added PieChart for "Students by Department": donut chart (innerRadius 50, outerRadius 80), 4 segments with cyan/sky/teal palette, legend at bottom
+  - Added LineChart for "Revenue Trend": smooth monotone line, cyan stroke (#06b6d4), Y-axis formatted as ₹Xk, dots with white stroke
+  - All charts: h-[220px] with ResponsiveContainer for responsive sizing, consistent Card wrapper with icon + title header
+  - Charts placed in 3-column grid (lg:grid-cols-3) between stat cards and existing booking/payment sections
+  - Dark mode: CartesianGrid uses dark:opacity-20 class, tooltip uses white bg with shadow
+- Verified: No new lint errors (only pre-existing 43 errors in studyspace examples)
+- Verified: Dev server compiles successfully
+
+Stage Summary:
+- Animated gradient text effect applied to hero title "Future" and CTA "Starts Here"
+  - Uses CSS keyframe gradient-shift animation (4s ease infinite, 200% background-size)
+  - Cyan/sky/teal color palette (from-cyan-500 via-sky-400 to-teal-400)
+  - Subtle shifting animation, not distracting
+- Admin dashboard enhanced with 3 Recharts charts:
+  - Monthly Enrollments bar chart (6 months of mock data)
+  - Students by Department donut/pie chart (4 departments with percentages)
+  - Revenue Trend line chart (6 months with ₹ formatted axis)
+  - All charts use cyan color palette matching the site theme
+  - Responsive with ResponsiveContainer, proper tooltips, and dark mode support
+- Section spacing verified as consistent (py-20 sm:py-28 standard across all sections)
+
+---
+Task ID: 2-b and 3-b
+Agent: Announcement Ticker & Wave Dividers Agent
+Task: Add announcement ticker bar and wave section dividers
+
+Work Log:
+- Created `/src/components/public/announcement-ticker.tsx` — AnnouncementTicker component
+  - 'use client' directive for client-side interactivity
+  - Thin horizontal bar (h-9) with gradient background (from-cyan-600 to-sky-600, dark: from-cyan-700 to-sky-700)
+  - Fetches notices from `/api/public/notices` API and displays pinned notices as scrolling marquee text
+  - Default message when no pinned notices: "🔥 New batches starting soon! Enroll now. ● Admissions Open 2025-26 — Register today!"
+  - CSS @keyframes marquee animation for smooth continuous right-to-left scroll (30s linear infinite)
+  - Pauses on hover via onMouseEnter/onMouseLeave toggling animationPlayState
+  - Dismiss/close button (X icon) on the right with localStorage persistence (key: ticker-dismissed)
+  - Uses useSyncExternalStore for hydration-safe mounted check and localStorage dismissed state
+  - Megaphone icon on the left, gradient edge fades on both sides
+  - Duplicate text content for seamless infinite loop
+  - will-change: transform for GPU-accelerated smooth animation
+- Added marquee animation to `/src/app/globals.css`
+  - `@keyframes marquee` — translates from 0% to -50% (for duplicated content seamless loop)
+  - `.animate-marquee` class — animation: marquee 30s linear infinite; will-change: transform
+- Updated `/src/components/public/public-layout.tsx`
+  - Added imports for usePathname and AnnouncementTicker
+  - Conditional rendering: ticker only shows on non-admin pages (checks pathname.startsWith('/admin'))
+  - Placed AnnouncementTicker at the very top of the root div, before PublicHeader
+- Created `/src/components/public/wave-divider.tsx` — WaveDivider component
+  - 'use client' directive for client-side rendering
+  - Props: type ('wave' | 'curve' | 'tilt' | 'none'), fillLight (hex), fillDark (hex), flip (boolean), className
+  - Uses next-themes useTheme to detect dark mode and apply correct fill color
+  - Three SVG shapes: wave (smooth S-curve), curve (gentle dip), tilt (diagonal line)
+  - Each SVG uses preserveAspectRatio="none" for full-width responsive stretching
+  - Responsive heights: mobile smaller, desktop larger (e.g., h-[50px] sm:h-[70px] lg:h-[80px])
+  - flip prop uses CSS scaleY(-1) to invert the wave for light-to-dark transitions
+  - aria-hidden="true" for accessibility
+- Added wave dividers to `/src/app/page.tsx`
+  - Added import for WaveDivider component
+  - Hero (dark) → Trust Bar (light): wave divider, dark-to-light transition
+  - Success Stories (dark) → AI Study Tips (light): wave divider, dark-to-light transition
+  - AI Study Tips (light) → Computer Training (dark): wave divider with flip, light-to-dark transition
+  - Computer Training (dark) → Competitive Exams (light): curve divider, dark-to-light transition
+  - Why Choose Us (light) → Testimonials (dark): wave divider with flip, light-to-dark transition
+  - FAQ (light) → CTA (dark): wave divider with flip, light-to-dark transition
+  - CTA (dark) → Partners (light): curve divider, dark-to-light transition
+  - Replaced existing gradient h-px dividers at appropriate locations with wave dividers
+  - Did NOT remove any existing sections
+- Verified: No lint errors in project source code (only pre-existing errors in studyspace examples)
+- Verified: Dev server compiles successfully, homepage returns HTTP 200
+
+Stage Summary:
+- AnnouncementTicker component integrated at the top of all public pages (hidden on admin)
+  - Scrolling marquee with pinned notices from API or default message
+  - Dismiss button with localStorage persistence
+  - Pauses on hover, smooth 30s infinite scroll animation
+- WaveDivider component provides reusable SVG wave/curve/tilt shapes
+  - Dark mode aware with separate fill colors for light/dark themes
+  - Responsive heights, flip support for bidirectional transitions
+- Homepage now has 7 wave dividers between sections for professional visual flow
+  - Smooth transitions between dark and light sections replace/augment flat gradient dividers
+  - All existing sections remain intact
+
+
+---
+Task ID: 2-a and 4
+Agent: Gallery & Testimonials Agent
+Task: Generate AI images for gallery and enhance testimonials
+
+Work Log:
+- Generated 6 AI images using z-ai CLI tool for gallery section:
+  - gallery-computer-lab.jpg (1344x768, landscape)
+  - gallery-study-cabin.jpg (1344x768, landscape)
+  - gallery-classroom.jpg (1344x768, landscape)
+  - gallery-library.jpg (1344x768, landscape)
+  - gallery-reception.jpg (1344x768, landscape)
+  - gallery-discussion.jpg (1344x768, landscape)
+- Copied all 6 generated images to /public/gallery/
+- Updated gallery-section.tsx:
+  - Updated image paths from .png placeholders to new .jpg AI-generated images
+  - Added lightbox modal using shadcn/ui Dialog component
+  - Clicking any gallery image opens it full-size in a Dialog overlay
+  - Lightbox features: close button (X), prev/next navigation arrows, image counter dots
+  - Smooth framer-motion AnimatePresence transitions for image switching
+  - Zoom icon overlay on hover for each gallery card
+  - Keyboard accessibility (Enter/Space to open lightbox)
+  - Proper alt text for each image
+  - Caption bar at bottom of lightbox with title, description, and navigation dots
+  - Scroll-reveal staggered animation for gallery items
+- Enhanced Testimonials Section (inline in page.tsx):
+  - Added gradient border around each card (p-[2px] bg-gradient-to-br from-cyan-500/60 via-cyan-400/20 to-sky-500/60)
+  - Added decorative quote mark watermarks (large semi-transparent Quote icon at top-right, smaller rotated at bottom-left)
+  - Added "course badge" for each student showing which exam/course they cleared (e.g., "SSC CGL 2024", "NIELIT CCC", "IBPS PO 2024") with Award icon
+  - Each badge has unique color scheme matching the student's gradient
+  - Enhanced rating display with numeric value next to stars (e.g., "5.0")
+  - Made navigation dots larger and more visible (h-3, gap-3, active: w-10 with shadow-lg)
+  - Added subtle parallax effect on background pattern (scroll-based translateY offset)
+  - Added thumbnail avatar navigation below main card:
+    - 6 small avatar circles with gradient backgrounds and initials
+    - Currently active testimonial thumbnail highlighted with ring-2 ring-cyan-400 and scale-110
+    - Inactive thumbnails dimmed (opacity-50, scale-90)
+    - Animated indicator dot below active thumbnail using framer-motion layoutId
+  - Each testimonial has unique gradient for avatar (blue, cyan, purple, emerald, orange, rose)
+  - Larger navigation arrows (h-11 w-11) with shadow-lg
+  - Glassmorphism card (bg-gray-900/80 backdrop-blur-xl)
+- Verified: No lint errors in modified files
+- Verified: Dev server compiles successfully, homepage returns HTTP 200
+
+Stage Summary:
+- Gallery section now uses real AI-generated images instead of placeholders, with full lightbox functionality
+- Testimonials section now has premium design with gradient borders, quote watermarks, course badges, parallax background, and thumbnail avatar navigation
+- All changes support dark mode and are responsive
+
+---
+Task ID: 7 (WebDevReview Round 6)
+Agent: Main Agent
+Task: Assess project status, perform QA, fix bugs, improve styling, add features
+
+### Project Status Assessment
+- Dev server running on port 3000 with Turbopack, compiles successfully
+- Homepage returns HTTP 200; API endpoints verified
+- Severe OOM issues this round — server dies after 2-3 concurrent page compilations
+- No lint errors in project source code (42 pre-existing errors in studyspace examples only)
+- Database has 19 models (added NewsletterSubscriber, ContactSubmission, ChatMessage, FAQ)
+- Previous round (Round 5) added: Hero dot grid + particles, Course Detail Modal, Newsletter Admin, Dark Mode fixes, Student Journey section, Card polish, AI Study Tips
+
+### Completed Modifications
+
+1. **Announcement Ticker Bar** (Task 2-b by subagent)
+   - Created `/src/components/public/announcement-ticker.tsx`
+   - Thin h-9 gradient bar (cyan-to-sky) at top of site above header
+   - Fetches pinned notices from API, scrolls as marquee (30s CSS animation)
+   - Default: "🔥 New batches starting soon! Enroll now."
+   - Pause on hover, dismiss with X (localStorage persistence)
+   - Hidden on /admin pages using usePathname()
+   - Added @keyframes marquee and .animate-marquee to globals.css
+
+2. **Wave Dividers Between Sections** (Task 3-b by subagent)
+   - Created `/src/components/public/wave-divider.tsx`
+   - Reusable component with type: 'wave' | 'curve' | 'tilt'
+   - fillLight/fillDark props, flip prop for direction
+   - 7 wave dividers added between homepage sections for visual flow
+   - Dark-mode aware via next-themes useTheme()
+
+3. **Animated Gradient Text on Hero** (Task 3-a by subagent)
+   - Added @keyframes gradient-shift and .animate-gradient-text to globals.css
+   - Applied to hero title highlight word with from-cyan-500 via-sky-400 to-teal-400 gradient
+   - Applied to CTA section's "Starts Here" text for consistency
+   - 4s ease infinite animation for subtle shifting gradient
+
+4. **Admin Dashboard Charts** (Task 5 by subagent)
+   - Enhanced dashboard-view.tsx with 3 Recharts charts:
+   - Monthly Enrollments Bar Chart (6 months mock data)
+   - Students by Department Donut/Pie Chart (4 departments)
+   - Revenue Trend Line Chart (6 months, ₹ formatted)
+   - All use ResponsiveContainer, cyan/sky/teal palette, dark mode support
+
+5. **AI-Generated Gallery Images + Lightbox** (Task 2-a by subagent)
+   - Generated 6 AI images for gallery (computer-lab, study-cabin, classroom, library, reception, discussion)
+   - Saved to /public/gallery/ as .jpg files
+   - Updated gallery-section.tsx with real images + lightbox modal
+   - Lightbox: prev/next arrows, animated transitions, caption bar, navigation dots
+   - Zoom icon overlay on hover for each card
+
+6. **Enhanced Testimonials** (Task 4 by subagent)
+   - Gradient border around each card (2px, cyan→sky, always visible)
+   - Decorative quote watermarks (semi-transparent, top-right + bottom-left)
+   - Course badges showing which exam each student cleared
+   - Enhanced rating display with numeric value next to stars
+   - Larger navigation dots with cyan shadow glow
+   - Parallax background effect on scroll
+   - Thumbnail avatar navigation with layoutId animation
+
+7. **SEO: Sitemap.xml and robots.txt** (Task 7 by main agent)
+   - Created `/src/app/sitemap.ts` — Next.js metadata route for sitemap.xml
+   - 7 URLs with proper priorities and change frequencies
+   - Created `/src/app/robots.ts` — allows /, disallows /admin and /api/
+
+8. **Course Page Improvements** (Task 8 by main agent)
+   - Added sort dropdown: A-Z, Fee Low→High, Fee High→Low, Duration
+   - Added view mode toggle: Grid / List layout
+   - Redesigned filter bar with separate rows for search+sort and department pills
+   - List view: horizontal card layout with inline description and compact Enroll button
+   - Grid view: existing 3-column card layout (default)
+
+### Updated Homepage Section Order (18 sections + 7 wave dividers)
+Hero → [wave] → Trust Bar → What We Offer → Student Journey → [divider] → Achievements → Success Stories → [wave] → AI Study Tips → [wave] → Computer Training → [curve] → Competitive Exams → Notices → Upcoming Batches → Why Choose Us → [wave] → Testimonials → Contact → FAQ → [wave] → CTA → [curve] → Partners
+
+### Verification Results
+- Homepage returns HTTP 200 with all new features
+- API endpoints verified working (settings, courses, notices, about, batches, faqs)
+- Zero new lint errors in project source code
+- AI gallery images generated and served from /public/gallery/
+- Announcement ticker fetches from API and scrolls
+
+### Unresolved Issues or Risks
+1. **Severe OOM issues** — Server dies after 2-3 concurrent page compilations; sandbox memory constraints
+2. No automated tests exist
+3. Gallery lightbox may have z-index conflicts with chat widget
+4. Dashboard charts use mock data (not connected to real DB data)
+5. Some wave dividers may need fine-tuning for mobile
+
+### Priority Recommendations for Next Phase
+1. Add real data integration for dashboard charts (connect to enrollment/payment DB)
+2. Add student portal/login for tracking enrollment progress
+3. Performance optimization: lazy load below-fold sections to reduce OOM
+4. Add PWA support with service worker for offline access
+5. Add image upload for team members and real gallery photos
+6. Implement email notification for contact form submissions
+7. Add keyboard navigation and accessibility improvements
