@@ -143,7 +143,7 @@ function RegisterForm() {
               <Card className="mt-6 border-0 shadow-sm bg-cyan-50/50 dark:bg-cyan-950/30">
                 <CardContent className="p-4">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Enrolled in: <span className="font-semibold text-cyan-700">{selectedCourse.name}</span>
+                    Enrolled in: <span className="font-semibold text-cyan-700 dark:text-cyan-400">{selectedCourse.name}</span>
                   </p>
                   {selectedCourse.totalFee > 0 && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -158,7 +158,7 @@ function RegisterForm() {
             )}
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/courses">
-                <Button variant="outline" className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50">
+                <Button variant="outline" className="gap-2 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/30">
                   Browse More Courses
                 </Button>
               </Link>
@@ -310,7 +310,7 @@ function RegisterForm() {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="text-sm text-gray-400">No courses available at the moment</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">No courses available at the moment</p>
                   )}
                   {selectedCourse && (
                     <Card className="bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-100 dark:border-cyan-900/30">
@@ -320,7 +320,7 @@ function RegisterForm() {
                             <p className="text-sm font-medium text-cyan-800 dark:text-cyan-300">{selectedCourse.name}</p>
                             <p className="text-xs text-cyan-600 dark:text-cyan-400">{selectedCourse.departmentName}</p>
                           </div>
-                          <span className="text-sm font-bold text-cyan-700">
+                          <span className="text-sm font-bold text-cyan-700 dark:text-cyan-400">
                             {formatCurrency(selectedCourse.totalFee)}
                           </span>
                         </div>

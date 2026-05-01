@@ -12,11 +12,16 @@ import {
   Clock,
   ArrowRight,
   Building2,
-  Loader2,
   Search,
   Calculator,
   GitCompareArrows,
   X,
+  Banknote,
+  BookOpen,
+  CreditCard,
+  Sparkles,
+  CheckCircle2,
+  ExternalLink,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -63,6 +68,7 @@ export default function CoursesPage() {
     description: string | null;
     departmentName: string;
   } | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/public/courses')
@@ -313,12 +319,15 @@ export default function CoursesPage() {
                     <Card
                       key={course.id}
                       className={cn(
-                        "border hover:shadow-md transition-all group relative cursor-pointer",
+                        "border hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative cursor-pointer",
                         compareIds.has(course.id)
                           ? "border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-200 dark:ring-cyan-800"
                           : "border-gray-100 dark:border-gray-700 hover:border-cyan-200 dark:hover:border-cyan-700"
                       )}
-                      onClick={() => setSelectedCourse({ ...course, departmentName: dept.name })}
+                      onClick={() => {
+                        setSelectedCourse({ ...course, departmentName: dept.name });
+                        setDetailOpen(true);
+                      }}
                     >
                       {/* Compare checkbox */}
                       <div className="absolute top-3 right-3 z-10">
@@ -508,62 +517,129 @@ export default function CoursesPage() {
       </Dialog>
 
       {/* Course Detail Dialog */}
-      <Dialog open={!!selectedCourse} onOpenChange={(open) => { if (!open) setSelectedCourse(null); }}>
-        <DialogContent className="sm:max-w-lg rounded-2xl bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 pr-8">
-              {selectedCourse?.name}
-            </DialogTitle>
-          </DialogHeader>
+      <Dialog open={detailOpen} onOpenChange={(open) => { if (!open) { setDetailOpen(false); setSelectedCourse(null); } }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] rounded-2xl bg-white dark:bg-gray-900 border-0 p-0 overflow-hidden" showCloseButton={true}>
+          {/* Gradient Top Bar */}
+          <div className="h-2 bg-gradient-to-r from-cyan-500 via-sky-400 to-cyan-600" />
 
-          {selectedCourse && (
-            <div className="mt-2 space-y-4">
-              {/* Department Badge */}
-              <Badge variant="secondary" className="bg-cyan-50 dark:bg-cyan-950/30 text-cyan-700 dark:text-cyan-400 text-sm">
-                <Building2 className="h-3.5 w-3.5 mr-1" />
-                {selectedCourse.departmentName}
-              </Badge>
+          <div className="p-6 sm:p-7 overflow-y-auto max-h-[calc(90vh-0.5rem)]">
+            <DialogHeader className="mb-0">
+              <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 pr-8 leading-tight">
+                {selectedCourse?.name}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Course details for {selectedCourse?.name}
+              </DialogDescription>
+            </DialogHeader>
 
-              {/* Info Row */}
-              <div className="flex flex-wrap items-center gap-4">
-                {selectedCourse.duration && (
-                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                    <Clock className="h-4 w-4 text-cyan-600" />
-                    <span className="text-sm font-medium">{selectedCourse.duration}</span>
+            {selectedCourse && (
+              <div className="mt-4 space-y-5">
+                {/* Department Badge */}
+                <Badge variant="secondary" className="bg-cyan-50 dark:bg-cyan-950/30 text-cyan-700 dark:text-cyan-400 text-sm px-3 py-1">
+                  <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                  {selectedCourse.departmentName}
+                </Badge>
+
+                {/* Info Rows */}
+                <div className="space-y-3">
+                  {/* Duration */}
+                  {selectedCourse.duration && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl">
+                      <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400">
+                        <Clock className="h-4.5 w-4.5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Duration</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{selectedCourse.duration}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fee Breakdown */}
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl">
+                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
+                      <Banknote className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Course Fee</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(selectedCourse.totalFee)}</p>
+                    </div>
                   </div>
-                )}
-                <div className="text-2xl font-bold text-cyan-700 dark:text-cyan-400">
-                  {formatCurrency(selectedCourse.totalFee)}
+
+                  {/* Installment Note */}
+                  <div className="flex items-start gap-2.5 px-3 py-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-xl">
+                    <CreditCard className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                      Easy installment options available. Pay in 2–3 installments. Contact us for flexible payment plans.
+                    </p>
+                  </div>
+
+                  {/* Description */}
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl">
+                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 shrink-0">
+                      <BookOpen className="h-4.5 w-4.5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">About This Course</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {selectedCourse.description || 'Comprehensive coaching program designed to help you achieve your goals with expert guidance and structured curriculum.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Highlights */}
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl">
+                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 shrink-0">
+                      <Sparkles className="h-4.5 w-4.5" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5">What You&apos;ll Get</p>
+                      <ul className="space-y-1.5">
+                        <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                          Expert faculty & structured curriculum
+                        </li>
+                        <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                          Regular mock tests & performance tracking
+                        </li>
+                        <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                          Study materials & doubt-clearing sessions
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="space-y-3 pt-2">
+                  <Link href={`/register?courseId=${selectedCourse.id}`} className="block">
+                    <Button
+                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-base h-12 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
+                    >
+                      <GraduationCap className="h-5 w-5 mr-2" />
+                      Enroll Now
+                      <ArrowRight className="h-4 w-4 ml-1.5" />
+                    </Button>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setDetailOpen(false);
+                      setSelectedCourse(null);
+                      // Scroll to courses section so user can compare
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="flex items-center justify-center gap-1.5 w-full text-sm text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 font-medium py-2 transition-colors"
+                  >
+                    <GitCompareArrows className="h-3.5 w-3.5" />
+                    Compare with other courses
+                    <ExternalLink className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
-
-              {/* Description */}
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {selectedCourse.description || 'No description available'}
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Link href={`/register?courseId=${selectedCourse.id}`} className="flex-1">
-                  <Button
-                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium"
-                  >
-                    Enroll Now
-                    <ArrowRight className="h-4 w-4 ml-1.5" />
-                  </Button>
-                </Link>
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedCourse(null)}
-                  className="flex-1 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </PublicLayout>

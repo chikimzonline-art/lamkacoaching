@@ -1577,3 +1577,301 @@ Cabin, Student, Department, Course, Enrollment, EnrollmentPayment, Booking, Paym
 6. Add payment gateway integration for course enrollment
 7. Performance optimization with lazy loading and image optimization
 8. Add email integration for contact form notifications
+
+---
+Task ID: 2-b
+Agent: Course Detail Modal Agent
+Task: Add Course Detail Modal to courses page
+
+Work Log:
+- Read `/home/z/my-project/src/app/courses/page.tsx` to understand existing course card rendering and basic dialog
+- Found existing basic Course Detail Dialog (lines 510-568) that showed only: title, department badge, duration, fee, description, Enroll Now + Close buttons
+- Enhanced Course Detail Modal with the following improvements:
+  - Added gradient top bar (h-2 bg-gradient-to-r from-cyan-500 via-sky-400 to-cyan-600) at the top of the dialog
+  - Restructured dialog content with proper padding (p-6 sm:p-7) and overflow handling
+  - Added Department Badge with Building2 icon and enhanced styling (px-3 py-1)
+  - Created icon-based info rows for each piece of information:
+    - Duration row: Clock icon on cyan-100 bg, label + value layout
+    - Fee row: Banknote icon on emerald-100 bg, large bold fee display
+    - Installment note: CreditCard icon on amber-50 bg with amber border, "Pay in 2-3 installments" message
+    - Description row: BookOpen icon on purple-100 bg, "About This Course" label + description text
+    - Highlights row: Sparkles icon on sky-100 bg, 3 CheckCircle2 bullet points (expert faculty, mock tests, study materials)
+  - Enhanced Enroll Now CTA: full-width, h-12, GraduationCap icon, hover:scale-[1.01] active:scale-[0.99] micro-interaction
+  - Added "Compare with other courses" secondary link with GitCompareArrows + ExternalLink icons
+  - Added DialogDescription for accessibility (sr-only)
+  - Added proper dark mode classes throughout: dark:bg-gray-900, dark:bg-gray-800/60, dark:text-gray-100, etc.
+  - Made dialog scrollable (max-h-[90vh], overflow-y-auto on inner content)
+  - Added separate `detailOpen` state for modal open/close management
+- Enhanced course card clickability:
+  - Changed hover from hover:shadow-md to hover:shadow-lg hover:-translate-y-0.5
+  - Added active:translate-y-0 for press feedback
+  - Changed transition-all duration to 200ms for snappier feel
+  - Kept cursor-pointer and group-hover:text-cyan-700 effects
+  - Updated onClick to also set detailOpen=true
+- Removed unused imports (Loader2, CalendarCheck)
+- Dialog already has built-in Radix animations (animate-in/animate-out, fade, zoom-95)
+- Verified: No lint errors in source code (only pre-existing errors in studyspace examples)
+- Verified: Dev server compiles successfully, courses page returns HTTP 200
+
+Stage Summary:
+- Course Detail Modal significantly enhanced from basic version to a polished, information-rich dialog
+- Features: gradient top bar, icon-based info rows (Clock/Banknote/BookOpen/Sparkles), installment note, highlights section, Enroll Now CTA with micro-interactions, Compare link
+- Course cards improved with hover lift effect (hover:shadow-lg hover:-translate-y-0.5) and active press feedback
+- Full dark mode support with proper color classes
+- Scrollable dialog content with max-h-[90vh]
+- All existing functionality preserved (fee calculator, comparison tool, search, filters)
+
+---
+Task ID: 2-a
+Agent: Hero Styling Agent
+Task: Enhance hero section with animated dot grid and particle effects
+
+Work Log:
+- Read worklog.md and page.tsx to understand current hero structure (lines 421-518)
+- Hero already had: dot-grid-bg, floating shapes with parallax, gradient overlays, grid pattern
+- Updated `/src/app/globals.css`:
+  - Added `.hero-dot-grid` class: radial-gradient with white dots at opacity 0.05 (light) / 0.03 (dark), 32px spacing — more subtle than the existing dot-grid-bg (0.08 opacity, 24px spacing)
+  - Added `.cta-shimmer` class: position relative + overflow hidden
+  - Added `.cta-shimmer::after` pseudo-element: linear-gradient shimmer (110deg, transparent → white 30% → transparent), 200% background-size, 3s ease-in-out infinite animation
+  - Added `@keyframes shimmer-glow` animation for background-position sweep
+- Updated `/src/app/page.tsx` — Hero background enhancements:
+  - Replaced `dot-grid-bg` with `hero-dot-grid` for hero-specific subtle dot grid
+  - Added gradient mesh overlay: 5 elliptical radial gradients at different corners (top-left sky-400, bottom-right teal, top-center white, top-right sky-300, bottom-left cyan) creating rich modern look
+  - Preserved existing legacy radial gradients and grid pattern for additional depth
+- Updated `/src/app/page.tsx` — Floating particles with framer-motion:
+  - Added 8 soft blurred particles as motion.div elements
+  - Each particle has unique: size (3-8px), x position, starting Y, color (cyan/teal/sky palette), opacity (0.3-0.5), blur (2-6px), duration (12-22s), delay (0-7s)
+  - Animation: y rises upward [0, -120, -240, -360] while opacity fades to 0, repeating infinitely
+  - All particles are pointer-events-none and absolutely positioned
+- Updated `/src/app/page.tsx` — Hero text entrance animations with framer-motion:
+  - Badge: motion.div with opacity 0→1, y 20→0, delay 0.1, duration 0.6
+  - Title (h1): motion.h1 with opacity 0→1, y 30→0, delay 0.25, duration 0.7
+  - Subtitle (p): motion.p with opacity 0→1, y 25→0, delay 0.4, duration 0.7
+  - Buttons: motion.div with opacity 0→1, y 20→0, delay 0.55, duration 0.6
+  - Right stat cards: motion.div with opacity 0→1, x 40→0, scale 0.95→1, delay 0.5, duration 0.8
+- Updated `/src/app/page.tsx` — CTA button shimmer:
+  - Added `cta-shimmer` class to "Enroll Free" button
+  - Shimmer sweeps across the button with white highlight every 3 seconds
+- Verified: `npx next build` compiles successfully with no errors
+
+Stage Summary:
+- Hero section now has a subtle hero-dot-grid (opacity 0.03-0.05) for depth
+- 8 floating particles with framer-motion: soft blurred circles in cyan/teal/sky colors, slowly rising upward
+- Gradient mesh overlay with 5 radial gradients at different corners for rich modern look
+- Staggered entrance animations on all hero text elements (badge → title → subtitle → buttons → stat cards)
+- "Enroll Free" CTA button has shimmer/glow animation (3s cycle)
+- All existing functionality preserved, responsive design maintained
+- Build compiles successfully
+
+---
+Task ID: 3-a and 3-b
+Agent: Newsletter Admin & Dark Mode Agent
+Task: Add newsletter admin view and fix dark mode on subpages
+
+Work Log:
+- Added GET endpoint to `/src/app/api/newsletter/route.ts` — paginated subscriber list with search support, returns total/active counts
+- Created `/src/app/api/newsletter/[id]/route.ts` — PATCH (toggle active/inactive) and DELETE endpoints
+- Created `/src/components/newsletter/newsletter-view.tsx` — full admin view with:
+  - Stats cards (total, active, inactive subscriber counts)
+  - Search/filter by email with debounce
+  - Desktop table view and mobile card view
+  - Switch toggle for active/inactive status per subscriber
+  - Delete with confirmation dialog
+  - Export emails to clipboard (copies all active emails)
+  - Pagination for large lists
+- Updated `/src/store/app-store.ts` — added 'newsletter' to ViewType union
+- Updated `/src/app/admin/page.tsx`:
+  - Added dynamic import for NewsletterView
+  - Added 'Newsletter' nav item with Mail icon to both moreNavItems and allSidebarItems
+  - Added 'newsletter' to viewTitles map
+  - Added newsletter case to renderView switch
+- Verified footer newsletter form already connected to `/api/newsletter` POST endpoint (confirmed in public-footer.tsx)
+- Fixed dark mode on public-layout.tsx: `bg-white` → `bg-white dark:bg-gray-900`
+- Fixed dark mode on cabins/page.tsx:
+  - Added `dark:text-red-400` to error message text
+  - Other elements already had proper dark: variants
+- Fixed dark mode on register/page.tsx:
+  - Added `dark:text-cyan-400` to enrolled course name and fee amounts
+  - Added `dark:border-cyan-800 dark:text-cyan-400 dark:hover:bg-cyan-950/30` to "Browse More Courses" button
+  - Added `dark:text-gray-500` to "No courses available" text
+- Fixed dark mode on homepage (page.tsx):
+  - Added `dark:bg-cyan-900/30 dark:text-cyan-400` to FAQ, Programs, and notice badges
+  - Added `dark:bg-cyan-900/30 dark:text-cyan-400` to skill tags
+  - Already had `dark:bg-gray-800 dark:border-gray-700` on FAQ accordion card and notice cards
+- Computer-training page confirmed as intentionally dark-themed (bg-gray-950) — no changes needed
+- Ran lint: no new errors in src/ directory (42 pre-existing errors in studyspace examples only)
+
+Stage Summary:
+- Newsletter admin view fully functional: list, search, toggle status, delete, export, pagination
+- Backend API complete: GET (paginated+search), PATCH (toggle active), DELETE (remove subscriber)
+- Footer newsletter subscription already connected to POST API
+- Dark mode fixed on public-layout wrapper (bg-white → bg-white dark:bg-gray-900)
+- Dark mode improved on cabins, register, and homepage pages
+- Computer-training page is intentionally dark-themed, no changes needed
+- All code passes lint with no new errors
+
+---
+Task ID: 4 and 5
+Agent: Progress Tracker & Card Polish Agent
+Task: Add Student Journey section and improve card designs
+
+Work Log:
+- Read `/home/z/my-project/worklog.md` to understand previous agents' work (Tasks 1-8, WebDevReview Rounds 1-3+)
+- Read `/home/z/my-project/src/app/page.tsx` to understand current homepage structure (17 sections)
+- Created `/src/components/public/student-journey-section.tsx` — StudentJourneySection component
+  - 'use client' directive for client-side interactivity
+  - White background section (bg-white dark:bg-gray-900)
+  - Header: "Your Journey" badge (bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400), "Our Students' Journey" title, subtitle
+  - 4 journey steps: Enroll (ClipboardList), Learn (BookOpen), Practice (PencilRuler), Achieve (Trophy)
+  - Desktop (md+): Horizontal timeline with 4-column grid, gradient connecting line between circles, dotted overlay
+  - Mobile (<md): Vertical timeline with gradient connecting line on the left
+  - Each step: numbered circle (106px desktop / 72px mobile) with cyan-to-sky gradient border, white/dark inner circle with step number and icon
+  - Staggered ScrollReveal animations on each step (0.15s delay increment desktop, 0.12s mobile)
+  - CTA: "Start Your Journey Today" button linking to /register with gradient bg and hover scale effect
+  - Full dark mode support throughout
+- Updated `/src/app/page.tsx` — Integrated StudentJourneySection and improved card designs:
+  - Added import for StudentJourneySection from '@/components/public/student-journey-section'
+  - Inserted <StudentJourneySection /> wrapped in <ScrollReveal> between "What We Offer" and "Achievements" sections
+  - Added gradient divider (h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent) before and after the Student Journey section
+- Card Design Polish — What We Offer cards:
+  - Added 3px top gradient bar to each card:
+    - Competitive Exams: from-blue-400 to-cyan-400
+    - Computer Training: from-cyan-400 to-teal-400
+    - Study Cabins: from-teal-400 to-emerald-400
+  - Added overflow-hidden to cards to clip gradient bar to rounded corners
+  - Added dark mode backgrounds (dark:from-gray-800 dark:to-gray-800) and borders (dark:border-gray-700)
+  - Added dark mode text colors (dark:text-gray-100, dark:text-gray-400)
+- Card Design Polish — Why Choose Us cards:
+  - Wrapped each card in gradient border container: p-[1px] rounded-2xl bg-transparent → hover:bg-gradient-to-br hover:from-cyan-200 hover:to-sky-200 (dark:from-cyan-800 dark:to-sky-800)
+  - Inner card has dark:bg-gray-800 and dark:border-gray-700 for proper theming
+  - Uses group/card with group-hover/card:-translate-y-0.5 for lift effect
+  - Added h-full to inner cards for consistent height
+- Card Design Polish — Notices section:
+  - Added border-l-4 border-l-cyan-500 to pinned notices
+  - Added border-l-4 border-l-gray-300 dark:border-l-gray-600 to regular notices
+  - Added dark mode to section (bg-gray-50 dark:bg-gray-950)
+  - Added dark mode to badge (bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400)
+  - Added dark mode to title (dark:text-gray-100)
+- Card Design Polish — Trust Bar:
+  - Added dot separator (w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600) between items on desktop
+  - Hidden on mobile (hidden sm:inline-block), with ml-6 spacing
+  - Added dark mode to text (dark:text-gray-400)
+- Verified: No lint errors in our source files (only pre-existing errors in studyspace examples)
+- Verified: Dev server compiles successfully
+
+Stage Summary:
+- Student Journey section integrated into homepage between "What We Offer" and "Achievements"
+  - 4-step timeline (Enroll → Learn → Practice → Achieve) with gradient numbered circles
+  - Horizontal on desktop, vertical on mobile, staggered scroll reveal animations
+  - "Start Your Journey Today" CTA button linking to /register
+- Updated section order: Hero → Trust Bar → What We Offer → **Student Journey** → Achievements → Success Stories → Computer Training → Competitive Exams → Notices → Upcoming Batches → Why Choose Us → Testimonials → Contact → FAQ → CTA → Partners
+- What We Offer cards now have 3px top gradient bars (blue→cyan, cyan→teal, teal→emerald)
+- Why Choose Us cards now have gradient border effect on hover (cyan-200 to sky-200 / dark: cyan-800 to sky-800)
+- Notice items now have left border accent (cyan for pinned, gray for regular)
+- Trust Bar items now separated by dot dividers on desktop
+- All changes support dark mode with proper dark: classes
+- All existing sections remain intact and functional
+
+---
+Task ID: 6 (WebDevReview Round 5)
+Agent: Main Agent
+Task: Assess project status, perform QA, fix bugs, improve styling, add features
+
+### Project Status Assessment
+- Dev server running on port 3000, compiles successfully with Turbopack
+- All pages return HTTP 200: /, /about, /courses, /computer-training, /cabins, /register, /notices
+- All APIs return HTTP 200: /api/public/settings, courses, notices, about, batches, faqs
+- No lint errors in project source code (42 pre-existing errors in studyspace examples only)
+- Database has 17 models: Cabin, Student, Department, Course, Enrollment, EnrollmentPayment, Booking, Payment, Attendance, Setting, User, Notice, TeamMember, AboutMilestone, Batch, NewsletterSubscriber, ContactSubmission, ChatMessage, FAQ
+- Previous round (Round 4) added: AI Chat Widget, Course Comparison, Success Stories, Admin Batches, Contact Submissions, FAQ Management, Newsletter API, glassmorphism/glass-card utilities
+
+### Completed Modifications
+
+1. **Hero Section Visual Enhancement** (Task 2-a by subagent)
+   - Added `.hero-dot-grid` CSS class — subtle dot grid (opacity 0.03-0.05, 32px spacing) specific to hero
+   - Added `.cta-shimmer` animation — white highlight sweep on CTA buttons every 3 seconds
+   - Added gradient mesh overlay with 5 elliptical radial gradients for depth
+   - Added 8 floating animated particles with framer-motion (sizes 3-8px, cyan/teal/sky, blur 2-6px, 12-22s duration)
+   - Added staggered text entrance animations for badge, title, subtitle, buttons (0.1s-0.55s delays)
+   - Added shimmer glow on "Enroll Free" CTA button
+
+2. **Course Detail Modal** (Task 2-b by subagent)
+   - Clicking a course card on /courses opens a detailed dialog
+   - Modal shows: gradient top bar, icon-based info rows (duration, fee, installment note, description, highlights)
+   - "Enroll Now" CTA with micro-interaction (scale on hover/active)
+   - "Compare with other courses" secondary link
+   - Full dark mode support and scrollable content
+   - Course cards now have hover lift effect and cursor-pointer
+
+3. **Newsletter Admin View** (Task 3-a by subagent)
+   - Created `/src/components/newsletter/newsletter-view.tsx` — full subscriber management
+   - Stats cards (total, active, inactive counts)
+   - Debounced email search/filter
+   - Desktop table + mobile card layouts
+   - Switch toggle for active/inactive status
+   - Delete with confirmation dialog
+   - Export emails to clipboard
+   - Pagination support
+   - Added GET/PATCH/DELETE to `/api/newsletter` endpoints
+   - Added 'newsletter' to ViewType and admin navigation
+
+4. **Dark Mode Fixes** (Task 3-b by subagent)
+   - Fixed PublicLayout root: `bg-white` → `bg-white dark:bg-gray-900`
+   - Fixed cabins page: error text dark mode
+   - Fixed register page: enrolled course name, fee amount, browse button dark mode
+   - Fixed homepage: FAQ/Programs/notice badges and skill tags with dark variants
+   - Computer-training page confirmed intentional dark theme
+
+5. **Student Journey Section** (Task 4 by subagent)
+   - Created `/src/components/public/student-journey-section.tsx`
+   - 4-step timeline: Enroll → Learn → Practice → Achieve
+   - Horizontal on desktop with gradient connecting line
+   - Vertical on mobile with left-side connecting line
+   - Numbered circles with cyan-to-sky gradient border
+   - ScrollReveal animations with staggered delays
+   - "Start Your Journey Today" CTA button
+   - Integrated between "What We Offer" and "Achievements"
+
+6. **Card Design Polish** (Task 5 by subagent)
+   - "What We Offer" cards: 3px top gradient bar per department
+   - "Why Choose Us" cards: gradient border on hover (1px wrapper pattern)
+   - Notices section: left border accent (cyan for pinned, gray for regular)
+   - Trust Bar: dot separators between items on desktop
+   - All changes support dark mode
+
+7. **AI Study Tips Section** (Task 7-a by main agent)
+   - Created `/src/app/api/study-tips/route.ts` — LLM-powered study tip generator
+   - Uses z-ai-web-dev-sdk with structured JSON output
+   - Supports topic parameter for personalized tips (SSC, Banking, CCC, Tally, UPSC)
+   - Created `/src/components/public/study-tips-section.tsx` — interactive section
+   - Topic selector with 6 options (General, SSC CGL, Banking, CCC, Tally, UPSC)
+   - 3 tip cards with category badges (Time Management, Study Technique, Exam Strategy, etc.)
+   - Loading skeletons, refresh button, default tips fallback
+   - Category-specific colors and icons
+   - Integrated between Success Stories and Computer Training sections
+
+### Updated Homepage Section Order (18 sections)
+1. Hero → 2. Trust Bar → 3. What We Offer → 4. Student Journey → 5. Achievements → 6. Success Stories → 7. **AI Study Tips** → 8. Computer Training → 9. Competitive Exams → 10. Notices → 11. Upcoming Batches → 12. Why Choose Us → 13. Testimonials → 14. Contact → 15. FAQ → 16. CTA → 17. Partners
+
+### Verification Results
+- All pages return HTTP 200
+- All APIs return HTTP 200 (including new /api/study-tips)
+- /api/study-tips returns structured JSON with 3 AI-generated tips
+- No new lint errors (42 pre-existing in studyspace examples only)
+- Dev server compiles and serves correctly
+
+### Unresolved Issues or Risks
+1. Dev server OOM kills — background process dies frequently in sandbox
+2. No automated tests exist
+3. Study tips API depends on external AI service — may be slow or fail
+4. Contact form submissions stored in DB but no email notification
+5. Gallery section uses placeholder gradient cards, not real images
+
+### Priority Recommendations for Next Phase
+1. Add image upload for gallery and team members
+2. Add email notification integration for contact form submissions
+3. Add student dashboard/login to track enrollment progress
+4. Performance optimization: lazy load below-fold sections
+5. Add sitemap.xml and robots.txt for SEO
+6. Add loading states/skeleton for data-fetching sections
+7. Add PWA support with service worker

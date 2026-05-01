@@ -281,11 +281,11 @@ export default function CabinsPage() {
                         </Badge>
                       </div>
                       {!cabin.isOccupied && cabin.hourlyBookingsToday.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-green-100">
+                        <div className="mt-2 pt-2 border-t border-green-100 dark:border-green-900/30">
                           <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Booked hours today:</p>
                           <div className="flex flex-wrap gap-1">
                             {cabin.hourlyBookingsToday.map((h, i) => (
-                              <span key={i} className="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded">
+                              <span key={i} className="text-[10px] bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 px-1.5 py-0.5 rounded">
                                 {h.startTime} - {h.endTime}
                               </span>
                             ))}
@@ -454,7 +454,7 @@ export default function CabinsPage() {
                     <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-xl p-4 mb-5">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600 dark:text-gray-400">Estimated Amount</span>
-                        <span className="text-xl font-bold text-green-700">{formatCurrency(estimatedAmount)}</span>
+                        <span className="text-xl font-bold text-green-700 dark:text-green-400">{formatCurrency(estimatedAmount)}</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Payment to be made at the center upon confirmation</p>
                     </div>
@@ -464,7 +464,7 @@ export default function CabinsPage() {
                   {error && (
                     <div className="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 rounded-xl p-4 mb-5 flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
-                      <p className="text-sm text-red-700">{error}</p>
+                      <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
                     </div>
                   )}
 

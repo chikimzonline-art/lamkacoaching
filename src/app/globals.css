@@ -292,3 +292,48 @@
   background-image: radial-gradient(circle, rgba(6,182,212,0.06) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* Hero-specific subtle dot grid — very faint for depth */
+.hero-dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.dark .hero-dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ─────────────────────────────────────────────
+   CTA Button Shimmer Glow
+   ───────────────────────────────────────────── */
+
+@keyframes shimmer-glow {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.cta-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(255,255,255,0.3) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-glow 3s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}

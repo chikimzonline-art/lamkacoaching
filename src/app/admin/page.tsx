@@ -93,6 +93,9 @@ const ContactView = dynamic(() => import('@/components/contacts/contact-view'), 
 const FaqView = dynamic(() => import('@/components/faqs/faq-view'), {
   loading: () => <PageSkeleton />,
 });
+const NewsletterView = dynamic(() => import('@/components/newsletter/newsletter-view'), {
+  loading: () => <PageSkeleton />,
+});
 
 // Bottom nav items (5 primary + More)
 const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
@@ -110,6 +113,7 @@ const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; admi
   { view: 'batches', label: 'Batches', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
   { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
   { view: 'contacts', label: 'Messages', icon: <Mail className="h-5 w-5" />, adminOnly: true },
+  { view: 'newsletter', label: 'Newsletter', icon: <Mail className="h-5 w-5" />, adminOnly: true },
   { view: 'faqs', label: 'FAQs', icon: <HelpCircle className="h-5 w-5" />, adminOnly: true },
   { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
@@ -128,6 +132,7 @@ const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; a
   { view: 'batches', label: 'Batches', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
   { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
   { view: 'contacts', label: 'Messages', icon: <Mail className="h-5 w-5" />, adminOnly: true },
+  { view: 'newsletter', label: 'Newsletter', icon: <Mail className="h-5 w-5" />, adminOnly: true },
   { view: 'faqs', label: 'FAQs', icon: <HelpCircle className="h-5 w-5" />, adminOnly: true },
   { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
@@ -186,6 +191,7 @@ function PageHeader() {
     batches: 'Batches',
     notices: 'Notices',
     contacts: 'Messages',
+    newsletter: 'Newsletter',
     faqs: 'FAQs',
     reports: 'Reports',
     settings: 'Settings',
@@ -251,6 +257,7 @@ function renderView(view: ViewType) {
     case 'batches': return <BatchesView />;
     case 'notices': return <NoticesView />;
     case 'contacts': return <ContactView />;
+    case 'newsletter': return <NewsletterView />;
     case 'faqs': return <FaqView />;
     case 'reports': return <ReportsView />;
     case 'settings': return <SettingsView />;
