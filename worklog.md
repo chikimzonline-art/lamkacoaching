@@ -1356,3 +1356,224 @@ Cabin, Student, Department, Course, Enrollment, EnrollmentPayment, Booking, Paym
 7. Performance optimization with lazy loading and image optimization
 8. Add email integration for contact form (using z-ai-web-dev-sdk)
 9. Add payment gateway integration for course enrollment
+
+
+---
+Task ID: 8-a
+Agent: Chat Persistence & Admin Contacts Agent
+Task: Persist chat conversations to database and add admin contact submissions viewer
+
+Work Log:
+- Added ChatMessage model to `/prisma/schema.prisma`
+  - Fields: id (cuid), sessionId, role ("user"/"assistant"), content, createdAt
+  - Index on sessionId for fast lookups
+  - Ran `bun run db:push` successfully
+- Updated `/src/app/api/chat/route.ts`
+  - Removed in-memory `conversations` Map
+  - On POST: saves user message to ChatMessage table, loads last 18 messages for session from DB, prepends system prompt, calls z-ai-web-dev-sdk, saves assistant response to DB
+  - Uses `import { db } from "@/lib/db"` for Prisma access
+  - Preserved existing error handling, validation, and `thinking: { type: "disabled" }` parameter
+- Created `/src/app/api/contact-submissions/route.ts`
+  - GET: Returns all contact submissions ordered by createdAt DESC
+  - PATCH: Accepts { id, status } to update submission status (new → read → replied)
+  - DELETE: Accepts id as query param, deletes submission with confirmation check
+  - Full validation and error handling with proper HTTP status codes
+- Created `/src/components/contacts/contact-view.tsx`
+  - "use client" component for admin contact submissions viewer
+  - Desktop: Table view with columns: Name, Phone, Email, Subject, Message (truncated), Status, Date, Actions
+  - Mobile: Card view with responsive layout
+  - Status badges: new (blue), read (yellow), replied (green) with icons
+  - Click row/card to expand full message in Dialog
+  - Action buttons: Mark Read, Mark Replied, Delete (with AlertDialog confirmation)
+  - Refresh button, new count badge, empty state when no submissions
+  - Loading skeleton state
+  - Dark mode support with dark: classes
+  - Uses shadcn/ui: Card, Button, Badge, Dialog, Table, AlertDialog, Skeleton
+  - Uses toast from sonner for notifications
+- Updated `/src/store/app-store.ts`
+  - Added "contacts" to ViewType union
+- Updated `/src/app/admin/page.tsx`
+  - Added Mail icon import from lucide-react
+  - Added dynamic import for ContactView component
+  - Added "Messages" entry with Mail icon to moreNavItems and allSidebarItems (adminOnly: true)
+  - Added "contacts" → "Messages" to viewTitles
+  - Added "contacts" → ContactView to renderView switch
+- Verified: No lint errors in project source code (42 pre-existing errors in studyspace examples only)
+- Verified: Dev server compiles successfully, homepage returns HTTP 200
+
+Stage Summary:
+- Chat conversations now persist to SQLite database via ChatMessage model instead of in-memory Map
+- Admin "Messages" tab added with full CRUD for contact form submissions
+- Status workflow: new → read → replied with colored badges
+- Responsive design: Table on desktop, Cards on mobile
+- Full message view in Dialog, delete with confirmation
+- All design matches existing admin panel language
+
+
+Task ID: 8-b
+Agent: FAQ Admin & Parallax Agent
+Task: Add admin-managed FAQ system and parallax effects with animated counters
+
+Work Log:
+- Added FAQ model to Prisma schema (`/prisma/schema.prisma`):
+  - Fields: id (cuid), question, answer, sortOrder, active, createdAt, updatedAt
+  - Ran `bun run db:push` to sync schema
+- Created public FAQ API (`/src/app/api/public/faqs/route.ts`):
+  - GET: Returns all active FAQs ordered by sortOrder ASC
+- Created admin FAQ API (`/src/app/api/faqs/route.ts`):
+  - GET: Returns all FAQs (including inactive) ordered by sortOrder
+  - POST: Creates a new FAQ with question, answer, sortOrder, active
+- Created admin FAQ API by ID (`/src/app/api/faqs/[id]/route.ts`):
+  - PUT: Updates a FAQ
+  - DELETE: Deletes a FAQ
+- Seeded 8 FAQ records into the database matching the original hardcoded questions
+- Updated FAQSection in `/src/app/page.tsx`:
+  - Renamed `faqs` to `faqFallback` with `question`/`answer` keys (instead of `q`/`a`)
+  - Added `faqs` and `faqLoading` state
+  - Fetches from `/api/public/faqs` on mount
+  - Falls back to hardcoded data if API fails
+  - Added loading skeleton (pulse animation)
+  - Uses `faq.question` and `faq.answer` for database-fetched data
+- Created FAQ admin view (`/src/components/faqs/faq-view.tsx`):
+  - 'use client' directive
+  - Summary cards: Total FAQs, Active, Inactive
+  - Search/filter functionality
+  - Card layout with question, answer (truncated), status badge, sort order badge, actions
+  - Toggle active/inactive with eye/eye-off icons
+  - Create/Edit dialog with question, answer, sort order, active switch
+  - Delete with confirmation
+  - Dark mode support with dark: classes
+  - Uses shadcn/ui components (Card, Badge, Button, Dialog, Input, Textarea, Switch)
+  - Toast notifications from sonner
+- Added FAQ tab to admin dashboard:
+  - Updated `/src/store/app-store.ts`: Added 'faqs' to ViewType union
+  - Updated `/src/app/admin/page.tsx`:
+    - Added HelpCircle import from lucide-react
+    - Added FaqView dynamic import
+    - Added 'faqs' entry to moreNavItems and allSidebarItems (adminOnly: true)
+    - Added 'faqs' to viewTitles and renderView switch
+- Added parallax scrolling effect to hero floating shapes in `/src/app/page.tsx`:
+  - Added scrollY state and scroll event listener with requestAnimationFrame
+  - Applied translateY to each floating shape based on scroll position
+  - Different parallax speeds (0.3-0.55) for depth effect
+  - Maximum movement capped at 30px for subtlety
+  - Preserves existing rotation transforms on rotated shapes
+  - Uses passive scroll listener and rAF for performance
+- Added AnimatedCounter to hero stat card in `/src/app/page.tsx`:
+  - Imported AnimatedCounter from `@/components/public/animated-counter`
+  - Replaced static `stat.value` with `<AnimatedCounter end={stat.end} duration={1500} className="text-2xl font-bold text-white" />`
+  - Total Courses: end={totalCourses || 10}
+  - Departments: end={departments.length || 5}
+  - Study Cabins: end={20}
+  - IT Programs: end={computerDept?.courses.length || 6}
+- Verified: No lint errors in src/ files
+- Verified: Homepage returns HTTP 200
+- Verified: Public FAQ API returns 8 seeded FAQs with 200 status
+- Verified: Admin FAQ API returns 8 FAQs (including inactive) with 200 status
+
+Stage Summary:
+- FAQ system is now database-driven with full admin CRUD
+- Admin dashboard has "FAQs" tab with HelpCircle icon (admin-only)
+- Homepage FAQSection fetches from API with hardcoded fallback
+- Hero section has parallax effect on floating shapes (max 30px, rAF-based)
+- Hero stat card numbers animate from 0 to target using AnimatedCounter
+- All changes match existing design language and dark mode support
+
+---
+Task ID: 8 (WebDevReview Round 6)
+Agent: Main Agent
+Task: Assess project status, perform QA, fix bugs, improve styling, add features
+
+### Project Status Assessment
+- Dev server running on port 3000 (Next.js 16.1.3 Turbopack), compiles successfully
+- All 6 public pages return HTTP 200: `/`, `/about`, `/courses`, `/notices`, `/cabins`, `/register`
+- All public APIs return HTTP 200 including new `/api/public/faqs`
+- Agent-browser QA confirmed: homepage renders correctly with all 15 sections, dark mode toggle works
+- Zero lint errors in project source code
+- Dev server OOM issue persists (sandbox memory constraint)
+
+### Completed Modifications
+
+1. **Persist Chat Conversations to Database** (Task 8-a by subagent)
+   - Added `ChatMessage` model to Prisma schema (id, sessionId, role, content, createdAt) with `@@index([sessionId])`
+   - Updated `/src/app/api/chat/route.ts` — removed in-memory Map, now saves/loads messages from DB
+   - On POST: saves user message → loads last 18 messages → calls z-ai-web-dev-sdk → saves assistant response
+   - Conversations now survive server restarts
+
+2. **Admin Contact Submissions Viewer** (Task 8-a by subagent)
+   - Created `/src/app/api/contact-submissions/route.ts` — GET (list), PATCH (update status), DELETE
+   - Created `/src/components/contacts/contact-view.tsx` — Admin component
+     - Desktop: Table view; Mobile: Card layout (responsive)
+     - Status badges: new (blue), read (yellow), replied (green)
+     - Click to expand full message in Dialog
+     - Mark Read / Mark Replied / Delete with confirmation
+     - New count badge, empty state, loading skeletons, dark mode
+   - Added "Messages" tab with Mail icon to admin dashboard
+
+3. **Admin-Managed FAQ (Database-Driven)** (Task 8-b by subagent)
+   - Added `FAQ` model to Prisma schema (id, question, answer, sortOrder, active, timestamps)
+   - Created `/src/app/api/public/faqs/route.ts` — GET active FAQs
+   - Created `/src/app/api/faqs/route.ts` — GET all, POST create
+   - Created `/src/app/api/faqs/[id]/route.ts` — PUT update, DELETE
+   - Seeded 8 FAQ records matching original hardcoded questions
+   - Updated homepage FAQSection to fetch from API with fallback to hardcoded data
+   - Created `/src/components/faqs/faq-view.tsx` — Admin FAQ management (CRUD, search, toggle active)
+   - Added "FAQs" tab with HelpCircle icon to admin dashboard
+
+4. **Parallax Scrolling Effect** (Task 8-b by subagent)
+   - Added scrollY state with requestAnimationFrame-based scroll listener
+   - 6 floating shapes in hero get translateY based on scroll position
+   - Different parallax speeds (0.3x–0.55x) create depth
+   - Maximum 30px movement for subtlety
+   - Passive scroll listener for performance
+
+5. **Animated Counter in Hero Stats** (Task 8-b by subagent)
+   - Imported AnimatedCounter component into homepage
+   - Replaced static numbers in hero stat card with animated counters
+   - Total Courses, Departments, Study Cabins, IT Programs all count up when scrolled into view
+   - Duration: 1500ms per counter
+
+6. **Real Gallery Images** (Main Agent)
+   - Generated 6 AI images using z-ai-web-dev-sdk CLI:
+     - computer-lab.png (1024x1024)
+     - study-cabins.png (1024x1024)
+     - classroom.png (1024x1024)
+     - library.png (1024x1024)
+     - reception.png (1024x1024)
+     - discussion.png (1024x1024)
+   - Also generated hero-students.png (1344x768) for potential use
+   - Updated `/src/components/public/gallery-section.tsx` to use real images:
+     - Replaced gradient backgrounds with Next.js Image component
+     - Added hover zoom effect (scale-110 on image)
+     - Added dark overlay on hover
+     - Images stored in `/public/gallery/`
+
+### Updated Database Models (18 total)
+Cabin, Student, Department, Course, Enrollment, EnrollmentPayment, Booking, Payment, Attendance, Setting, User, Notice, TeamMember, AboutMilestone, Batch, NewsletterSubscriber, ContactSubmission, **ChatMessage**, **FAQ**
+
+### Verification Results
+- All pages return HTTP 200
+- All APIs return HTTP 200 including `/api/public/faqs`
+- Chat API persists conversations to database
+- Gallery now shows real AI-generated images
+- Agent-browser confirmed homepage renders correctly
+- Dark mode toggle works
+- Zero lint errors in source code
+
+### Unresolved Issues or Risks
+1. Dev server gets OOM killed in sandbox — known issue, not a code problem
+2. No automated tests exist
+3. Gallery images are AI-generated placeholders (not actual photos of the center)
+4. Chat API creates new ZAI instance per request (could be optimized with singleton)
+5. Admin pages need dark mode support
+6. No image upload capability for team members
+
+### Priority Recommendations for Next Phase
+1. Add image upload for team members and gallery photos
+2. Add JSON-LD structured data for SEO
+3. Add student dashboard portal with enrollment tracking
+4. Optimize chat API with singleton ZAI instance
+5. Add dark mode support for admin pages
+6. Add payment gateway integration for course enrollment
+7. Performance optimization with lazy loading and image optimization
+8. Add email integration for contact form notifications

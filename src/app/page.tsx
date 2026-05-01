@@ -42,6 +42,7 @@ import AchievementsSection from '@/components/public/achievements-section';
 import UpcomingBatchesSection from '@/components/public/upcoming-batches-section';
 import SuccessStoriesSection from '@/components/public/success-stories-section';
 import PartnersSection from '@/components/public/partners-section';
+import AnimatedCounter from '@/components/public/animated-counter';
 
 interface Department {
   id: string;
@@ -261,40 +262,40 @@ function TestimonialsSection() {
 }
 
 /* ─────────────────────────────────────────────
-   FAQ Data
+   FAQ Fallback Data
    ───────────────────────────────────────────── */
-const faqs = [
+const faqFallback = [
   {
-    q: 'What courses does Lamka Coaching Center offer?',
-    a: 'We offer a wide range of courses including Competitive Exam Coaching (SSC CGL, IBPS, SBI PO, UPSC, Railway), Computer Training (CCC, Tally Prime with GST, Advanced Excel, Web Design, Python, Hindi & English Typing), and dedicated Study Cabin facilities for focused preparation.',
+    question: 'What courses does Lamka Coaching Center offer?',
+    answer: 'We offer a wide range of courses including Competitive Exam Coaching (SSC CGL, IBPS, SBI PO, UPSC, Railway), Computer Training (CCC, Tally Prime with GST, Advanced Excel, Web Design, Python, Hindi & English Typing), and dedicated Study Cabin facilities for focused preparation.',
   },
   {
-    q: 'What is the fee structure for your courses?',
-    a: 'Our fee structure is very affordable and transparent. Computer courses start from ₹2,500 for Typing and go up to ₹15,000 for Web Design. Competitive exam coaching fees vary by program. We also offer installment payment options for eligible courses. Contact us for detailed fee information.',
+    question: 'What is the fee structure for your courses?',
+    answer: 'Our fee structure is very affordable and transparent. Computer courses start from ₹2,500 for Typing and go up to ₹15,000 for Web Design. Competitive exam coaching fees vary by program. We also offer installment payment options for eligible courses. Contact us for detailed fee information.',
   },
   {
-    q: 'How can I book a study cabin?',
-    a: 'You can book a study cabin directly through our website by visiting the Cabins page. Cabins are available on both hourly and monthly basis. Simply select your preferred cabin, choose the time slot, and complete the booking. You can also visit our center for walk-in bookings.',
+    question: 'How can I book a study cabin?',
+    answer: 'You can book a study cabin directly through our website by visiting the Cabins page. Cabins are available on both hourly and monthly basis. Simply select your preferred cabin, choose the time slot, and complete the booking. You can also visit our center for walk-in bookings.',
   },
   {
-    q: 'What are the class timings and batch schedules?',
-    a: 'We offer flexible batch timings including morning (7 AM – 10 AM), afternoon (12 PM – 3 PM), and evening (4 PM – 7 PM) batches. Weekend batches are also available for working professionals. Each batch has limited seats to ensure quality interaction with instructors.',
+    question: 'What are the class timings and batch schedules?',
+    answer: 'We offer flexible batch timings including morning (7 AM – 10 AM), afternoon (12 PM – 3 PM), and evening (4 PM – 7 PM) batches. Weekend batches are also available for working professionals. Each batch has limited seats to ensure quality interaction with instructors.',
   },
   {
-    q: 'Do you provide certifications after course completion?',
-    a: 'Yes! Our computer courses come with NIELIT certification (for CCC) and Lamka Coaching Center certification for other programs. Competitive exam coaching students receive course completion certificates. All our certifications are recognized and add value to your professional profile.',
+    question: 'Do you provide certifications after course completion?',
+    answer: 'Yes! Our computer courses come with NIELIT certification (for CCC) and Lamka Coaching Center certification for other programs. Competitive exam coaching students receive course completion certificates. All our certifications are recognized and add value to your professional profile.',
   },
   {
-    q: 'Is there any demo or trial class available?',
-    a: 'Absolutely! We offer free demo classes for all our courses so you can experience our teaching methodology before enrolling. Simply contact us or visit our center to schedule a demo class at your convenience.',
+    question: 'Is there any demo or trial class available?',
+    answer: 'Absolutely! We offer free demo classes for all our courses so you can experience our teaching methodology before enrolling. Simply contact us or visit our center to schedule a demo class at your convenience.',
   },
   {
-    q: 'What is the admission process?',
-    a: 'The admission process is simple — you can register online through our website or visit our center in person. Fill out the registration form, choose your course, submit the required documents (ID proof and passport-size photo), and pay the fee. You can start attending classes immediately after enrollment.',
+    question: 'What is the admission process?',
+    answer: 'The admission process is simple — you can register online through our website or visit our center in person. Fill out the registration form, choose your course, submit the required documents (ID proof and passport-size photo), and pay the fee. You can start attending classes immediately after enrollment.',
   },
   {
-    q: 'Do you offer study materials and mock tests?',
-    a: 'Yes, we provide comprehensive study materials for all courses. Competitive exam students get access to regular mock tests, previous year question papers, and detailed performance analysis. Computer training students receive practical exercise books and project guides as part of their course.',
+    question: 'Do you offer study materials and mock tests?',
+    answer: 'Yes, we provide comprehensive study materials for all courses. Competitive exam students get access to regular mock tests, previous year question papers, and detailed performance analysis. Computer training students receive practical exercise books and project guides as part of their course.',
   },
 ];
 
@@ -302,6 +303,23 @@ const faqs = [
    FAQ Accordion Section
    ───────────────────────────────────────────── */
 function FAQSection() {
+  const [faqs, setFaqs] = useState(faqFallback);
+  const [faqLoading, setFaqLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/public/faqs')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.faqs && data.faqs.length > 0) {
+          setFaqs(data.faqs);
+        }
+      })
+      .catch(() => {
+        // Keep fallback data on error
+      })
+      .finally(() => setFaqLoading(false));
+  }, []);
+
   return (
     <section className="py-20 sm:py-28">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -320,18 +338,29 @@ function FAQSection() {
 
         {/* Accordion */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-          <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`faq-${i}`} className="border-gray-100">
-                <AccordionTrigger className="text-left text-base font-semibold text-gray-900 hover:text-cyan-700 hover:no-underline py-5 transition-colors">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="text-gray-500 leading-relaxed text-base pb-5">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          {faqLoading ? (
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="space-y-2 py-4">
+                  <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded w-3/4 animate-pulse" />
+                  <div className="h-4 bg-gray-50 dark:bg-gray-800 rounded w-full animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, i) => (
+                <AccordionItem key={faq.id || i} value={`faq-${i}`} className="border-gray-100">
+                  <AccordionTrigger className="text-left text-base font-semibold text-gray-900 hover:text-cyan-700 hover:no-underline py-5 transition-colors">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-500 leading-relaxed text-base pb-5">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
         </div>
       </div>
     </section>
@@ -343,6 +372,23 @@ export default function HomePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
+
+  // Parallax scroll state for hero floating shapes
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    let rafId: number;
+    const handleScroll = () => {
+      rafId = requestAnimationFrame(() => {
+        setScrollY(window.scrollY);
+      });
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -381,13 +427,13 @@ export default function HomePage() {
           {/* Grid pattern */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
-          {/* Floating shapes */}
-          <div className="absolute top-[10%] left-[5%] w-32 h-32 rounded-full bg-cyan-300/10" style={{ animation: 'float-1 20s ease-in-out infinite' }} />
-          <div className="absolute top-[60%] left-[15%] w-48 h-48 rounded-2xl bg-sky-300/[0.07] rotate-12" style={{ animation: 'float-2 25s ease-in-out infinite' }} />
-          <div className="absolute top-[20%] right-[10%] w-24 h-24 rounded-full bg-teal-300/[0.08]" style={{ animation: 'float-3 18s ease-in-out infinite' }} />
-          <div className="absolute bottom-[25%] right-[20%] w-40 h-40 rounded-2xl bg-cyan-400/[0.06] -rotate-6" style={{ animation: 'float-4 22s ease-in-out infinite' }} />
-          <div className="absolute top-[45%] left-[45%] w-20 h-20 rounded-full bg-sky-200/[0.09]" style={{ animation: 'float-5 15s ease-in-out infinite', animationDelay: '3s' }} />
-          <div className="absolute bottom-[15%] left-[60%] w-36 h-36 rounded-2xl bg-teal-400/[0.07] rotate-45" style={{ animation: 'float-6 28s ease-in-out infinite', animationDelay: '5s' }} />
+          {/* Floating shapes with parallax */}
+          <div className="absolute top-[10%] left-[5%] w-32 h-32 rounded-full bg-cyan-300/10" style={{ animation: 'float-1 20s ease-in-out infinite', transform: `translateY(${Math.min(scrollY * 0.5, 30)}px)` }} />
+          <div className="absolute top-[60%] left-[15%] w-48 h-48 rounded-2xl bg-sky-300/[0.07] rotate-12" style={{ animation: 'float-2 25s ease-in-out infinite', transform: `translateY(${Math.min(scrollY * 0.35, 30)}px) rotate(12deg)` }} />
+          <div className="absolute top-[20%] right-[10%] w-24 h-24 rounded-full bg-teal-300/[0.08]" style={{ animation: 'float-3 18s ease-in-out infinite', transform: `translateY(${Math.min(scrollY * 0.45, 30)}px)` }} />
+          <div className="absolute bottom-[25%] right-[20%] w-40 h-40 rounded-2xl bg-cyan-400/[0.06] -rotate-6" style={{ animation: 'float-4 22s ease-in-out infinite', transform: `translateY(${Math.min(scrollY * 0.3, 30)}px) rotate(-6deg)` }} />
+          <div className="absolute top-[45%] left-[45%] w-20 h-20 rounded-full bg-sky-200/[0.09]" style={{ animation: 'float-5 15s ease-in-out infinite', animationDelay: '3s', transform: `translateY(${Math.min(scrollY * 0.55, 30)}px)` }} />
+          <div className="absolute bottom-[15%] left-[60%] w-36 h-36 rounded-2xl bg-teal-400/[0.07] rotate-45" style={{ animation: 'float-6 28s ease-in-out infinite', animationDelay: '5s', transform: `translateY(${Math.min(scrollY * 0.4, 30)}px) rotate(45deg)` }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 w-full">
@@ -441,17 +487,17 @@ export default function HomePage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                      { label: 'Total Courses', value: totalCourses || '10+', icon: <GraduationCap className="h-4 w-4" /> },
-                      { label: 'Departments', value: departments.length || '5', icon: <Target className="h-4 w-4" /> },
-                      { label: 'Study Cabins', value: '20+', icon: <DoorOpen className="h-4 w-4" /> },
-                      { label: 'IT Programs', value: computerDept?.courses.length || '6', icon: <Laptop className="h-4 w-4" /> },
+                      { label: 'Total Courses', end: totalCourses || 10, icon: <GraduationCap className="h-4 w-4" /> },
+                      { label: 'Departments', end: departments.length || 5, icon: <Target className="h-4 w-4" /> },
+                      { label: 'Study Cabins', end: 20, icon: <DoorOpen className="h-4 w-4" /> },
+                      { label: 'IT Programs', end: computerDept?.courses.length || 6, icon: <Laptop className="h-4 w-4" /> },
                     ].map((stat) => (
                       <div key={stat.label} className="bg-white/5 border border-white/10 rounded-xl p-4">
                         <div className="flex items-center gap-1.5 text-cyan-200 mb-1">
                           {stat.icon}
                           <span className="text-xs">{stat.label}</span>
                         </div>
-                        <div className="text-2xl font-bold text-white">{stat.value}</div>
+                        <AnimatedCounter end={stat.end} duration={1500} className="text-2xl font-bold text-white" />
                       </div>
                     ))}
                   </div>

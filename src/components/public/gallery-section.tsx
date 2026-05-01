@@ -1,15 +1,10 @@
 'use client';
 
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Camera,
-  Monitor,
-  DoorOpen,
-  GraduationCap,
-  BookOpen,
-  Users,
-  MessageSquare,
   ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -18,48 +13,42 @@ const galleryItems = [
   {
     title: 'Computer Lab',
     description: 'State-of-the-art computers with latest software for hands-on practice',
-    gradient: 'from-cyan-400 to-blue-500',
-    icon: Monitor,
+    image: '/gallery/computer-lab.png',
     colSpan: 'md:col-span-2',
     rowSpan: 'md:row-span-2',
   },
   {
     title: 'Study Cabins',
     description: 'Private, distraction-free study spaces with comfortable seating',
-    gradient: 'from-green-400 to-emerald-500',
-    icon: DoorOpen,
+    image: '/gallery/study-cabins.png',
     colSpan: '',
     rowSpan: '',
   },
   {
     title: 'Classroom',
     description: 'Spacious classrooms equipped with modern teaching aids',
-    gradient: 'from-purple-400 to-violet-500',
-    icon: GraduationCap,
+    image: '/gallery/classroom.png',
     colSpan: '',
     rowSpan: '',
   },
   {
     title: 'Library Corner',
     description: 'Curated collection of books and study materials for all courses',
-    gradient: 'from-amber-400 to-orange-500',
-    icon: BookOpen,
+    image: '/gallery/library.png',
     colSpan: '',
     rowSpan: '',
   },
   {
     title: 'Reception',
     description: 'Friendly staff ready to assist with admissions and queries',
-    gradient: 'from-rose-400 to-pink-500',
-    icon: Users,
+    image: '/gallery/reception.png',
     colSpan: '',
     rowSpan: '',
   },
   {
     title: 'Discussion Area',
     description: 'Collaborative space for group study and peer learning',
-    gradient: 'from-teal-400 to-cyan-500',
-    icon: MessageSquare,
+    image: '/gallery/discussion.png',
     colSpan: 'md:col-span-2',
     rowSpan: '',
   },
@@ -83,38 +72,42 @@ export default function GallerySection() {
 
         {/* Gallery Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px] md:auto-rows-[minmax(200px,auto)]">
-          {galleryItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.title}
-                className={`
-                  relative rounded-2xl overflow-hidden min-h-[200px]
-                  bg-gradient-to-br ${item.gradient}
-                  ${item.colSpan} ${item.rowSpan}
-                  cursor-pointer
-                  hover:scale-[1.02] hover:shadow-xl
-                  transition-all duration-300
-                `}
-              >
-                {/* Centered Icon */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Icon className="h-16 w-16 text-white/40" />
-                </div>
+          {galleryItems.map((item) => (
+            <div
+              key={item.title}
+              className={`
+                relative rounded-2xl overflow-hidden min-h-[200px]
+                ${item.colSpan} ${item.rowSpan}
+                cursor-pointer
+                hover:scale-[1.02] hover:shadow-xl
+                transition-all duration-300
+                group
+              `}
+            >
+              {/* Real Image */}
+              <Image
+                src={item.image}
+                alt={item.title}
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+              />
 
-                {/* Bottom Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                  <h3 className="text-white font-bold text-lg">{item.title}</h3>
-                  <p className="text-white/80 text-sm mt-0.5">{item.description}</p>
-                </div>
+              {/* Dark overlay on hover */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+
+              {/* Bottom Overlay */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 sm:p-5">
+                <h3 className="text-white font-bold text-base sm:text-lg">{item.title}</h3>
+                <p className="text-white/80 text-xs sm:text-sm mt-0.5 line-clamp-2">{item.description}</p>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
         {/* CTA */}
         <div className="mt-12 text-center">
-          <Link href="/contact">
+          <Link href="/about">
             <Button
               size="lg"
               variant="outline"
