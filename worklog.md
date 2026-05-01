@@ -1129,3 +1129,230 @@ Task: Assess project status, perform QA, fix bugs, improve styling, add features
 6. Performance optimization with lazy loading and image optimization
 7. Add more admin-managed content (hero section, testimonials, FAQ)
 8. Add dark mode support for admin pages
+
+---
+Task ID: 7-a
+Agent: Newsletter & Course Modal Agent
+Task: Add newsletter subscription backend, persist contact form to DB, and add course detail modal
+
+Work Log:
+- Updated `/home/z/my-project/prisma/schema.prisma`:
+  - Added `NewsletterSubscriber` model (id, email [unique], active, timestamps)
+  - Added `ContactSubmission` model (id, name, phone, email?, subject?, message, status [default "new"], timestamps)
+  - Ran `bun run db:push` — database synced successfully
+- Created `/home/z/my-project/src/app/api/newsletter/route.ts`:
+  - POST handler accepting `{ email: string }`
+  - Email validation: checks for missing/empty email and regex format validation
+  - Returns 400 for invalid/missing email
+  - Returns 409 for duplicate active subscription
+  - Reactivates previously unsubscribed emails (active=true)
+  - Saves new subscribers to NewsletterSubscriber model via `db.newsletterSubscriber.create()`
+  - Returns 200 with success message
+- Updated `/home/z/my-project/src/components/public/public-footer.tsx`:
+  - Added imports: `Loader2`, `CheckCircle2` from lucide-react, `toast` from sonner
+  - Added state: `email` (string), `subscribed` (boolean), `loading` (boolean)
+  - Added `handleNewsletterSubmit` async handler:
+    - POSTs to `/api/newsletter` with email
+    - Handles 409 (duplicate) with toast.error
+    - Handles other errors with toast.error
+    - On success: sets subscribed=true, clears email, shows toast.success
+    - Handles network errors with toast.error
+  - Newsletter section now shows:
+    - Success state: CheckCircle2 icon + "Thank you for subscribing!" (green text)
+    - Form state: email input (controlled, required) + Subscribe button with loading spinner
+    - Disabled button during loading with opacity-50 and cursor-not-allowed
+- Updated `/home/z/my-project/src/app/api/contact/route.ts`:
+  - Added `import { db } from '@/lib/db'`
+  - Replaced console.log with `db.contactSubmission.create()` to persist to DB
+  - Saves name, phone, email (nullable), subject (nullable), message with status default "new"
+  - Added console.error for catch block debugging
+  - Maintains existing validation and response format
+- Updated `/home/z/my-project/src/app/courses/page.tsx`:
+  - Added `selectedCourse` state: nullable object with id, name, duration, totalFee, description, departmentName
+  - Made course cards clickable: added `cursor-pointer` class and `onClick` handler that sets selectedCourse
+  - Added Course Detail Dialog:
+    - Opens when selectedCourse is not null
+    - Shows course name as large title (pr-8 for close button space)
+    - Department badge with Building2 icon
+    - Duration with Clock icon (conditional)
+    - Fee formatted with ₹ using existing formatCurrency
+    - Full description or "No description available" fallback
+    - "Enroll Now" button linking to /register?courseId=X with ArrowRight icon
+    - "Close" button to dismiss
+    - Style: sm:max-w-lg, rounded-2xl, bg-white dark:bg-gray-900, border-gray-100 dark:border-gray-700
+    - Dark mode support throughout
+  - Existing comparison dialog and fee calculator remain intact
+- Verified: No new lint errors (42 pre-existing in studyspace examples only)
+- Verified: Dev server compiles successfully
+
+Stage Summary:
+- Newsletter subscription fully wired: footer input → POST /api/newsletter → NewsletterSubscriber DB model → success/error UI
+- Contact form now persists to ContactSubmission DB model instead of console.log
+- Course detail modal added to courses page: click any course card to see full details in a dialog
+- All existing functionality preserved (comparison, fee calculator, search, filters, dark mode)
+- Database models added: NewsletterSubscriber, ContactSubmission
+
+---
+Task ID: 7-b
+Agent: Partners, Dot Grid & Polish Agent
+Task: Add Placement Partners section, animated dot grid background on dark sections, and polish Computer Training section
+
+Work Log:
+- Created `/src/components/public/partners-section.tsx` — PartnersSection component
+  - 'use client' directive
+  - Light-themed section (bg-white dark:bg-gray-950)
+  - Badge: "Our Partners" with Handshake icon, bg-cyan-100 text-cyan-700
+  - Title: "Trusted By Leading Organizations"
+  - Subtitle: "Our students are placed in top government and private organizations"
+  - 8 partner "logo" cards in a CSS animated horizontal marquee:
+    1. SSC (Staff Selection Commission) — government blue
+    2. IBPS (Institute of Banking Personnel) — banking green
+    3. UPSC (Union Public Service Commission) — deep red
+    4. NIELIT (National Institute of Electronics) — tech cyan
+    5. SBI (State Bank of India) — blue
+    6. Indian Railways — orange
+    7. TCS (Tata Consultancy Services) — purple
+    8. HDFC Bank — red
+  - Each card: rounded-xl, border, p-4, h-20, flex items-center justify-center, bold name + small description
+  - Hover: border-cyan-300, shadow-md, -translate-y-0.5 transition
+  - Background: bg-gray-50 dark:bg-gray-800/50
+  - Marquee: CSS animation scroll-left 30s linear infinite, duplicated logos for seamless loop, pause on hover
+  - Fade edges with gradient overlays on left/right
+  - Stats row below: "100+ Students Placed | 25+ Organizations | 95% Placement Rate"
+  - Each stat: icon + number + label in flex row with dividers
+  - Imports: Badge from shadcn/ui, Handshake/Users/Building2/TrendingUp from lucide-react
+- Added CSS keyframes to `/src/app/globals.css`:
+  - `@keyframes scroll-left` — 0% translateX(0) → 100% translateX(-50%)
+  - `.animate-scroll-left` — animation: scroll-left 30s linear infinite
+- Added dot-grid-bg CSS to `/src/app/globals.css`:
+  - `.dot-grid-bg` — radial-gradient with rgba(6,182,212,0.08) dots, 24px grid
+  - `.dark .dot-grid-bg` — same with rgba(6,182,212,0.06) for dark mode
+- Updated `/src/app/page.tsx`:
+  - Added import for PartnersSection from '@/components/public/partners-section'
+  - Added PartnersSection wrapped in ScrollReveal AFTER CTA section (at bottom, before closing PublicLayout tag)
+  - Added `<div className="absolute inset-0 dot-grid-bg pointer-events-none" />` overlay to:
+    - Hero section (bg-gray-950)
+    - Computer Training section (bg-gray-950)
+    - Testimonials section (bg-gray-950, inline component)
+    - CTA section (bg-gray-950)
+  - Enhanced Computer Training course cards:
+    - Added border-l-4 border-l-cyan-500 left accent border
+    - Added hover:bg-cyan-50/5 dark:hover:bg-cyan-950/30 transition
+    - Added "View Details" link next to "Enroll Now" button (href="#register-section")
+- Updated `/src/components/public/achievements-section.tsx`:
+  - Added `<div className="absolute inset-0 dot-grid-bg pointer-events-none" />` inside the section alongside background accents
+- Updated `/src/components/public/success-stories-section.tsx`:
+  - Added `<div className="absolute inset-0 dot-grid-bg pointer-events-none" />` inside the section alongside background accents
+- Verified: No new lint errors (only 42 pre-existing errors in studyspace examples)
+- Verified: Dev server compiles successfully, homepage returns HTTP 200
+
+Stage Summary:
+- Partners section with auto-scrolling marquee of 8 partner logos + placement stats row
+- Dot grid background overlay added to all 5 dark sections (Hero, Achievements, Success Stories, Computer Training, Testimonials, CTA) for visual depth
+- Computer Training course cards enhanced with cyan left border accent and "View Details" link
+- CSS animations added: scroll-left (marquee), dot-grid-bg (radial gradient dots)
+- All existing functionality preserved
+
+---
+Task ID: 7 (WebDevReview Round 5)
+Agent: Main Agent
+Task: Assess project status, perform QA, fix bugs, improve styling, add features
+
+### Project Status Assessment
+- Dev server running on port 3000 (Next.js 16.1.3 Turbopack), compiles successfully
+- All 6 public pages return HTTP 200: `/`, `/about`, `/courses`, `/notices`, `/cabins`, `/register`
+- All public APIs return HTTP 200: `/api/public/settings`, `/api/public/courses`, `/api/public/notices`, `/api/public/about`, `/api/public/batches`, `/api/public/cabins`
+- New newsletter API working: `/api/newsletter` (POST, persists to DB)
+- Contact API now persists to DB: `/api/contact` (POST)
+- Chat API working: `/api/chat` (POST)
+- Admin batches API working: `/api/batches` and `/api/batches/[id]`
+- Database models: Cabin, Student, Department, Course, Enrollment, EnrollmentPayment, Booking, Payment, Attendance, Setting, User, Notice, TeamMember, AboutMilestone, Batch, NewsletterSubscriber, ContactSubmission
+- Zero lint errors in project source code (only 42 pre-existing errors in studyspace examples)
+- Dev server gets OOM killed in sandbox periodically (memory constraint) — known issue
+
+### Completed Modifications
+
+1. **Newsletter Subscription Backend** (Task 7-a by subagent)
+   - Added `NewsletterSubscriber` model to Prisma schema (email [unique], active, timestamps)
+   - Created `/src/app/api/newsletter/route.ts` — POST endpoint
+     - Validates email format, checks for duplicates (409)
+     - Reactivates previously unsubscribed users
+     - Returns proper error codes (400, 409, 500)
+   - Updated `/src/components/public/public-footer.tsx`
+     - Added email/subscribed/loading state
+     - Subscribe button POSTs to `/api/newsletter`
+     - Shows success message after subscribing
+     - Error toast notifications via sonner
+     - Loading spinner on button during submission
+
+2. **Contact Form DB Persistence** (Task 7-a by subagent)
+   - Added `ContactSubmission` model to Prisma schema (name, phone, email?, subject?, message, status, timestamps)
+   - Updated `/src/app/api/contact/route.ts` — now persists submissions to DB instead of console.log
+   - All existing validation and response format preserved
+
+3. **Course Detail Modal** (Task 7-a by subagent)
+   - Added `selectedCourse` state to courses page
+   - Course cards are now clickable (cursor-pointer + onClick)
+   - Dialog shows: course name, department badge, duration, fee, full description, "Enroll Now" button, "Close" button
+   - Dark mode support with proper styling
+   - All existing functionality preserved (comparison, fee calculator, search, filters)
+
+4. **Placement Partners Section** (Task 7-b by subagent)
+   - Created `/src/components/public/partners-section.tsx`
+   - 8 partner logos with auto-scrolling marquee: SSC, IBPS, UPSC, NIELIT, SBI, Indian Railways, TCS, HDFC Bank
+   - Each logo has unique color theme, hover effects
+   - Marquee: CSS animation (30s linear infinite), pauses on hover, fade edges
+   - Stats row: "100+ Students Placed | 25+ Organizations | 95% Placement Rate"
+   - Added `@keyframes scroll-left` and `.animate-scroll-left` to globals.css
+   - Integrated after CTA section on homepage
+
+5. **Dot Grid Background on Dark Sections** (Task 7-b by subagent)
+   - Added `.dot-grid-bg` CSS class (radial-gradient cyan dots, 24px grid)
+   - Applied overlay div to all dark sections (Hero, Computer Training, Testimonials, CTA, Achievements, Success Stories)
+   - Uses `pointer-events-none` to avoid interaction issues
+   - Coexists with existing radial-gradient background accents
+
+6. **Computer Training Section Polish** (Task 7-b by subagent)
+   - Added `border-l-4 border-l-cyan-500` left accent to each course card
+   - Added `hover:bg-cyan-50/5 dark:hover:bg-cyan-950/30` transition effect
+   - Added "View Details" link on each course card alongside "Enroll Now" button
+
+7. **Enhanced Homepage Loading Skeletons** (Main Agent)
+   - Replaced simple "Loading courses..." text with 6 skeleton cards
+   - Each skeleton card mimics the actual course card layout (badge, title, description, button)
+   - Uses animate-pulse with proper dark mode variants
+   - Grid layout matches the actual courses grid (1/2/3 columns)
+
+### Updated Homepage Section Order
+1. Hero (with floating shapes + dot grid) → 2. Trust Bar → 3. What We Offer → 4. Achievements (dot grid) → 5. Success Stories (dot grid) → 6. Computer Training (dot grid) → 7. Competitive Exams → 8. Notices → 9. Upcoming Batches → 10. Why Choose Us → 11. Testimonials (dot grid) → 12. Contact → 13. FAQ → 14. CTA (dot grid) → 15. **Placement Partners**
+
+### Database Models (Complete)
+Cabin, Student, Department, Course, Enrollment, EnrollmentPayment, Booking, Payment, Attendance, Setting, User, Notice, TeamMember, AboutMilestone, **Batch**, **NewsletterSubscriber**, **ContactSubmission**
+
+### Verification Results
+- All pages return HTTP 200
+- All APIs return HTTP 200
+- Newsletter API: Successfully saves email to DB, handles duplicates
+- Contact API: Successfully saves submissions to DB
+- Zero lint errors in source code
+- Server compiles and serves all pages correctly
+
+### Unresolved Issues or Risks
+1. Dev server gets OOM killed in sandbox (memory constraint) — requires periodic restart
+2. Agent-browser can't connect to localhost (sandbox networking limitation)
+3. No automated tests exist
+4. Gallery uses gradient placeholders (no real photos)
+5. Chat API uses in-memory conversation store (lost on server restart)
+6. Dark mode could use further refinement on admin pages
+7. Computer-training page (if separate) needs dark mode review
+
+### Priority Recommendations for Next Phase
+1. Persist chat conversations to database
+2. Add image upload for team members and gallery photos
+3. Add JSON-LD structured data for SEO
+4. Add student dashboard portal with enrollment tracking
+5. Add more admin-managed content (hero section text, testimonials, FAQ)
+6. Add dark mode support for admin pages
+7. Performance optimization with lazy loading and image optimization
+8. Add email integration for contact form (using z-ai-web-dev-sdk)
+9. Add payment gateway integration for course enrollment

@@ -41,6 +41,7 @@ import ContactSection from '@/components/public/contact-section';
 import AchievementsSection from '@/components/public/achievements-section';
 import UpcomingBatchesSection from '@/components/public/upcoming-batches-section';
 import SuccessStoriesSection from '@/components/public/success-stories-section';
+import PartnersSection from '@/components/public/partners-section';
 
 interface Department {
   id: string;
@@ -167,6 +168,7 @@ function TestimonialsSection() {
     <section className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
       {/* Background accents */}
       <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(6,182,212,0.07) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(6,182,212,0.05) 0%, transparent 40%)' }} />
+      <div className="absolute inset-0 dot-grid-bg pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -374,6 +376,7 @@ export default function HomePage() {
         {/* Animated background gradient */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/90 via-cyan-700/90 to-sky-800/90" />
+          <div className="absolute inset-0 dot-grid-bg pointer-events-none" />
           <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.06) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 0%, transparent 40%), radial-gradient(circle at 60% 80%, rgba(255,255,255,0.03) 0%, transparent 40%)' }} />
           {/* Grid pattern */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
@@ -593,6 +596,7 @@ export default function HomePage() {
         <section className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
           {/* Background accents */}
           <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 30% 20%, rgba(6,182,212,0.08) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(6,182,212,0.05) 0%, transparent 40%)' }} />
+          <div className="absolute inset-0 dot-grid-bg pointer-events-none" />
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-14">
@@ -635,7 +639,7 @@ export default function HomePage() {
             {/* Course cards on dark */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {computerDept.courses.slice(0, 6).map((course) => (
-                <div key={course.id} className="group bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 hover:border-cyan-500/30 transition-all duration-300">
+                <div key={course.id} className="group bg-white/5 border border-white/10 border-l-4 border-l-cyan-500 rounded-2xl p-5 hover:bg-cyan-50/5 dark:hover:bg-cyan-950/30 hover:border-cyan-500/30 transition-all duration-300">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="font-semibold text-white group-hover:text-cyan-300 transition-colors leading-snug">{course.name}</h3>
                   </div>
@@ -651,11 +655,19 @@ export default function HomePage() {
                   {course.description && (
                     <p className="text-sm text-gray-400 line-clamp-2 mb-4">{course.description}</p>
                   )}
-                  <Link href={`/register?courseId=${course.id}`}>
-                    <Button size="sm" className="bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg">
-                      Enroll Now <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link href={`/register?courseId=${course.id}`}>
+                      <Button size="sm" className="bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-lg">
+                        Enroll Now <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </Link>
+                    <a
+                      href="#register-section"
+                      className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
+                    >
+                      View Details
+                    </a>
+                  </div>
                 </div>
               ))}
             </div>
@@ -729,12 +741,25 @@ export default function HomePage() {
 
       {/* Loading */}
       {loading && (
-        <section className="py-20">
-          <div className="max-w-7xl mx-auto px-4 text-center">
-            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-cyan-100 text-cyan-600 animate-pulse mb-3">
-              <GraduationCap className="h-6 w-6" />
+        <section className="py-20 sm:py-28">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-cyan-100 text-cyan-600 animate-pulse mb-3">
+                <GraduationCap className="h-6 w-6" />
+              </div>
+              <p className="text-sm text-gray-400">Loading courses...</p>
             </div>
-            <p className="text-sm text-gray-400">Loading courses...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-3 animate-pulse">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                  <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-full" />
+                  <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-2/3" />
+                  <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl mt-4" />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -894,6 +919,7 @@ export default function HomePage() {
           ============================================ */}
       <section className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(6,182,212,0.12) 0%, transparent 60%)' }} />
+        <div className="absolute inset-0 dot-grid-bg pointer-events-none" />
 
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
@@ -945,6 +971,13 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ============================================
+          PARTNERS — Placement partners / recruiters
+          ============================================ */}
+      <ScrollReveal>
+        <PartnersSection />
+      </ScrollReveal>
     </PublicLayout>
   );
 }

@@ -49,6 +49,7 @@ export default function SuccessStoriesSection() {
     <section className="py-20 sm:py-28 bg-gray-950 dark:bg-gray-900 relative overflow-hidden">
       {/* Background accents */}
       <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 15% 50%, rgba(6,182,212,0.08) 0%, transparent 50%), radial-gradient(circle at 85% 30%, rgba(6,182,212,0.05) 0%, transparent 40%)' }} />
+      <div className="absolute inset-0 dot-grid-bg pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}

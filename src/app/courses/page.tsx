@@ -55,6 +55,14 @@ export default function CoursesPage() {
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<{
+    id: string;
+    name: string;
+    duration: string | null;
+    totalFee: number;
+    description: string | null;
+    departmentName: string;
+  } | null>(null);
 
   useEffect(() => {
     fetch('/api/public/courses')
@@ -305,11 +313,12 @@ export default function CoursesPage() {
                     <Card
                       key={course.id}
                       className={cn(
-                        "border hover:shadow-md transition-all group relative",
+                        "border hover:shadow-md transition-all group relative cursor-pointer",
                         compareIds.has(course.id)
                           ? "border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-200 dark:ring-cyan-800"
                           : "border-gray-100 dark:border-gray-700 hover:border-cyan-200 dark:hover:border-cyan-700"
                       )}
+                      onClick={() => setSelectedCourse({ ...course, departmentName: dept.name })}
                     >
                       {/* Compare checkbox */}
                       <div className="absolute top-3 right-3 z-10">
@@ -495,6 +504,66 @@ export default function CoursesPage() {
               {compareIds.size}/3 courses selected
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Course Detail Dialog */}
+      <Dialog open={!!selectedCourse} onOpenChange={(open) => { if (!open) setSelectedCourse(null); }}>
+        <DialogContent className="sm:max-w-lg rounded-2xl bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 pr-8">
+              {selectedCourse?.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedCourse && (
+            <div className="mt-2 space-y-4">
+              {/* Department Badge */}
+              <Badge variant="secondary" className="bg-cyan-50 dark:bg-cyan-950/30 text-cyan-700 dark:text-cyan-400 text-sm">
+                <Building2 className="h-3.5 w-3.5 mr-1" />
+                {selectedCourse.departmentName}
+              </Badge>
+
+              {/* Info Row */}
+              <div className="flex flex-wrap items-center gap-4">
+                {selectedCourse.duration && (
+                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                    <Clock className="h-4 w-4 text-cyan-600" />
+                    <span className="text-sm font-medium">{selectedCourse.duration}</span>
+                  </div>
+                )}
+                <div className="text-2xl font-bold text-cyan-700 dark:text-cyan-400">
+                  {formatCurrency(selectedCourse.totalFee)}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  {selectedCourse.description || 'No description available'}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link href={`/register?courseId=${selectedCourse.id}`} className="flex-1">
+                  <Button
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium"
+                  >
+                    Enroll Now
+                    <ArrowRight className="h-4 w-4 ml-1.5" />
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedCourse(null)}
+                  className="flex-1 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </PublicLayout>

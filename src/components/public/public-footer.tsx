@@ -14,7 +14,10 @@ import {
   Youtube,
   Twitter,
   Megaphone,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface BusinessSettings {
   businessName?: string;
@@ -55,7 +58,44 @@ const socialLinks = [
 
 export default function PublicFooter() {
   const [settings, setSettings] = useState<BusinessSettings>({});
+  const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+  const [loading, setLoading] = useState(false);
   const name = settings.businessName || 'Lamka Coaching Center';
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (res.status === 409) {
+        toast.error('This email is already subscribed.');
+        return;
+      }
+
+      if (!res.ok) {
+        toast.error(data.error || 'Something went wrong. Please try again.');
+        return;
+      }
+
+      setSubscribed(true);
+      setEmail('');
+      toast.success(data.message || 'Subscribed successfully!');
+    } catch {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/public/settings')
@@ -105,22 +145,42 @@ export default function PublicFooter() {
 
             {/* Newsletter CTA */}
             <div className="mt-6 bg-white/5 rounded-lg border border-white/10 p-3">
-              <p className="text-xs text-gray-400 mb-2">
-                Stay updated with our latest news and batch announcements
-              </p>
-              <form onSubmit={(e) => e.preventDefault()} className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Your email"
-                  className="flex-1 bg-transparent text-white text-xs px-3 py-1.5 rounded-md border border-white/10 placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 min-w-0"
-                />
-                <button
-                  type="submit"
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors whitespace-nowrap"
-                >
-                  Subscribe
-                </button>
-              </form>
+              {subscribed ? (
+                <div className="flex items-center gap-2 text-green-400 text-xs py-1">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>Thank you for subscribing!</span>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-400 mb-2">
+                    Stay updated with our latest news and batch announcements
+                  </p>
+                  <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
+                    <input
+                      type="email"
+                      placeholder="Your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="flex-1 bg-transparent text-white text-xs px-3 py-1.5 rounded-md border border-white/10 placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 min-w-0"
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          ...
+                        </>
+                      ) : (
+                        'Subscribe'
+                      )}
+                    </button>
+                  </form>
+                </>
+              )}
             </div>
           </div>
 
