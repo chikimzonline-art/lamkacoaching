@@ -96,6 +96,9 @@ const FaqView = dynamic(() => import('@/components/faqs/faq-view'), {
 const NewsletterView = dynamic(() => import('@/components/newsletter/newsletter-view'), {
   loading: () => <PageSkeleton />,
 });
+const HomepageView = dynamic(() => import('@/components/homepage/homepage-view'), {
+  loading: () => <PageSkeleton />,
+});
 
 // Bottom nav items (5 primary + More)
 const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
@@ -116,6 +119,7 @@ const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; admi
   { view: 'newsletter', label: 'Newsletter', icon: <Mail className="h-5 w-5" />, adminOnly: true },
   { view: 'faqs', label: 'FAQs', icon: <HelpCircle className="h-5 w-5" />, adminOnly: true },
   { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
+  { view: 'homepage', label: 'Homepage', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
@@ -135,6 +139,7 @@ const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; a
   { view: 'newsletter', label: 'Newsletter', icon: <Mail className="h-5 w-5" />, adminOnly: true },
   { view: 'faqs', label: 'FAQs', icon: <HelpCircle className="h-5 w-5" />, adminOnly: true },
   { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
+  { view: 'homepage', label: 'Homepage', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
@@ -196,6 +201,7 @@ function PageHeader() {
     reports: 'Reports',
     settings: 'Settings',
     about: 'About Page',
+    homepage: 'Homepage',
   };
 
   return (
@@ -262,6 +268,7 @@ function renderView(view: ViewType) {
     case 'reports': return <ReportsView />;
     case 'settings': return <SettingsView />;
     case 'about': return <AboutView />;
+    case 'homepage': return <HomepageView />;
     default: return <DashboardView />;
   }
 }

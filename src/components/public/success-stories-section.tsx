@@ -1,13 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Quote } from 'lucide-react';
 
-/* ─────────────────────────────────────────────
-   Success Stories Data
-   ───────────────────────────────────────────── */
-const stories = [
+// Fallback data when API is unavailable
+const fallbackStories = [
   {
+    id: '1',
     name: 'Amit Kumar',
     exam: 'SSC CGL 2024',
     quote: 'The structured approach and regular mock tests helped me stay consistent.',
@@ -16,6 +16,7 @@ const stories = [
     gradient: 'from-cyan-500 to-sky-500',
   },
   {
+    id: '2',
     name: 'Sunita Devi',
     exam: 'IBPS Clerk 2024',
     quote: 'From basic concepts to cracking the exam, Lamka Center was my guide.',
@@ -24,6 +25,7 @@ const stories = [
     gradient: 'from-blue-500 to-indigo-500',
   },
   {
+    id: '3',
     name: 'Rajesh Singh',
     exam: 'NIELIT CCC',
     quote: 'Scored 92% in CCC exam. The practical training approach is unmatched.',
@@ -32,6 +34,7 @@ const stories = [
     gradient: 'from-green-500 to-emerald-500',
   },
   {
+    id: '4',
     name: 'Meera Patel',
     exam: 'UPSC NDA 2024',
     quote: 'Disciplined preparation with expert mentorship made all the difference.',
@@ -41,10 +44,36 @@ const stories = [
   },
 ];
 
-/* ─────────────────────────────────────────────
-   Success Stories Section Component
-   ───────────────────────────────────────────── */
+interface SuccessStory {
+  id: string;
+  name: string;
+  exam: string;
+  quote: string;
+  result: string;
+  initials: string;
+  gradient: string;
+  sortOrder: number;
+  active: boolean;
+}
+
 export default function SuccessStoriesSection() {
+  const [stories, setStories] = useState<SuccessStory[] | typeof fallbackStories>(fallbackStories);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/public/homepage')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.successStories && data.successStories.length > 0) {
+          setStories(data.successStories);
+        }
+      })
+      .catch(() => {
+        // Keep fallback data on error
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <section className="py-20 sm:py-28 bg-gray-950 dark:bg-gray-900 relative overflow-hidden">
       {/* Background accents */}
@@ -69,7 +98,7 @@ export default function SuccessStoriesSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {stories.map((story) => (
             <div
-              key={story.name}
+              key={story.id || story.name}
               className="group bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/10 hover:border-cyan-500/30 hover:-translate-y-1 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300"
             >
               {/* Quote icon */}

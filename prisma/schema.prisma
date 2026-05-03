@@ -236,3 +236,61 @@ model FAQ {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model ImpactStat {
+  id         String   @id @default(cuid())
+  label      String
+  value      Int
+  suffix     String   @default("+")
+  iconName   String   @default("GraduationCap")
+  iconBg     String   @default("bg-cyan-500/20")
+  iconColor  String   @default("text-cyan-400")
+  numberColor String  @default("text-cyan-400")
+  sortOrder  Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AchievementCard {
+  id          String   @id @default(cuid())
+  badge       String
+  badgeColor  String   @default("bg-cyan-500/10 text-cyan-400 border-cyan-500/20")
+  title       String
+  description String
+  barColor    String   @default("from-cyan-500 to-sky-400")
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SuccessStory {
+  id        String   @id @default(cuid())
+  name      String
+  exam      String
+  quote     String
+  result    String
+  initials  String
+  gradient  String   @default("from-cyan-500 to-sky-500")
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Testimonial {
+  id         String   @id @default(cuid())
+  name       String
+  course     String
+  badge      String
+  badgeColor String   @default("bg-cyan-500/20 text-cyan-300 border-cyan-500/30")
+  text       String
+  rating     Int      @default(5)
+  avatar     String
+  gradient   String   @default("from-cyan-500 to-teal-500")
+  sortOrder  Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

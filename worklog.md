@@ -2519,3 +2519,216 @@ Task: Assess project status, perform QA, fix bugs, improve styling, add features
 6. Performance optimization and Core Web Vitals improvements
 7. Add structured data (JSON-LD) for SEO
 8. Add PWA support with service worker
+
+## Task ID: 3
+Agent: API Routes Agent
+Task: Create all API route files for homepage, impact-stats, achievements, stories, and testimonials
+
+### Work Log:
+
+Created 9 API route files as specified:
+
+1. **`/src/app/api/public/homepage/route.ts`** — Public homepage API (GET only)
+   - Fetches all dynamic homepage data in parallel with Promise.all
+   - Returns: impactStats, achievementCards, successStories, testimonials, cabinCount
+   - Filters by `active: true` and orders by `sortOrder: asc`
+
+2. **`/src/app/api/impact-stats/route.ts`** — Admin CRUD for ImpactStat
+   - GET: List all impact stats ordered by sortOrder
+   - POST: Create new stat with validation (label + value required), defaults for suffix, iconName, iconBg, iconColor, numberColor
+   - PUT: Update stat by ID with dynamic data spread
+
+3. **`/src/app/api/impact-stats/[id]/route.ts`** — Admin DELETE for ImpactStat
+   - DELETE: Delete stat by ID (params as Promise per Next.js 16)
+
+4. **`/src/app/api/achievements/route.ts`** — Admin CRUD for AchievementCard
+   - GET: List all achievement cards ordered by sortOrder
+   - POST: Create new card with validation (badge, title, description required), defaults for badgeColor, barColor
+   - PUT: Update card by ID with dynamic data spread
+
+5. **`/src/app/api/achievements/[id]/route.ts`** — Admin DELETE for AchievementCard
+   - DELETE: Delete card by ID
+
+6. **`/src/app/api/stories/route.ts`** — Admin CRUD for SuccessStory
+   - GET: List all success stories ordered by sortOrder
+   - POST: Create new story with validation (name, exam, quote, result required), auto-generates initials from name, defaults for gradient
+   - PUT: Update story by ID with dynamic data spread
+
+7. **`/src/app/api/stories/[id]/route.ts`** — Admin DELETE for SuccessStory
+   - DELETE: Delete story by ID
+
+8. **`/src/app/api/testimonials/route.ts`** — Admin CRUD for Testimonial
+   - GET: List all testimonials ordered by sortOrder
+   - POST: Create new testimonial with validation (name, course, text required), defaults for badge, badgeColor, rating, avatar, gradient
+   - PUT: Update testimonial by ID with dynamic data spread
+
+9. **`/src/app/api/testimonials/[id]/route.ts`** — Admin DELETE for Testimonial
+   - DELETE: Delete testimonial by ID
+
+### Key Implementation Details:
+- All route handlers use `import { db } from '@/lib/db'` for Prisma client
+- All DELETE routes use Next.js 16 `params: Promise<{ id: string }>` pattern with `await params`
+- All routes include proper error handling with try/catch and console.error logging
+- All routes return NextResponse.json with appropriate status codes (200, 201, 400, 500)
+- POST routes validate required fields and return 400 for missing data
+- PUT routes extract `id` from body and spread remaining fields for update
+- Public homepage route uses Promise.all for parallel data fetching
+
+### Verification:
+- All 9 files exist and have correct content as verified by listing
+- Directory structure is correct with [id] dynamic routes properly nested
+
+
+---
+
+## Task ID: 6
+Agent: Main Agent
+Task: Replace success-stories-section.tsx with dynamic API-fetching version
+
+Work Log:
+- Replaced entire `/src/components/public/success-stories-section.tsx` with new version that:
+  - Added `useEffect, useState` imports from React for client-side state management
+  - Added `fallbackStories` array with `id` field for each story (previously missing)
+  - Added `SuccessStory` interface with `id`, `name`, `exam`, `quote`, `result`, `initials`, `gradient`, `sortOrder`, `active` fields
+  - Changed component from static to dynamic: fetches data from `/api/public/homepage` on mount
+  - Uses `useState` with `fallbackStories` as initial data
+  - Falls back to hardcoded data if API fails or returns empty array
+  - Added `loading` state (set to true initially, false after fetch completes)
+  - Updated `key` prop from `story.name` to `story.id || story.name` for better React reconciliation
+  - All visual styling and layout remains identical to previous version
+
+Stage Summary:
+- Success Stories section now dynamically fetches stories from `/api/public/homepage` API
+- Gracefully falls back to 4 hardcoded stories when API is unavailable
+- Component remains visually identical with same dark theme, card layout, and cyan accents
+- Added `loading` state for future enhancement (currently not rendered in UI)
+
+## Task ID: 5
+Agent: Achievements API Integration Agent
+Task: Update achievements-section.tsx to fetch data dynamically from API instead of using hardcoded data
+
+Work Log:
+- Read current file at `/src/components/public/achievements-section.tsx` — had hardcoded stats and achievements arrays
+- Replaced entire file with dynamic version that:
+  - Uses `useEffect` and `useState` for client-side data fetching
+  - Fetches from `GET /api/public/homepage` on mount
+  - Maps `data.impactStats` to stats state and `data.achievementCards` to achievements state
+  - Falls back to hardcoded data when API is unavailable or returns empty arrays
+  - Added `iconMap` Record mapping iconName strings to React components (GraduationCap, TrendingUp, Award, Clock, Users, BookOpen, Target)
+  - Added proper TypeScript interfaces: `ImpactStat` and `AchievementCard` matching API response shape
+  - Icon resolution: looks up `stat.iconName` in iconMap, falls back to GraduationCap
+  - Key uses `stat.id || stat.label` and `achievement.id || achievement.title` for stable keys
+  - Uses `stat.value` instead of `stat.end` for AnimatedCounter prop
+  - Added loading state (though not used for UI, tracked for future enhancement)
+- No other files were modified
+
+Stage Summary:
+- Achievements section now fetches stats and achievement cards from `/api/public/homepage` API
+- Fallback data ensures the section always renders even when API is down
+- Icon mapping supports 7 icon types from the API (GraduationCap, TrendingUp, Award, Clock, Users, BookOpen, Target)
+- All existing visual design and animations preserved
+
+---
+Task ID: 8
+Agent: Homepage Admin Component Agent
+Task: Create admin component for managing homepage content (Impact Stats, Achievement Cards, Success Stories, and Testimonials)
+
+Work Log:
+- Created directory `/src/components/homepage/`
+- Created `/src/components/homepage/homepage-view.tsx` — HomepageView admin component
+  - 'use client' directive for client-side interactivity
+  - Four content type interfaces: ImpactStat, AchievementCard, SuccessStory, Testimonial
+  - Reusable EditableList<T> generic component for CRUD list management with:
+    - Add New button, item count Badge
+    - Each item card with: custom render, active/inactive Switch toggle, Edit (Pencil) button, Delete (Trash2) button
+    - Inactive items rendered with opacity-60
+    - Empty state with "No items yet" message
+  - Tabs-based UI: Impact Stats, Achievements, Success Stories, Testimonials
+  - Each tab uses EditableList with type-specific renderCard callbacks
+  - Dialog-based add/edit forms with type-specific fields:
+    - Impact Stats: label, value, suffix, icon (Select), iconBg (color presets), iconColor, numberColor, sortOrder
+    - Achievement Cards: badge, title, description, badgeColor, barColor (Select), sortOrder
+    - Success Stories: name, exam, quote, result, initials (auto-generated), gradient (Select), sortOrder
+    - Testimonials: name, course, text, badge, rating (1-5 Select), avatar (auto-generated), gradient, badgeColor, sortOrder
+  - API integration:
+    - GET /api/impact-stats, /api/achievements, /api/stories, /api/testimonials for fetching
+    - POST for create, PUT for update, DELETE /api/{type}/{id} for delete
+  - Auto-generation logic: initials from name for stories, avatar from name for testimonials, badge from course for testimonials
+  - Toggle active status via PUT with { id, active: !item.active }
+  - Confirmation dialog on delete
+  - Toast notifications for success/error (sonner)
+  - Loading skeleton state (3 animated pulse bars)
+  - Color presets: 6 options (Cyan, Green, Blue, Purple, Orange, Rose)
+  - Gradient options: 8 options for avatar backgrounds
+  - Bar color options: 4 options for achievement progress bars
+  - Icon options: 7 options (GraduationCap, TrendingUp, Award, Clock, Users, BookOpen, Target)
+- Verified: File exists at /home/z/my-project/src/components/homepage/homepage-view.tsx (28,553 bytes)
+- Verified: No new lint errors (only pre-existing errors in studyspace examples)
+
+Stage Summary:
+- HomepageView admin component created with full CRUD for 4 content types
+- Reusable EditableList generic component for consistent list management
+- Dialog-based forms with type-specific fields and auto-generation logic
+- API integration with all 4 endpoints (impact-stats, achievements, stories, testimonials)
+- All shadcn/ui components used: Card, Button, Input, Label, Textarea, Badge, Tabs, Dialog, Switch, Select
+- Component ready to be integrated into admin dashboard
+
+---
+Task ID: Dynamic Homepage Content
+Agent: Main Agent
+Task: Make Hero cabin count, Our Impact stats, Success Stories, and Testimonials dynamic with admin editing
+
+Work Log:
+- Added 4 new Prisma models: ImpactStat, AchievementCard, SuccessStory, Testimonial to prisma/schema.prisma
+- Ran `bun run db:push` to sync schema, `bun run db:generate` to regenerate Prisma Client
+- Created 9 API route files:
+  - `/api/public/homepage` (GET) - returns all homepage data + cabin count
+  - `/api/impact-stats` (GET/POST/PUT) + `/api/impact-stats/[id]` (DELETE)
+  - `/api/achievements` (GET/POST/PUT) + `/api/achievements/[id]` (DELETE)
+  - `/api/stories` (GET/POST/PUT) + `/api/stories/[id]` (DELETE)
+  - `/api/testimonials` (GET/POST/PUT) + `/api/testimonials/[id]` (DELETE)
+- Updated `/src/app/page.tsx`:
+  - Added `cabinCount` state + `dynamicTestimonials` state
+  - Homepage now fetches from `/api/public/homepage` alongside other APIs
+  - Hero section: Study Cabins count now dynamic (was hardcoded `20`, now uses `cabinCount || 20`)
+  - TestimonialsSection now accepts `dynamicTestimonials` prop, falls back to hardcoded data
+  - `testimonials.map` replaced with `activeTestimonials.map` in carousel
+- Updated `/src/components/public/achievements-section.tsx`:
+  - Now fetches from `/api/public/homepage` on mount
+  - Has `iconMap` for dynamic icon resolution (GraduationCap, TrendingUp, Award, Clock, Users, BookOpen, Target)
+  - Falls back to hardcoded data if API fails
+- Updated `/src/components/public/success-stories-section.tsx`:
+  - Now fetches from `/api/public/homepage` on mount
+  - Falls back to hardcoded data if API fails
+- Created `/src/components/homepage/homepage-view.tsx`:
+  - Full admin component for managing Homepage content
+  - 4 tabs: Impact Stats, Achievements, Success Stories, Testimonials
+  - Reusable `EditableList<T>` generic component for consistent CRUD
+  - Each item: active/inactive toggle (Switch), edit button, delete button
+  - Dialog-based add/edit forms with type-specific fields
+  - Auto-generates initials (stories) and avatar (testimonials) from name
+  - Toast notifications, loading skeleton, confirmation on delete
+- Updated `/src/store/app-store.ts`:
+  - Added 'homepage' to ViewType union
+- Updated `/src/app/admin/page.tsx`:
+  - Added HomepageView dynamic import
+  - Added 'homepage' to moreNavItems, allSidebarItems
+  - Added 'homepage' to viewTitles
+  - Added 'homepage' case to renderView switch
+- Seeded database with default data using direct Prisma client:
+  - 4 Impact Stats (Students Trained: 500+, Success Rate: 90%+, Govt Jobs: 150+, Years: 7+)
+  - 3 Achievement Cards (SSC CGL 2024, NIELIT CCC, Banking Exams 2024)
+  - 4 Success Stories (Amit Kumar, Sunita Devi, Rajesh Singh, Meera Patel)
+  - 6 Testimonials (Priya Sharma, Rahul Verma, Anjali Kumari, Mohit Singh, Sneha Patel, Arun Thakur)
+- Verified: `/api/public/homepage` returns all data correctly with cabinCount: 35
+- Verified: Zero lint errors in project source code
+
+Stage Summary:
+- Hero Section: Cabin count now dynamic from database (was hardcoded 20, now shows actual count of 35)
+- Our Impact Section: All 4 stats and 3 achievement cards now editable from admin dashboard
+- Success Stories: All 4 stories now editable from admin dashboard  
+- Testimonials/Student Stories: All 6 testimonials now editable from admin dashboard
+- Admin: New "Homepage" view with 4-tab interface for managing all homepage content
+- All components maintain fallback data for graceful degradation
+- New Prisma models: ImpactStat, AchievementCard, SuccessStory, Testimonial
+- New API endpoints: 9 routes total (1 public GET + 4 admin CRUD + 4 admin DELETE)

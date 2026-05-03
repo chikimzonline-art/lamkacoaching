@@ -160,12 +160,13 @@ const testimonials = [
 /* ─────────────────────────────────────────────
    Testimonials Carousel Section (Enhanced)
    ───────────────────────────────────────────── */
-function TestimonialsSection() {
+function TestimonialsSection({ dynamicTestimonials: dynamicData }: { dynamicTestimonials?: typeof testimonials }) {
   const [current, setCurrent] = useState(0);
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const sectionRef = useRef<HTMLElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const total = testimonials.length;
+  const activeTestimonials = dynamicData && dynamicData.length > 0 ? dynamicData : testimonials;
+  const total = activeTestimonials.length;
 
   const startAutoPlay = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -209,7 +210,7 @@ function TestimonialsSection() {
     goTo((current + 1) % total);
   };
 
-  const t = testimonials[current];
+  const t = activeTestimonials[current];
 
   return (
     <section ref={sectionRef} className="py-20 sm:py-28 bg-gray-950 relative overflow-hidden">
@@ -323,7 +324,7 @@ function TestimonialsSection() {
 
         {/* Navigation Dots (larger) */}
         <div className="flex items-center justify-center gap-3 mt-10">
-          {testimonials.map((_, i) => (
+          {activeTestimonials.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
@@ -335,7 +336,7 @@ function TestimonialsSection() {
 
         {/* Thumbnail avatar navigation */}
         <div className="flex items-center justify-center gap-3 mt-6">
-          {testimonials.map((item, i) => (
+          {activeTestimonials.map((item, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
@@ -588,6 +589,8 @@ export default function HomePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
+  const [cabinCount, setCabinCount] = useState(0);
+  const [dynamicTestimonials, setDynamicTestimonials] = useState<typeof testimonials>([]);
 
   // Course detail modal state
   const [selectedCourse, setSelectedCourse] = useState<{
@@ -622,11 +625,16 @@ export default function HomePage() {
       fetch('/api/public/courses').then((r) => r.json()),
       fetch('/api/public/notices').then((r) => r.json()),
       fetch('/api/public/settings').then((r) => r.json()),
+      fetch('/api/public/homepage').then((r) => r.json()),
     ])
-      .then(([coursesData, noticesData, settingsData]) => {
+      .then(([coursesData, noticesData, settingsData, homepageData]) => {
         setDepartments(coursesData.departments || []);
         setNotices((noticesData.notices || []).slice(0, 4));
         setSiteSettings(settingsData.settings || {});
+        if (homepageData.cabinCount) setCabinCount(homepageData.cabinCount);
+        if (homepageData.testimonials && homepageData.testimonials.length > 0) {
+          setDynamicTestimonials(homepageData.testimonials);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -788,7 +796,7 @@ export default function HomePage() {
                     {[
                       { label: 'Total Courses', end: totalCourses || 10, icon: <GraduationCap className="h-4 w-4" /> },
                       { label: 'Departments', end: departments.length || 5, icon: <Target className="h-4 w-4" /> },
-                      { label: 'Study Cabins', end: 20, icon: <DoorOpen className="h-4 w-4" /> },
+                      { label: 'Study Cabins', end: cabinCount || 20, icon: <DoorOpen className="h-4 w-4" /> },
                       { label: 'IT Programs', end: computerDept?.courses.length || 6, icon: <Laptop className="h-4 w-4" /> },
                     ].map((stat) => (
                       <div key={stat.label} className="bg-white/5 border border-white/10 rounded-xl p-4">
@@ -1290,7 +1298,7 @@ export default function HomePage() {
           TESTIMONIALS — Student stories carousel
           ============================================ */}
       <ScrollReveal>
-      <TestimonialsSection />
+      <TestimonialsSection dynamicTestimonials={dynamicTestimonials} />
       </ScrollReveal>
 
       {/* ============================================
