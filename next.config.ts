@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   allowedDevOrigins: [
     ".z.ai",
+    "localhost",
   ],
 };
 
