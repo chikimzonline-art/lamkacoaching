@@ -2762,3 +2762,40 @@ Stage Summary:
 - The "Homepage" view has 4 tabs: Impact Stats, Achievements, Success Stories, Testimonials
 - Each tab supports: Add New, Edit, Delete, Toggle Active/Inactive
 - Public pages fetch data dynamically with fallback to hardcoded data when API is unavailable
+
+---
+Task ID: Recovery Session
+Agent: Main Agent
+Task: Fix preview not working - restart dev server and verify all features
+
+Work Log:
+- Diagnosed dev server was not running (process had died)
+- Discovered root cause: OOM killer terminates the Next.js dev server (~1GB RAM) after ~60-100s due to high OOM score (744-756) combined with Chrome browser processes from agent-browser (~2GB+)
+- Verified all three user-requested features ARE implemented and working:
+  1. **Hero Section cabin count is dynamic** - fetches from `/api/public/homepage` which counts active cabins from DB (currently 35)
+  2. **Our Impact Section is admin-editable** - data comes from `ImpactStat` and `AchievementCard` Prisma models, editable via Admin > "Homepage" tab > "Impact Stats" and "Achievements" sub-tabs
+  3. **Success Stories & Testimonials are admin-editable** - data comes from `SuccessStory` and `Testimonial` Prisma models, editable via Admin > "Homepage" tab > "Success Stories" and "Testimonials" sub-tabs
+- Confirmed all admin API routes working: `/api/impact-stats`, `/api/achievements`, `/api/stories`, `/api/testimonials` with full CRUD
+- Confirmed public API `/api/public/homepage` returns all dynamic data correctly
+- Homepage components (`achievements-section.tsx`, `success-stories-section.tsx`) fetch dynamic data from `/api/public/homepage` with fallback to hardcoded data
+- Testimonials carousel in page.tsx uses `dynamicTestimonials` prop from the same API
+- Restarted dev server with `NODE_OPTIONS='--max-old-space-size=256' npx next dev --turbopack -p 3000`
+- Homepage returns HTTP 200 with all dynamic data rendered
+
+Stage Summary:
+- All 3 previously requested features are confirmed working
+- Dev server OOM instability is the primary issue - server dies after ~60-100s
+- Admin dashboard has "Homepage" tab with 4 sub-tabs: Impact Stats, Achievements, Success Stories, Testimonials
+- All CRUD operations (Create, Read, Update, Delete, Toggle Active) work for each section
+- Database is seeded with sample data (4 impact stats, 3 achievement cards, 4 success stories, 6 testimonials, 35 cabins)
+
+Unresolved Issues or Risks:
+1. Dev server OOM instability - gets killed after ~60-100s, needs manual restart
+2. No automated tests exist
+3. Upcoming batches section still uses hardcoded data (not admin-managed from the Batches table)
+
+Priority Recommendations for Next Phase:
+1. Fix dev server stability (consider production build or memory optimization)
+2. Make upcoming batches section fetch from `/api/public/batches` instead of hardcoded
+3. Add more admin controls for homepage content
+4. Performance optimization and lazy loading
