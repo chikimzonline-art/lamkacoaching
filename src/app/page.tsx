@@ -589,7 +589,7 @@ export default function HomePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
-  const [cabinCount, setCabinCount] = useState(0);
+  const [cabinCount, setCabinCount] = useState<number | null>(null);
   const [dynamicTestimonials, setDynamicTestimonials] = useState<typeof testimonials>([]);
 
   // Course detail modal state
@@ -631,7 +631,7 @@ export default function HomePage() {
         setDepartments(coursesData.departments || []);
         setNotices((noticesData.notices || []).slice(0, 4));
         setSiteSettings(settingsData.settings || {});
-        if (homepageData.cabinCount) setCabinCount(homepageData.cabinCount);
+        if (homepageData.cabinCount !== undefined && homepageData.cabinCount !== null) setCabinCount(homepageData.cabinCount);
         if (homepageData.testimonials && homepageData.testimonials.length > 0) {
           setDynamicTestimonials(homepageData.testimonials);
         }
@@ -794,10 +794,10 @@ export default function HomePage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                      { label: 'Total Courses', end: totalCourses || 10, icon: <GraduationCap className="h-4 w-4" /> },
-                      { label: 'Departments', end: departments.length || 5, icon: <Target className="h-4 w-4" /> },
-                      { label: 'Study Cabins', end: cabinCount || 20, icon: <DoorOpen className="h-4 w-4" /> },
-                      { label: 'IT Programs', end: computerDept?.courses.length || 6, icon: <Laptop className="h-4 w-4" /> },
+                      { label: 'Total Courses', end: totalCourses, icon: <GraduationCap className="h-4 w-4" /> },
+                      { label: 'Departments', end: departments.length, icon: <Target className="h-4 w-4" /> },
+                      { label: 'Study Cabins', end: cabinCount ?? 0, icon: <DoorOpen className="h-4 w-4" /> },
+                      { label: 'IT Programs', end: computerDept?.courses.length ?? 0, icon: <Laptop className="h-4 w-4" /> },
                     ].map((stat) => (
                       <div key={stat.label} className="bg-white/5 border border-white/10 rounded-xl p-4">
                         <div className="flex items-center gap-1.5 text-cyan-200 mb-1">

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/public/cabins - Public: list available cabins
+// GET /api/public/cabins - Public: list available cabins grouped by floor
 export async function GET() {
   try {
     const cabins = await db.cabin.findMany({
       where: { status: 'active' },
-      orderBy: { cabinNum: 'asc' },
+      orderBy: [{ floor: 'asc' }, { cabinNum: 'asc' }],
       include: {
         bookings: {
           where: { status: 'active' },
@@ -39,6 +39,7 @@ export async function GET() {
 
       return {
         id: cabin.id,
+        floor: cabin.floor,
         cabinNum: cabin.cabinNum,
         notes: cabin.notes,
         isOccupied: !!activeExclusive,
@@ -50,6 +51,14 @@ export async function GET() {
       };
     });
 
+    // Group cabins by floor
+    const floors = [...new Set(cabins.map((c) => c.floor))].sort((a, b) => a - b);
+    const cabinsByFloor = floors.map((floorNum) => ({
+      floor: floorNum,
+      label: formatFloorLabel(floorNum),
+      cabins: cabinsWithAvailability.filter((c) => c.floor === floorNum),
+    }));
+
     // Get pricing from settings
     const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
     const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
@@ -59,6 +68,8 @@ export async function GET() {
 
     return NextResponse.json({
       cabins: cabinsWithAvailability,
+      cabinsByFloor,
+      floors,
       pricing: {
         hourlyMonthlyRate,
         monthlyRate,
@@ -73,4 +84,10 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+function formatFloorLabel(floor: number): string {
+  const suffixes: Record<number, string> = { 1: 'st', 2: 'nd', 3: 'rd' };
+  const suffix = suffixes[floor] || 'th';
+  return `${floor}${suffix} Floor`;
 }
