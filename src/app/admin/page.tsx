@@ -161,6 +161,55 @@ function PageSkeleton() {
   );
 }
 
+// Admin Logo — fetches logo from settings, supports light variant (for dark sidebar)
+function AdminLogo({ size = 'sidebar', className }: { size?: 'sidebar' | 'topbar'; className?: string }) {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState('Lamka Coaching');
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.settings) {
+          if (d.settings.logo_url) setLogoUrl(d.settings.logo_url);
+          if (d.settings.business_name) setBusinessName(d.settings.business_name);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const nameParts = businessName.split(' ');
+  const primary = nameParts.slice(0, 2).join(' ');
+
+  const isSidebar = size === 'sidebar';
+  const iconClass = isSidebar ? 'h-10 w-10' : 'h-8 w-8';
+  const bookClass = isSidebar ? 'h-6 w-6' : 'h-4 w-4';
+  const nameClass = isSidebar ? 'text-lg' : 'text-sm';
+  const textColor = isSidebar ? 'text-white' : 'text-gray-900';
+
+  return (
+    <div className={cn('flex items-center gap-2', isSidebar ? 'gap-3' : 'gap-2', className)}>
+      {logoUrl ? (
+        <div className={cn(iconClass, 'rounded-xl overflow-hidden flex items-center justify-center shrink-0', isSidebar ? 'bg-white/10' : 'bg-cyan-50')}>
+          <img
+            src={logoUrl}
+            alt="Logo"
+            className={cn('h-full w-full object-contain p-1.5', isSidebar && 'brightness-0 invert')}
+          />
+        </div>
+      ) : (
+        <div className={cn(iconClass, 'rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0')}>
+          <BookOpen className={bookClass} />
+        </div>
+      )}
+      <div>
+        <h1 className={cn(nameClass, 'font-bold tracking-tight', textColor)}>{primary}</h1>
+        {isSidebar && <p className="text-xs text-gray-400">Center Management</p>}
+      </div>
+    </div>
+  );
+}
+
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 to-sky-50">
@@ -285,13 +334,7 @@ function SidebarContent({ onItemClick, pendingCount }: { onItemClick?: () => voi
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-6 py-5">
-        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-cyan-600 text-white">
-          <BookOpen className="h-6 w-6" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-white tracking-tight">Lamka Coaching</h1>
-          <p className="text-xs text-gray-400">Center Management</p>
-        </div>
+        <AdminLogo size="sidebar" />
       </div>
       <Separator className="bg-gray-700" />
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -473,12 +516,7 @@ function AuthenticatedApp() {
               <SidebarContent onItemClick={() => setMobileMenuOpen(false)} pendingCount={pendingCount} />
             </SheetContent>
           </Sheet>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-cyan-600 text-white">
-              <BookOpen className="h-4 w-4" />
-            </div>
-            <span className="font-semibold text-gray-900 text-sm">Lamka Coaching</span>
-          </div>
+          <AdminLogo size="topbar" />
           <div className="w-10" /> {/* Spacer for centering */}
         </div>
       </header>

@@ -31,9 +31,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Clock, DollarSign, Building2, Save, Users, Plus, Pencil, Trash2, Shield, ShieldCheck, Loader2, UserCircle, Eye, EyeOff, Phone, Globe } from 'lucide-react';
+import { Clock, DollarSign, Building2, Save, Users, Plus, Pencil, Trash2, Shield, ShieldCheck, Loader2, UserCircle, Eye, EyeOff, Phone, Globe, ImagePlus, Upload, X, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth-store';
+import { cn } from '@/lib/utils';
 
 interface SettingsData {
   business_name: string;
@@ -48,6 +49,7 @@ interface SettingsData {
   hero_banner_text: string;
   footer_cta_title: string;
   footer_cta_subtitle: string;
+  logo_url: string;
 }
 
 interface UserRecord {
@@ -73,6 +75,7 @@ const defaultSettings: SettingsData = {
   hero_banner_text: 'New batches starting soon!',
   footer_cta_title: 'New Batches Starting Soon!',
   footer_cta_subtitle: 'Enroll now to secure your seat.',
+  logo_url: '',
 };
 
 function useSettingsState() {
@@ -98,6 +101,7 @@ function useSettingsState() {
           hero_banner_text: json.settings.hero_banner_text || defaultSettings.hero_banner_text,
           footer_cta_title: json.settings.footer_cta_title || defaultSettings.footer_cta_title,
           footer_cta_subtitle: json.settings.footer_cta_subtitle || defaultSettings.footer_cta_subtitle,
+          logo_url: json.settings.logo_url || defaultSettings.logo_url,
         });
       }
     } catch (err) {
@@ -140,6 +144,59 @@ export default function SettingsViewWrapper() {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
   const { settings, setSettings, loading, saving, handleSave } = useSettingsState();
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File too large. Maximum size: 2MB');
+      return;
+    }
+
+    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'].includes(file.type)) {
+      toast.error('Invalid file type. Allowed: PNG, JPEG, SVG, WebP');
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'logo');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to upload logo');
+        return;
+      }
+
+      setSettings({ ...settings, logo_url: json.url });
+      toast.success('Logo uploaded successfully');
+    } catch {
+      toast.error('Failed to upload logo');
+    } finally {
+      setUploadingLogo(false);
+      // Reset the input so the same file can be re-uploaded
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    try {
+      await fetch('/api/upload?type=logo', { method: 'DELETE' });
+      setSettings({ ...settings, logo_url: '' });
+      toast.success('Logo removed');
+    } catch {
+      toast.error('Failed to remove logo');
+    }
+  };
 
   if (loading) {
     return (
@@ -152,6 +209,128 @@ export default function SettingsViewWrapper() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {/* Logo & Branding */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <ImagePlus className="h-5 w-5 text-cyan-600" />
+            Logo & Branding
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start gap-6">
+            {/* Logo Preview */}
+            <div className="shrink-0">
+              {settings.logo_url ? (
+                <div className="relative group">
+                  <div className="h-20 w-20 rounded-xl border-2 border-gray-200 overflow-hidden bg-white flex items-center justify-center">
+                    <img
+                      src={settings.logo_url}
+                      alt="Logo"
+                      className="h-full w-full object-contain p-1"
+                    />
+                  </div>
+                  <button
+                    onClick={handleRemoveLogo}
+                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm cursor-pointer opacity-0 group-hover:opacity-100"
+                    title="Remove logo"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="h-20 w-20 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center gap-1">
+                  <ImagePlus className="h-6 w-6 text-gray-400" />
+                  <span className="text-[9px] text-gray-400 font-medium">No logo</span>
+                </div>
+              )}
+            </div>
+
+            {/* Upload area */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <Label className="text-sm font-medium">Upload Logo</Label>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Recommended: Square image, at least 200×200px. PNG, JPEG, SVG, or WebP. Max 2MB.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    disabled={uploadingLogo}
+                  />
+                  <span className={cn(
+                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    uploadingLogo
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100 hover:border-cyan-300"
+                  )}>
+                    {uploadingLogo ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Choose File
+                      </>
+                    )}
+                  </span>
+                </label>
+                {settings.logo_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveLogo}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Header Preview */}
+          <div className="mt-2 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+            <div className="flex items-center gap-2.5">
+              {settings.logo_url ? (
+                <div className="h-9 w-9 rounded-lg bg-white border border-gray-200 overflow-hidden flex items-center justify-center shadow-sm">
+                  <img
+                    src={settings.logo_url}
+                    alt="Logo preview"
+                    className="h-full w-full object-contain p-0.5"
+                  />
+                </div>
+              ) : (
+                <div className="h-9 w-9 rounded-lg bg-cyan-600 text-white flex items-center justify-center">
+                  <BookOpen className="h-5 w-5" />
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-bold text-gray-900 leading-tight">
+                  {settings.business_name?.split(' ').slice(0, 2).join(' ') || 'Business Name'}
+                </p>
+                <p className="text-[10px] text-gray-400 -mt-0.5 leading-tight">
+                  {settings.business_name?.split(' ').slice(2).join(' ') || 'Tagline'}
+                </p>
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              Preview — how your logo appears in the header
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Business Information */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">

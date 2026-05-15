@@ -2943,3 +2943,47 @@ Stage Summary:
 3. Add email integration for contact form
 4. Add image upload for team members
 5. Performance optimization and lazy loading
+
+---
+Task ID: 10
+Agent: Main Agent
+Task: Add logo upload/change feature in admin settings
+
+Work Log:
+- Created `/src/app/api/upload/route.ts` — Logo upload API endpoint
+  - POST: Accepts FormData with file + type ('logo'|'favicon'), validates type/size (max 2MB), saves to `public/uploads/`, stores path in Setting model
+  - DELETE: Removes logo_url setting from database
+  - Supported formats: PNG, JPEG, SVG, WebP
+  - File saved as `logo.{ext}` in `public/uploads/`
+- Updated `/src/app/api/public/settings/route.ts` — Added `logo_url` → `logoUrl` mapping
+- Updated `/src/components/settings/settings-view.tsx`:
+  - Added `logo_url` to SettingsData interface and defaultSettings
+  - Added "Logo & Branding" card as the first settings card
+  - Logo preview (80×80) with hover-to-remove X button
+  - File upload with validation (type, size checks)
+  - Remove button when logo exists
+  - Header preview showing how the logo + business name appear together
+  - No-logo state with dashed placeholder
+- Updated `/src/components/public/public-header.tsx`:
+  - Created `SiteLogo` component with `size` ('default'|'small'|'mobile') and `variant` ('dark'|'light') props
+  - Fetches `logoUrl` and `businessName` from `/api/public/settings`
+  - Shows uploaded logo image when available, falls back to BookOpen icon
+  - Dark variant for normal header, light variant for mobile gradient menu
+  - Logo image inverted (brightness-0 invert) on dark backgrounds
+  - Desktop header, mobile menu header both use SiteLogo
+  - Business name split: first 2 words as primary, rest as subtitle
+- Updated `/src/app/admin/page.tsx`:
+  - Created `AdminLogo` component with `size` ('sidebar'|'topbar') prop
+  - Fetches from `/api/settings` (admin-only endpoint)
+  - Sidebar: white text on dark bg, logo inverted for visibility
+  - Topbar: dark text on white bg, logo in original colors on cyan-50 bg
+  - Replaced both hardcoded logo instances (sidebar + mobile top bar)
+- No database schema changes needed — uses existing Setting model with new `logo_url` key
+
+Stage Summary:
+- Logo upload feature fully implemented end-to-end
+- Admin can upload/change/remove logo from Settings page
+- Logo appears dynamically in: public header (desktop + mobile), admin sidebar, admin mobile top bar
+- Business name from settings used alongside logo (no more hardcoded "Lamka Coaching")
+- Fallback to BookOpen icon when no logo is uploaded
+- File stored at `public/uploads/logo.{ext}`, path stored as `logo_url` setting

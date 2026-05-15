@@ -15,6 +15,7 @@ export async function GET() {
       'hero_banner_text': 'heroBannerText',
       'footer_cta_title': 'footerCtaTitle',
       'footer_cta_subtitle': 'footerCtaSubtitle',
+      'logo_url': 'logoUrl',
     };
 
     const settings = await db.setting.findMany({

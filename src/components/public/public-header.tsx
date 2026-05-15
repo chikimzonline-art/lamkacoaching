@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -21,6 +21,56 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
+
+// Shared logo component that uses the uploaded logo or falls back to the icon
+function SiteLogo({ size = 'default', variant = 'dark', className }: { size?: 'default' | 'small' | 'mobile'; variant?: 'dark' | 'light'; className?: string }) {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState('Lamka Coaching');
+
+  useEffect(() => {
+    fetch('/api/public/settings')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.settings) {
+          if (d.settings.logoUrl) setLogoUrl(d.settings.logoUrl);
+          if (d.settings.businessName) setBusinessName(d.settings.businessName);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const nameParts = businessName.split(' ');
+  const primary = nameParts.slice(0, 2).join(' ');
+  const secondary = nameParts.slice(2).join(' ');
+
+  const iconSize = size === 'small' ? 'h-7 w-7' : size === 'mobile' ? 'h-9 w-9' : 'h-9 w-9';
+  const imgPadding = size === 'small' ? 'p-1' : 'p-1.5';
+  const isLight = variant === 'light';
+
+  return (
+    <>
+      {logoUrl ? (
+        <div className={`${iconSize} rounded-lg ${isLight ? 'bg-white/20 backdrop-blur-sm' : 'bg-white border border-gray-200'} overflow-hidden flex items-center justify-center ${isLight ? '' : 'shadow-sm'} shrink-0`}>
+          <img
+            src={logoUrl}
+            alt="Logo"
+            className={`h-full w-full object-contain ${isLight ? 'p-1.5 brightness-0 invert' : imgPadding}`}
+          />
+        </div>
+      ) : (
+        <div className={`${iconSize} rounded-lg ${isLight ? 'bg-white/20 backdrop-blur-sm' : 'bg-cyan-600'} text-white flex items-center justify-center shrink-0`}>
+          <BookOpen className={size === 'small' ? 'h-4 w-4' : 'h-5 w-5'} />
+        </div>
+      )}
+      {size !== 'small' && (
+        <div className={cn(isLight ? 'block' : 'hidden sm:block', className)}>
+          <h1 className={`text-base font-bold leading-tight ${isLight ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{primary}</h1>
+          <p className={`text-[10px] -mt-0.5 leading-tight ${isLight ? 'text-cyan-100' : 'text-gray-500 dark:text-gray-400'}`}>{secondary || 'Center of Excellence'}</p>
+        </div>
+      )}
+    </>
+  );
+}
 
 const navItemVariants = {
   hidden: { opacity: 0, x: -20 },
@@ -80,13 +130,7 @@ export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => voi
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group transition-all duration-300">
-            <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-cyan-600 text-white group-hover:bg-cyan-700 transition-colors group-hover:scale-105">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">Lamka Coaching</h1>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 -mt-0.5 leading-tight">Center of Excellence</p>
-            </div>
+            <SiteLogo />
           </Link>
 
           {/* Desktop Navigation */}
@@ -177,13 +221,7 @@ export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => voi
                 {/* Enhanced mobile menu header with gradient */}
                 <div className="relative px-4 py-5 bg-gradient-to-br from-cyan-600 to-sky-700">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-white/20 backdrop-blur-sm text-white">
-                      <BookOpen className="h-4.5 w-4.5" />
-                    </div>
-                    <div>
-                      <span className="font-bold text-white text-sm">Lamka Coaching</span>
-                      <p className="text-[10px] text-cyan-100 -mt-0.5 leading-tight">Center of Excellence</p>
-                    </div>
+                    <SiteLogo size="mobile" variant="light" className="!block" />
                   </div>
                   {/* Cyan gradient line separator */}
                   <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-300/50 to-transparent" />
