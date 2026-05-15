@@ -59,7 +59,7 @@ function formatCurrency(paise: number): string {
 function formatFloorLabel(floor: number): string {
   const suffixes: Record<number, string> = { 1: 'st', 2: 'nd', 3: 'rd' };
   const suffix = suffixes[floor] || 'th';
-  return `${suffix} Floor`;
+  return `${floor}${suffix} Floor`;
 }
 
 export default function CabinsPage() {
