@@ -497,6 +497,24 @@ async function main() {
   }
   console.log('Created additional settings (' + additionalSettings.length + ')');
 
+  // ─── Campus Gallery ──────────────────────────────────
+  const galleryItems = [
+    { title: 'Computer Lab', description: 'State-of-the-art computers with latest software for hands-on practice', image: '/gallery/gallery-computer-lab.jpg', colSpan: 'md:col-span-2', rowSpan: 'md:row-span-2', sortOrder: 1 },
+    { title: 'Study Cabins', description: 'Private, distraction-free study spaces with comfortable seating', image: '/gallery/gallery-study-cabin.jpg', colSpan: '', rowSpan: '', sortOrder: 2 },
+    { title: 'Classroom', description: 'Spacious classrooms equipped with modern teaching aids', image: '/gallery/gallery-classroom.jpg', colSpan: '', rowSpan: '', sortOrder: 3 },
+    { title: 'Library Corner', description: 'Curated collection of books and study materials for all courses', image: '/gallery/gallery-library.jpg', colSpan: '', rowSpan: '', sortOrder: 4 },
+    { title: 'Reception', description: 'Friendly staff ready to assist with admissions and queries', image: '/gallery/gallery-reception.jpg', colSpan: '', rowSpan: '', sortOrder: 5 },
+    { title: 'Discussion Area', description: 'Collaborative space for group study and peer learning', image: '/gallery/gallery-discussion.jpg', colSpan: 'md:col-span-2', rowSpan: '', sortOrder: 6 },
+  ];
+
+  for (const item of galleryItems) {
+    const existing = await db.campusGalleryItem.findFirst({ where: { title: item.title } });
+    if (!existing) {
+      await db.campusGalleryItem.create({ data: item });
+    }
+  }
+  console.log('Created campus gallery items (' + galleryItems.length + ')');
+
   console.log('Seed completed successfully!');
 }
 

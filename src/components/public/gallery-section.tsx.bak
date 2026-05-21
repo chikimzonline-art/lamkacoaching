@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,35 +21,54 @@ import {
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface GalleryItem {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  colSpan: string;
-  rowSpan: string;
-  sortOrder: number;
-}
+const galleryItems = [
+  {
+    title: 'Computer Lab',
+    description: 'State-of-the-art computers with latest software for hands-on practice',
+    image: '/gallery/gallery-computer-lab.jpg',
+    colSpan: 'md:col-span-2',
+    rowSpan: 'md:row-span-2',
+  },
+  {
+    title: 'Study Cabins',
+    description: 'Private, distraction-free study spaces with comfortable seating',
+    image: '/gallery/gallery-study-cabin.jpg',
+    colSpan: '',
+    rowSpan: '',
+  },
+  {
+    title: 'Classroom',
+    description: 'Spacious classrooms equipped with modern teaching aids',
+    image: '/gallery/gallery-classroom.jpg',
+    colSpan: '',
+    rowSpan: '',
+  },
+  {
+    title: 'Library Corner',
+    description: 'Curated collection of books and study materials for all courses',
+    image: '/gallery/gallery-library.jpg',
+    colSpan: '',
+    rowSpan: '',
+  },
+  {
+    title: 'Reception',
+    description: 'Friendly staff ready to assist with admissions and queries',
+    image: '/gallery/gallery-reception.jpg',
+    colSpan: '',
+    rowSpan: '',
+  },
+  {
+    title: 'Discussion Area',
+    description: 'Collaborative space for group study and peer learning',
+    image: '/gallery/gallery-discussion.jpg',
+    colSpan: 'md:col-span-2',
+    rowSpan: '',
+  },
+];
 
 export default function GallerySection() {
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-
-  useEffect(() => {
-    async function fetchGallery() {
-      try {
-        const res = await fetch('/api/public/about');
-        if (res.ok) {
-          const data = await res.json();
-          setGalleryItems(data.galleryItems || []);
-        }
-      } catch {
-        // silently fail, gallery will be empty
-      }
-    }
-    fetchGallery();
-  }, []);
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
@@ -70,11 +89,6 @@ export default function GallerySection() {
 
   const currentItem = galleryItems[lightboxIndex];
 
-  // Don't render the section if no gallery items
-  if (galleryItems.length === 0) {
-    return null;
-  }
-
   return (
     <section className="py-20 sm:py-28 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -94,7 +108,7 @@ export default function GallerySection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px] md:auto-rows-[minmax(200px,auto)]">
           {galleryItems.map((item, index) => (
             <motion.div
-              key={item.id}
+              key={item.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}

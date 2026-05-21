@@ -297,16 +297,3 @@ model Testimonial {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
-
-model CampusGalleryItem {
-  id          String   @id @default(cuid())
-  title       String
-  description String
-  image       String
-  colSpan     String   @default("")
-  rowSpan     String   @default("")
-  sortOrder   Int      @default(0)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}

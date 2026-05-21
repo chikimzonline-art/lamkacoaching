@@ -15,12 +15,6 @@ export async function GET() {
       orderBy: { sortOrder: 'asc' },
     });
 
-    // Fetch campus gallery items
-    const galleryItems = await db.campusGalleryItem.findMany({
-      where: { active: true },
-      orderBy: { sortOrder: 'asc' },
-    });
-
     // Fetch about-related settings
     const aboutKeys = [
       'about_story',
@@ -42,7 +36,6 @@ export async function GET() {
     return NextResponse.json({
       teamMembers,
       milestones,
-      galleryItems,
       settings: settingsMap,
     });
   } catch (error) {

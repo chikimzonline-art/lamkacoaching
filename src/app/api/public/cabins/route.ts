@@ -25,17 +25,32 @@ export async function GET() {
     // Compute availability status for each cabin
     const now = new Date();
     const cabinsWithAvailability = cabins.map((cabin) => {
-      const activeExclusive = cabin.bookings.find(
-        (b) => b.type === 'exclusive' && (!b.endDate || new Date(b.endDate) >= now)
-      );
+      const activeExclusive = cabin.bookings.find((b) => {
+        if (b.type !== 'exclusive') return false;
+        const startLimit = new Date(b.startDate);
+        startLimit.setHours(0, 0, 0, 0);
+        if (startLimit > now) return false;
+        if (!b.endDate) return true;
+        const endLimit = new Date(b.endDate);
+        endLimit.setHours(23, 59, 59, 999);
+        return endLimit >= now;
+      });
 
       const todayStart = new Date(now);
       todayStart.setHours(0, 0, 0, 0);
-      const todayHourlyBookings = cabin.bookings.filter(
-        (b) =>
-          b.type === 'hourly' &&
-          new Date(b.startDate).getTime() === todayStart.getTime()
-      );
+      const todayHourlyBookings = cabin.bookings.filter((b) => {
+        if (b.type !== 'hourly') return false;
+        const startLimit = new Date(b.startDate);
+        startLimit.setHours(0, 0, 0, 0);
+        if (startLimit > now) return false;
+        if (!b.endDate) {
+          return startLimit.getTime() === todayStart.getTime();
+        } else {
+          const endLimit = new Date(b.endDate);
+          endLimit.setHours(23, 59, 59, 999);
+          return endLimit >= now;
+        }
+      });
 
       return {
         id: cabin.id,

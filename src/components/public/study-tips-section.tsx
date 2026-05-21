@@ -78,8 +78,10 @@ export default function StudyTipsSection() {
       }
 
       const data = await res.json();
-      if (data.tips && data.tips.length > 0) {
+      if (data && Array.isArray(data.tips) && data.tips.length > 0) {
         setTips(data.tips);
+      } else {
+        throw new Error('Invalid response structure');
       }
     } catch {
       toast.error('Could not generate tips. Showing default tips.');
