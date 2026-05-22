@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
     '@libsql/client',
     'libsql',
   ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
