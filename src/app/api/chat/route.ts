@@ -274,6 +274,9 @@ export async function POST(request: NextRequest) {
 
     // Extract model response
     const assistantMessage = extractTextFromResponse(result) || "I'm sorry, I couldn't generate a response. Please try again.";
+    
+    // Log the model used
+    console.log(`[Chat API] Successfully responded using model: ${result?._usedModel || 'unknown'}`);
 
     // Save the assistant response to the database
     await db.chatMessage.create({

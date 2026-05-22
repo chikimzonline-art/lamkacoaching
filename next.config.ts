@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
     ".z.ai",
     "localhost",
   ],
+  serverExternalPackages: [
+    '@prisma/client',
+    '@prisma/adapter-libsql',
+    '@libsql/client',
+    'libsql',
+  ],
 };
 
 export default nextConfig;
