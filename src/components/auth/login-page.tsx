@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,37 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuthStore();
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState('Lamka Coaching Center');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const cachedLogo = localStorage.getItem('site_logo_url');
+    const cachedName = localStorage.getItem('site_business_name');
+    if (cachedLogo) setLogoUrl(cachedLogo);
+    if (cachedName) setBusinessName(cachedName + ' Center');
+    setMounted(true);
+
+    fetch('/api/public/settings')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.settings) {
+          if (d.settings.logoUrl) {
+            setLogoUrl(d.settings.logoUrl);
+            localStorage.setItem('site_logo_url', d.settings.logoUrl);
+          } else {
+            setLogoUrl(null);
+            localStorage.removeItem('site_logo_url');
+          }
+          if (d.settings.businessName) {
+            setBusinessName(d.settings.businessName + ' Center');
+            localStorage.setItem('site_business_name', d.settings.businessName);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,10 +83,22 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-cyan-600 text-white mb-4 shadow-lg shadow-cyan-200">
-            <BookOpen className="h-9 w-9" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Lamka Coaching Center</h1>
+          {logoUrl ? (
+            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-white border border-gray-200 overflow-hidden p-2 mb-4 shadow-lg shrink-0">
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : mounted ? (
+            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-cyan-600 text-white mb-4 shadow-lg shadow-cyan-200 shrink-0">
+              <BookOpen className="h-9 w-9" />
+            </div>
+          ) : (
+            <div className="inline-flex h-16 w-16 rounded-2xl mb-4 shrink-0 bg-white/50 animate-pulse border border-gray-200" />
+          )}
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{businessName}</h1>
           <p className="text-sm text-gray-500 mt-1">Cabin & Study Management System</p>
         </div>
 

@@ -27,6 +27,7 @@ interface BusinessSettings {
   businessDescription?: string;
   footerCtaTitle?: string;
   footerCtaSubtitle?: string;
+  logoUrl?: string;
 }
 
 const baseQuickLinks = [
@@ -61,6 +62,7 @@ export default function PublicFooter() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const name = settings.businessName || 'Lamka Coaching Center';
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
@@ -98,9 +100,33 @@ export default function PublicFooter() {
   };
 
   useEffect(() => {
+    // Load from localStorage first to avoid flash
+    const cachedLogo = localStorage.getItem('site_logo_url');
+    const cachedName = localStorage.getItem('site_business_name');
+    if (cachedLogo || cachedName) {
+      setSettings((prev) => ({
+        ...prev,
+        logoUrl: cachedLogo || undefined,
+        businessName: cachedName || undefined,
+      }));
+    }
+    setMounted(true);
+
     fetch('/api/public/settings')
       .then((res) => res.json())
-      .then((data) => setSettings(data.settings || {}))
+      .then((data) => {
+        if (data.settings) {
+          setSettings(data.settings);
+          if (data.settings.logoUrl) {
+            localStorage.setItem('site_logo_url', data.settings.logoUrl);
+          } else {
+            localStorage.removeItem('site_logo_url');
+          }
+          if (data.settings.businessName) {
+            localStorage.setItem('site_business_name', data.settings.businessName);
+          }
+        }
+      })
       .catch(() => { });
   }, []);
 
@@ -114,9 +140,21 @@ export default function PublicFooter() {
           {/* About + Social + Newsletter */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-cyan-600 text-white">
-                <BookOpen className="h-5 w-5" />
-              </div>
+              {settings.logoUrl ? (
+                <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-white overflow-hidden p-1 border border-gray-800 shadow-sm shrink-0">
+                  <img
+                    src={settings.logoUrl}
+                    alt="Logo"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              ) : mounted ? (
+                <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-cyan-600 text-white shrink-0">
+                  <BookOpen className="h-5 w-5" />
+                </div>
+              ) : (
+                <div className="h-9 w-9 rounded-lg shrink-0 bg-gray-800 animate-pulse" />
+              )}
               <span className="font-bold text-white text-base">{name}</span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">

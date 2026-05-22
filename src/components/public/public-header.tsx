@@ -26,14 +26,31 @@ import { cn } from '@/lib/utils';
 function SiteLogo({ size = 'default', variant = 'dark', className }: { size?: 'default' | 'small' | 'mobile'; variant?: 'dark' | 'light'; className?: string }) {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState('Lamka Coaching');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Load from localStorage first to avoid flash on refresh
+    const cachedLogo = localStorage.getItem('site_logo_url');
+    const cachedName = localStorage.getItem('site_business_name');
+    if (cachedLogo) setLogoUrl(cachedLogo);
+    if (cachedName) setBusinessName(cachedName);
+    setMounted(true);
+
     fetch('/api/public/settings')
       .then((r) => r.json())
       .then((d) => {
         if (d.settings) {
-          if (d.settings.logoUrl) setLogoUrl(d.settings.logoUrl);
-          if (d.settings.businessName) setBusinessName(d.settings.businessName);
+          if (d.settings.logoUrl) {
+            setLogoUrl(d.settings.logoUrl);
+            localStorage.setItem('site_logo_url', d.settings.logoUrl);
+          } else {
+            setLogoUrl(null);
+            localStorage.removeItem('site_logo_url');
+          }
+          if (d.settings.businessName) {
+            setBusinessName(d.settings.businessName);
+            localStorage.setItem('site_business_name', d.settings.businessName);
+          }
         }
       })
       .catch(() => {});
@@ -57,15 +74,23 @@ function SiteLogo({ size = 'default', variant = 'dark', className }: { size?: 'd
             className={`h-full w-full object-contain ${isLight ? 'p-1.5 brightness-0 invert' : imgPadding}`}
           />
         </div>
-      ) : (
+      ) : mounted ? (
         <div className={`${iconSize} rounded-lg ${isLight ? 'bg-white/20 backdrop-blur-sm' : 'bg-cyan-600'} text-white flex items-center justify-center shrink-0`}>
           <BookOpen className={size === 'small' ? 'h-4 w-4' : 'h-5 w-5'} />
         </div>
+      ) : (
+        <div className={`${iconSize} rounded-lg ${isLight ? 'bg-white/20 backdrop-blur-sm' : 'bg-gray-100 dark:bg-gray-800'} animate-pulse shrink-0`} />
       )}
       {size !== 'small' && (
         <div className={cn(isLight ? 'block' : 'hidden sm:block', className)}>
-          <h1 className={`text-base font-bold leading-tight ${isLight ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{primary}</h1>
-          <p className={`text-[10px] -mt-0.5 leading-tight ${isLight ? 'text-cyan-100' : 'text-gray-500 dark:text-gray-400'}`}>{secondary || 'Center of Excellence'}</p>
+          {mounted ? (
+            <>
+              <h1 className={`text-base font-bold leading-tight ${isLight ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{primary}</h1>
+              <p className={`text-[10px] -mt-0.5 leading-tight ${isLight ? 'text-cyan-100' : 'text-gray-500 dark:text-gray-400'}`}>{secondary || 'Center of Excellence'}</p>
+            </>
+          ) : (
+            <div className="h-9 w-24 bg-gray-100 dark:bg-gray-800 animate-pulse rounded" />
+          )}
         </div>
       )}
     </>

@@ -165,14 +165,31 @@ function PageSkeleton() {
 function AdminLogo({ size = 'sidebar', className }: { size?: 'sidebar' | 'topbar'; className?: string }) {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState('Lamka Coaching');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Load from localStorage first to avoid flash on refresh
+    const cachedLogo = localStorage.getItem('site_logo_url');
+    const cachedName = localStorage.getItem('site_business_name');
+    if (cachedLogo) setLogoUrl(cachedLogo);
+    if (cachedName) setBusinessName(cachedName);
+    setMounted(true);
+
     fetch('/api/settings')
       .then((r) => r.json())
       .then((d) => {
         if (d.settings) {
-          if (d.settings.logo_url) setLogoUrl(d.settings.logo_url);
-          if (d.settings.business_name) setBusinessName(d.settings.business_name);
+          if (d.settings.logo_url) {
+            setLogoUrl(d.settings.logo_url);
+            localStorage.setItem('site_logo_url', d.settings.logo_url);
+          } else {
+            setLogoUrl(null);
+            localStorage.removeItem('site_logo_url');
+          }
+          if (d.settings.business_name) {
+            setBusinessName(d.settings.business_name);
+            localStorage.setItem('site_business_name', d.settings.business_name);
+          }
         }
       })
       .catch(() => {});
@@ -197,10 +214,12 @@ function AdminLogo({ size = 'sidebar', className }: { size?: 'sidebar' | 'topbar
             className={cn('h-full w-full object-contain p-1.5', isSidebar && 'brightness-0 invert')}
           />
         </div>
-      ) : (
+      ) : mounted ? (
         <div className={cn(iconClass, 'rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0')}>
           <BookOpen className={bookClass} />
         </div>
+      ) : (
+        <div className={cn(iconClass, 'rounded-xl shrink-0 bg-gray-100 dark:bg-gray-800 animate-pulse')} />
       )}
       <div>
         <h1 className={cn(nameClass, 'font-bold tracking-tight', textColor)}>{primary}</h1>
