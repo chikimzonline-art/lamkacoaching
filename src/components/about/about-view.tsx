@@ -45,6 +45,8 @@ import {
   EyeOff,
   Target,
   Camera,
+  Upload,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -153,6 +155,7 @@ export default function AboutView() {
   const [formGalleryRowSpan, setFormGalleryRowSpan] = useState('');
   const [formGallerySort, setFormGallerySort] = useState(0);
   const [formGalleryActive, setFormGalleryActive] = useState(true);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -478,6 +481,47 @@ export default function AboutView() {
       fetchData();
     } catch {
       toast.error('Failed to delete gallery item');
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum size: 5MB');
+      return;
+    }
+
+    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp', 'image/gif'].includes(file.type)) {
+      toast.error('Invalid file type. Allowed: PNG, JPEG, SVG, WebP, GIF');
+      return;
+    }
+
+    setUploadingGallery(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'gallery');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to upload image');
+        return;
+      }
+
+      setFormGalleryImage(json.url);
+      toast.success('Image uploaded successfully');
+    } catch {
+      toast.error('Failed to upload image');
+    } finally {
+      setUploadingGallery(false);
+      e.target.value = '';
     }
   };
 
@@ -1010,9 +1054,38 @@ export default function AboutView() {
               <Textarea value={formGalleryDesc} onChange={(e) => setFormGalleryDesc(e.target.value)} placeholder="Brief description of this image..." rows={2} />
             </div>
             <div className="space-y-2">
-              <Label>Image Path</Label>
-              <Input value={formGalleryImage} onChange={(e) => setFormGalleryImage(e.target.value)} placeholder="/gallery/gallery-computer-lab.jpg" />
-              <p className="text-xs text-gray-400">Path relative to the public folder (e.g. /gallery/my-image.jpg)</p>
+              <Label>Image</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={formGalleryImage}
+                  onChange={(e) => setFormGalleryImage(e.target.value)}
+                  placeholder="/gallery/gallery-computer-lab.jpg or Vercel Blob URL"
+                  className="flex-1"
+                />
+                <label className="cursor-pointer shrink-0">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp,image/gif"
+                    onChange={handleGalleryUpload}
+                    className="hidden"
+                    disabled={uploadingGallery}
+                  />
+                  <span className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-sm font-medium transition-all bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100 hover:border-cyan-300">
+                    {uploadingGallery ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Upload File
+                      </>
+                    )}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-400">Upload an image file directly or paste an image URL.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

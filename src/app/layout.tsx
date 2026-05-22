@@ -14,23 +14,46 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Lamka Coaching Center - Competitive Exams & Computer Training",
-    template: "%s | Lamka Coaching Center",
-  },
-  description: "Expert coaching for SSC, Banking, UPSC, Railway exams. Professional computer training (CCC, Tally, Web Design, Python). Study cabin facilities. Located in Lamka, Churachandpur, Manipur.",
-  keywords: ["coaching center", "competitive exams", "SSC CGL", "IBPS", "computer training", "CCC", "Tally", "study cabin", "Lamka", "Churachandpur", "Manipur"],
-  openGraph: {
-    title: "Lamka Coaching Center - Center of Excellence",
-    description: "Expert coaching for competitive exams, professional computer training, and dedicated study spaces.",
-    type: "website",
-    locale: "en_IN",
-  },
-  icons: {
-    icon: "/logo.svg",
-  },
-};
+import { db } from "@/lib/db";
+
+export async function generateMetadata(): Promise<Metadata> {
+  let faviconUrl = "/logo.svg";
+  try {
+    const faviconSetting = await db.setting.findUnique({
+      where: { key: "favicon_url" },
+    });
+    if (faviconSetting?.value) {
+      faviconUrl = faviconSetting.value;
+    } else {
+      const logoSetting = await db.setting.findUnique({
+        where: { key: "logo_url" },
+      });
+      if (logoSetting?.value) {
+        faviconUrl = logoSetting.value;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch favicon for metadata:", error);
+  }
+
+  return {
+    title: {
+      default: "Lamka Coaching Center - Competitive Exams & Computer Training",
+      template: "%s | Lamka Coaching Center",
+    },
+    description: "Expert coaching for SSC, Banking, UPSC, Railway exams. Professional computer training (CCC, Tally, Web Design, Python). Study cabin facilities. Located in Lamka, Churachandpur, Manipur.",
+    keywords: ["coaching center", "competitive exams", "SSC CGL", "IBPS", "computer training", "CCC", "Tally", "study cabin", "Lamka", "Churachandpur", "Manipur"],
+    openGraph: {
+      title: "Lamka Coaching Center - Center of Excellence",
+      description: "Expert coaching for competitive exams, professional computer training, and dedicated study spaces.",
+      type: "website",
+      locale: "en_IN",
+    },
+    icons: {
+      icon: faviconUrl,
+    },
+  };
+}
 
 export default function RootLayout({
   children,

@@ -50,6 +50,7 @@ interface SettingsData {
   footer_cta_title: string;
   footer_cta_subtitle: string;
   logo_url: string;
+  favicon_url: string;
 }
 
 interface UserRecord {
@@ -76,6 +77,7 @@ const defaultSettings: SettingsData = {
   footer_cta_title: 'New Batches Starting Soon!',
   footer_cta_subtitle: 'Enroll now to secure your seat.',
   logo_url: '',
+  favicon_url: '',
 };
 
 function useSettingsState() {
@@ -102,6 +104,7 @@ function useSettingsState() {
           footer_cta_title: json.settings.footer_cta_title || defaultSettings.footer_cta_title,
           footer_cta_subtitle: json.settings.footer_cta_subtitle || defaultSettings.footer_cta_subtitle,
           logo_url: json.settings.logo_url || defaultSettings.logo_url,
+          favicon_url: json.settings.favicon_url || defaultSettings.favicon_url,
         });
       }
     } catch (err) {
@@ -198,6 +201,59 @@ export default function SettingsViewWrapper() {
     }
   };
 
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File too large. Maximum size: 2MB');
+      return;
+    }
+
+    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'].includes(file.type)) {
+      toast.error('Invalid file type. Allowed: PNG, JPEG, SVG, WebP, ICO');
+      return;
+    }
+
+    setUploadingFavicon(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'favicon');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to upload favicon');
+        return;
+      }
+
+      setSettings({ ...settings, favicon_url: json.url });
+      toast.success('Favicon uploaded successfully');
+    } catch {
+      toast.error('Failed to upload favicon');
+    } finally {
+      setUploadingFavicon(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveFavicon = async () => {
+    try {
+      await fetch('/api/upload?type=favicon', { method: 'DELETE' });
+      setSettings({ ...settings, favicon_url: '' });
+      toast.success('Favicon removed');
+    } catch {
+      toast.error('Failed to remove favicon');
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 max-w-2xl">
@@ -288,6 +344,88 @@ export default function SettingsViewWrapper() {
                     variant="outline"
                     size="sm"
                     onClick={handleRemoveLogo}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="flex items-start gap-6">
+            {/* Favicon Preview */}
+            <div className="shrink-0">
+              {settings.favicon_url ? (
+                <div className="relative group">
+                  <div className="h-16 w-16 rounded-xl border-2 border-gray-200 overflow-hidden bg-white flex items-center justify-center">
+                    <img
+                      src={settings.favicon_url}
+                      alt="Favicon"
+                      className="h-8 w-8 object-contain p-0.5"
+                    />
+                  </div>
+                  <button
+                    onClick={handleRemoveFavicon}
+                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm cursor-pointer opacity-0 group-hover:opacity-100"
+                    title="Remove favicon"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="h-16 w-16 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center gap-1">
+                  <ImagePlus className="h-5 w-5 text-gray-400" />
+                  <span className="text-[9px] text-gray-400 font-medium">No icon</span>
+                </div>
+              )}
+            </div>
+
+            {/* Upload area */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <Label className="text-sm font-medium">Upload Favicon</Label>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Recommended: 32×32px or 48×48px. PNG, ICO, SVG, or WebP. Max 2MB.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp,image/x-icon,image/vnd.microsoft.icon"
+                    onChange={handleFaviconUpload}
+                    className="hidden"
+                    disabled={uploadingFavicon}
+                  />
+                  <span className={cn(
+                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    uploadingFavicon
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100 hover:border-cyan-300"
+                  )}>
+                    {uploadingFavicon ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Choose File
+                      </>
+                    )}
+                  </span>
+                </label>
+                {settings.favicon_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveFavicon}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                   >
                     <Trash2 className="h-3.5 w-3.5 mr-1" />
