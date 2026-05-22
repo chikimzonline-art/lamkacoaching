@@ -354,7 +354,7 @@ function SidebarContent({ onItemClick, pendingCount }: { onItemClick?: () => voi
           >
             {item.icon}
             {item.label}
-            {item.view === 'bookings' && pendingCount > 0 && (
+            {item.view === 'bookings' && (pendingCount ?? 0) > 0 && (
               <span className="ml-auto flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">
                 {pendingCount}
               </span>
@@ -417,7 +417,7 @@ function BottomNav({ pendingCount }: { pendingCount?: number }) {
             >
               {item.icon}
               <span className="text-[10px] mt-1 font-medium">{item.label}</span>
-              {item.view === 'bookings' && pendingCount > 0 && (
+              {item.view === 'bookings' && (pendingCount ?? 0) > 0 && (
                 <span className="absolute top-0.5 right-1/4 flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold">
                   {pendingCount}
                 </span>

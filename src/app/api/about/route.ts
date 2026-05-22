@@ -1,20 +1,16 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth';
+import type { Setting } from '@prisma/client';
 
 // Helper to verify auth
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+
 
 // GET /api/about - Admin: get all about data
 export async function GET() {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -67,7 +63,7 @@ export async function GET() {
 // POST /api/about - Admin: CRUD operations
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -78,7 +74,7 @@ export async function POST(request: Request) {
     // Handle settings update
     if (type === 'settings') {
       const settings = data as Record<string, string>;
-      const results = [];
+      const results: Setting[] = [];
       for (const [key, value] of Object.entries(settings)) {
         const result = await db.setting.upsert({
           where: { key },

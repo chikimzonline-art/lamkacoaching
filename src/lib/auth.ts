@@ -1,9 +1,12 @@
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'lamka-coaching-center-secret-change-in-production'
-);
+const JWT_SECRET_VALUE = process.env.JWT_SECRET;
+if (!JWT_SECRET_VALUE) {
+  throw new Error('JWT_SECRET environment variable is not set. Please add it to your .env file.');
+}
+
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_VALUE);
 
 export type UserRole = 'admin' | 'staff';
 
@@ -42,4 +45,14 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
 export function getTokenFromCookie(cookies: { get: (name: string) => { value: string } | undefined }): string | null {
   const token = cookies.get('auth-token');
   return token?.value || null;
+}
+
+/**
+ * Shared helper — verifies the auth-token cookie and returns the authenticated user.
+ * Returns null if token is missing or invalid.
+ */
+export async function getAuthUser(cookiesStore: { get: (name: string) => { value: string } | undefined }): Promise<AuthUser | null> {
+  const token = cookiesStore.get('auth-token')?.value;
+  if (!token) return null;
+  return verifyToken(token);
 }

@@ -25,7 +25,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Plus, CalendarIcon, Check, X, ChevronRight, ChevronLeft, RefreshCw, Receipt, UserPlus, Banknote, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react';
-import PaymentReceipt from '@/components/payments/payment-receipt';
+import PaymentReceipt, { type ReceiptData } from '@/components/payments/payment-receipt';
 import { toast } from 'sonner';
 import { formatCurrency, formatDate, formatTime, calculateHours, calculateMonths, addMonths } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
@@ -130,19 +130,7 @@ export default function BookingsView() {
 
   // Receipt dialog
   const [receiptOpen, setReceiptOpen] = useState(false);
-  const [receiptData, setReceiptData] = useState<null | {
-    receiptNo: string;
-    studentName: string;
-    studentPhone: string;
-    cabinNum: number;
-    bookingType: string;
-    bookingPeriod: string;
-    amount: number;
-    mode: string;
-    paidAt: string;
-    notes: string | null;
-    businessName: string;
-  }>(null);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -451,10 +439,11 @@ export default function BookingsView() {
       cabinNum: booking.cabin.cabinNum,
       bookingType: booking.type,
       bookingPeriod: period,
+      paymentType: 'booking',
       amount: payment.amount,
       mode: payment.mode,
       paidAt: payment.receivedAt,
-      notes: booking.notes,
+      notes: booking.notes ?? undefined,
       businessName,
     });
     setReceiptOpen(true);
@@ -531,7 +520,7 @@ export default function BookingsView() {
   const availableCabins = cabinOptions.filter((c) => {
     if (c.status !== 'active') return false;
     return !bookings.some(
-      (b) => b.cabinId === c.id && b.status === 'active' && b.type === 'exclusive'
+      (b) => b.cabin.id === c.id && b.status === 'active' && b.type === 'exclusive'
     );
   });
 

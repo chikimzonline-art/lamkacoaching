@@ -457,7 +457,7 @@ function FAQSection() {
           ) : (
             <Accordion type="single" collapsible className="w-full">
               {faqs.map((faq, i) => (
-                <AccordionItem key={faq.id || i} value={`faq-${i}`} className="border-gray-100">
+                <AccordionItem key={i} value={`faq-${i}`} className="border-gray-100">
                   <AccordionTrigger className="text-left text-base font-semibold text-gray-900 hover:text-cyan-700 hover:no-underline py-5 transition-colors">
                     {faq.question}
                   </AccordionTrigger>

@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callGeminiAPI, extractTextFromResponse } from '@/lib/gemini';
 import { db } from '@/lib/db';
 
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function cleanupRateLimitMap() {
+  const now = Date.now();
+  for (const [ip, data] of rateLimitMap.entries()) {
+    if (data.resetAt < now) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}
+
+
 const SYSTEM_PROMPT =
   `You are a helpful assistant for Lamka Coaching Center. You help students with queries about courses, fees, cabin bookings, exam preparation, and general information. Be friendly, concise, and encouraging. The center offers competitive exam coaching (SSC, Banking, UPSC), computer training (CCC, Tally, Web Design), and study cabin facilities. Located in Lamka, Manipur.
 
@@ -17,7 +29,10 @@ IMPORTANT RULES & GUIDELINES:
    - If a cabin is "Free for Monthly Booking", it means it can be booked monthly. If there are any "Booked hourly slots today" listed for it, those specific time slots are occupied and unavailable for other students today until their booking ends. It is only available for hourly bookings during slots that are NOT booked.
    - Always be precise, factual, and clear about which slots/cabins are available or unavailable. Never output contradictory status information.`;
 
-const MAX_CONTEXT_MESSAGES = 18;function getFallbackChatResponse(
+const MAX_CONTEXT_MESSAGES = 18;
+
+function getFallbackChatResponse(
+
   settingsMap?: Record<string, string>,
   departments?: any[],
   batches?: any[],
@@ -79,6 +94,29 @@ const MAX_CONTEXT_MESSAGES = 18;function getFallbackChatResponse(
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting check
+  if (Math.random() < 0.05) {
+    cleanupRateLimitMap();
+  }
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+  const now = Date.now();
+  const limit = 15;
+  const windowMs = 60 * 1000;
+
+  const current = rateLimitMap.get(ip);
+  if (!current || current.resetAt < now) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
+  } else {
+    current.count++;
+    if (current.count > limit) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again in a minute.' },
+        { status: 429 }
+      );
+    }
+  }
+
   let sid = 'default';
   let settingsMap: Record<string, string> = {};
   let departments: any[] = [];

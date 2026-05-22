@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth';
 
 // Helper to verify auth
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+
 
 // GET /api/success-stories - List all success stories ordered by sortOrder
 export async function GET() {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -33,13 +28,13 @@ export async function GET() {
 // POST /api/success-stories - Create a new success story
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { name, exam, quote, result, initials, color, sortOrder, active } = body;
+    const { name, exam, quote, result, initials, gradient, sortOrder, active } = body;
 
     if (!name || !exam || !quote) {
       return NextResponse.json(
@@ -55,11 +50,12 @@ export async function POST(request: Request) {
         quote,
         result: result ?? '',
         initials: initials ?? name.slice(0, 2).toUpperCase(),
-        color: color ?? 'from-cyan-500 to-sky-500',
+        gradient: gradient ?? 'from-cyan-500 to-sky-500',
         sortOrder: sortOrder ?? 0,
         active: active ?? true,
       },
     });
+
 
     return NextResponse.json({ successStory }, { status: 201 });
   } catch (error) {

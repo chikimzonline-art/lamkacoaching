@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth';
 
 // Helper to verify auth
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+
 
 // GET /api/cabins - List all cabins, grouped by floor
 export async function GET() {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -44,7 +39,7 @@ export async function GET() {
 // POST /api/cabins - Create/update/delete cabins
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -87,7 +82,7 @@ export async function POST(request: Request) {
         select: { cabinNum: true },
       });
       let startNum = lastCabinOnFloor ? lastCabinOnFloor.cabinNum + 1 : 1;
-      const cabins = [];
+      const cabins: any[] = [];
       for (let i = 0; i < num; i++) {
         const cabin = await db.cabin.create({
           data: { floor: cabinFloor, cabinNum: startNum + i, status: 'active' },

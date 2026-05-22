@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth';
 
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+
 
 // GET /api/courses
 export async function GET(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
@@ -44,7 +39,7 @@ export async function GET(request: Request) {
 // POST /api/courses
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();

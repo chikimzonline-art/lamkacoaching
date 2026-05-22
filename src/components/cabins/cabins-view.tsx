@@ -102,9 +102,16 @@ function getCabinDisplayState(
   const hourlyBookings = cabin.bookings.filter((b) => b.type === 'hourly' && b.status === 'active');
   if (hourlyBookings.length === 0) return 'available';
 
-  if (isTimeslotFullyCovered(hourlyBookings, opStart, opEnd)) return 'timeslot-full';
+  // Only pass bookings with valid time values to the time-slot checker
+  const timedHourlyBookings = hourlyBookings.filter(
+    (b): b is typeof b & { startTime: string; endTime: string } =>
+      b.startTime !== null && b.endTime !== null
+  );
+
+  if (isTimeslotFullyCovered(timedHourlyBookings, opStart, opEnd)) return 'timeslot-full';
 
   return 'hourly';
+
 }
 
 function getDisplayStyles(state: CabinDisplayState) {

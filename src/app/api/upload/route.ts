@@ -3,21 +3,16 @@ import { cookies } from 'next/headers';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth';
 
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
 
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -96,7 +91,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

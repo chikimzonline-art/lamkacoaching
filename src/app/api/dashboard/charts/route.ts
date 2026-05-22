@@ -12,7 +12,7 @@ export async function GET() {
       select: { createdAt: true },
     });
 
-    const monthlyEnrollments = [];
+    const monthlyEnrollments: any[] = [];
     for (let i = 5; i >= 0; i--) {
       const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
@@ -49,7 +49,7 @@ export async function GET() {
       select: { amount: true, receivedAt: true },
     });
 
-    const revenueTrend = [];
+    const revenueTrend: any[] = [];
     for (let i = 5; i >= 0; i--) {
       const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);

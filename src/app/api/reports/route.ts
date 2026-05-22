@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth';
 
 // Helper to verify auth
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+
 
 export async function GET(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -29,7 +24,10 @@ export async function GET(request: Request) {
 
     // Calculate date range based on period
     const now = new Date();
-    let rangeStart: Date;
+    // Initialize rangeStart with a sensible default (30 days ago); will be overwritten below
+    let rangeStart: Date = new Date(now);
+    rangeStart.setDate(rangeStart.getDate() - 29);
+    rangeStart.setHours(0, 0, 0, 0);
     let rangeEnd: Date = new Date(now);
 
     if (startDate && endDate) {
@@ -63,6 +61,7 @@ export async function GET(request: Request) {
     }
 
     rangeStart.setHours(0, 0, 0, 0);
+
 
     // Fetch all payments in the range (both booking and enrollment)
     const payments = await db.payment.findMany({

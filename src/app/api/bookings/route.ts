@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth';
 
 // Helper to verify auth
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+
 
 // GET /api/bookings - List bookings with filters
 export async function GET(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -80,7 +75,7 @@ export async function GET(request: Request) {
 // POST /api/bookings - Create/update/cancel/renew bookings
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -155,7 +150,7 @@ export async function POST(request: Request) {
         });
 
         // Create payment record if payNow is enabled
-        let payment = null;
+        let payment: any = null;
         if (payNow && bookingPaidAmount > 0) {
           payment = await db.payment.create({
             data: {
@@ -223,7 +218,7 @@ export async function POST(request: Request) {
         });
 
         // Create payment record if payNow is enabled
-        let payment = null;
+        let payment: any = null;
         if (payNow && bookingPaidAmount > 0) {
           payment = await db.payment.create({
             data: {
@@ -352,7 +347,7 @@ export async function POST(request: Request) {
 // PATCH /api/bookings - Approve or reject a pending booking
 export async function PATCH(request: Request) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUser(await cookies());
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
