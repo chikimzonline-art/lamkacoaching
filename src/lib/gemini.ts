@@ -20,9 +20,9 @@ export async function callGeminiAPI(payload: {
   // Gemma models: 1,500 RPD + unlimited TPM (generous free tier)
   // Gemini models: only 20 RPD + 250K TPM (used as last resort)
   const modelsToTry = [
+    'gemini-3.1-flash-lite',
     'gemma-4-31b-it',
     'gemma-4-26b-a4b-it',
-    'gemini-3.1-flash-lite',
   ];
 
   let lastError: any = null;
@@ -81,12 +81,12 @@ export async function callGeminiAPI(payload: {
         }
 
         const data = await response.json();
-        
+
         // Inject the model used in the response so endpoints can trace it if needed
         if (data) {
           data._usedModel = model;
         }
-        
+
         return data;
       } catch (err: any) {
         lastError = err;
