@@ -101,7 +101,7 @@ export default function PublicFooter() {
     fetch('/api/public/settings')
       .then((res) => res.json())
       .then((data) => setSettings(data.settings || {}))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const ctaTitle = settings.footerCtaTitle || 'New Batches Starting Soon!';
@@ -299,7 +299,7 @@ export default function PublicFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
           <p className="text-xs text-gray-500">
-            Made with ❤️ in Lamka
+            Made with ❤️ by Chikimz Online
           </p>
           <p className="text-xs text-gray-500">
             &copy; {new Date().getFullYear()} {name}. All rights reserved.
