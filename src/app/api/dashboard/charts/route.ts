@@ -6,11 +6,31 @@ export async function GET() {
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    // Monthly Enrollments (last 6 months)
-    const enrollments = await db.enrollment.findMany({
-      where: { createdAt: { gte: sixMonthsAgo } },
-      select: { createdAt: true },
-    });
+    const [enrollments, departments, payments] = await Promise.all([
+      // 1. Monthly Enrollments (last 6 months)
+      db.enrollment.findMany({
+        where: { createdAt: { gte: sixMonthsAgo } },
+        select: { createdAt: true },
+      }),
+
+      // 2. Students by Department
+      db.department.findMany({
+        where: { status: 'active' },
+        include: {
+          courses: {
+            where: { status: 'active' },
+            include: { _count: { select: { enrollments: true } } },
+          },
+        },
+      }),
+
+      // 3. Revenue Trend (last 6 months)
+      db.enrollmentPayment.findMany({
+        where: { receivedAt: { gte: sixMonthsAgo } },
+        select: { amount: true, receivedAt: true },
+      }),
+    ]);
+
 
     const monthlyEnrollments: any[] = [];
     for (let i = 5; i >= 0; i--) {
@@ -25,29 +45,12 @@ export async function GET() {
       });
     }
 
-    // Students by Department
-    const departments = await db.department.findMany({
-      where: { status: 'active' },
-      include: {
-        courses: {
-          where: { status: 'active' },
-          include: { _count: { select: { enrollments: true } } },
-        },
-      },
-    });
-
     const COLORS = ['#06b6d4', '#0ea5e9', '#14b8a6', '#38bdf8', '#22d3ee', '#67e8f9'];
     const studentsByDepartment = departments.map((dept, index) => ({
       name: dept.name,
       value: dept.courses.reduce((sum, c) => sum + c._count.enrollments, 0),
       color: COLORS[index % COLORS.length],
     }));
-
-    // Revenue Trend (last 6 months)
-    const payments = await db.enrollmentPayment.findMany({
-      where: { receivedAt: { gte: sixMonthsAgo } },
-      select: { amount: true, receivedAt: true },
-    });
 
     const revenueTrend: any[] = [];
     for (let i = 5; i >= 0; i--) {

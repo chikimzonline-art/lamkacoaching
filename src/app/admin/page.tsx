@@ -479,7 +479,7 @@ function AuthenticatedApp() {
   useEffect(() => {
     const fetchPendingCount = async () => {
       try {
-        const res = await fetch('/api/dashboard');
+        const res = await fetch('/api/dashboard?onlyCount=true');
         if (res.ok) {
           const data = await res.json();
           setPendingCount(data.pendingBookingCount || 0);
