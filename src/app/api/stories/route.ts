@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { revalidateHome } from '@/lib/revalidate';
 
 // GET all success stories (admin)
 export async function GET() {
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
     const story = await db.successStory.create({
       data: { name, exam, quote, result, initials: initials || name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(), gradient: gradient || 'from-cyan-500 to-sky-500', sortOrder: sortOrder || 0, active: active !== undefined ? active : true },
     });
+    revalidateHome();
     return NextResponse.json({ story }, { status: 201 });
   } catch (error) {
     console.error('Error creating story:', error);
@@ -48,6 +50,7 @@ export async function PUT(request: Request) {
       where: { id },
       data,
     });
+    revalidateHome();
     return NextResponse.json({ story });
   } catch (error) {
     console.error('Error updating story:', error);

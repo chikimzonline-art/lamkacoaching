@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidateHome, revalidateCourses } from '@/lib/revalidate';
 
 
 
@@ -42,6 +43,8 @@ export async function POST(request: Request) {
       const department = await db.department.create({
         data: { name: name.trim() },
       });
+      revalidateHome();
+      revalidateCourses();
       return NextResponse.json({ department });
 
     } else if (action === 'update') {
@@ -53,6 +56,8 @@ export async function POST(request: Request) {
           status: status || undefined,
         },
       });
+      revalidateHome();
+      revalidateCourses();
       return NextResponse.json({ department });
 
     } else if (action === 'delete') {
@@ -62,6 +67,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Cannot delete: department has ${courseCount} active course(s)` }, { status: 400 });
       }
       await db.department.delete({ where: { id } });
+      revalidateHome();
+      revalidateCourses();
       return NextResponse.json({ success: true });
     }
 

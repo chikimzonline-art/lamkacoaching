@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { put, del } from '@vercel/blob';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidateAll } from '@/lib/revalidate';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon'];
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
       });
     }
 
+    revalidateAll();
     return NextResponse.json({
       success: true,
       url: publicPath,
@@ -122,6 +124,7 @@ export async function DELETE(request: Request) {
       }
     }
 
+    revalidateAll();
     return NextResponse.json({ success: true, message: 'File removed successfully' });
   } catch (error) {
     console.error('Error removing file:', error);

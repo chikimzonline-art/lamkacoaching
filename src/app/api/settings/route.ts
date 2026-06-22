@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import type { Setting } from '@prisma/client';
+import { revalidateAll } from '@/lib/revalidate';
 
 // Helper to verify auth
 
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
       results.push(result);
     }
 
+    revalidateAll();
     return NextResponse.json({ settings: results });
   } catch (error) {
     console.error('Error updating settings:', error);

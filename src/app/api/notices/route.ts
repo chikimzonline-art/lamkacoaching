@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidateHome, revalidateNotices } from '@/lib/revalidate';
 
 
 
@@ -51,6 +52,8 @@ export async function POST(request: Request) {
           status: status || 'published',
         },
       });
+      revalidateHome();
+      revalidateNotices();
       return NextResponse.json({ notice });
 
     } else if (action === 'update') {
@@ -65,12 +68,16 @@ export async function POST(request: Request) {
           status: status || undefined,
         },
       });
+      revalidateHome();
+      revalidateNotices();
       return NextResponse.json({ notice });
 
     } else if (action === 'delete') {
       if (!id)
         return NextResponse.json({ error: 'ID is required' }, { status: 400 });
       await db.notice.delete({ where: { id } });
+      revalidateHome();
+      revalidateNotices();
       return NextResponse.json({ success: true });
     }
 

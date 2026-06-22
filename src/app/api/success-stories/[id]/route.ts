@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidateHome } from '@/lib/revalidate';
 
 // Helper to verify auth
 
@@ -35,6 +36,7 @@ export async function PUT(
       },
     });
 
+    revalidateHome();
     return NextResponse.json({ successStory });
   } catch (error) {
     console.error('Error updating success story:', error);
@@ -55,6 +57,7 @@ export async function DELETE(
 
     const { id } = await params;
     await db.successStory.delete({ where: { id } });
+    revalidateHome();
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting success story:', error);

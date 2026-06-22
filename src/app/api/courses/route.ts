@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidateHome, revalidateCourses } from '@/lib/revalidate';
 
 
 
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
         },
         include: { department: { select: { id: true, name: true } } },
       });
+      revalidateHome();
+      revalidateCourses();
       return NextResponse.json({ course });
 
     } else if (action === 'update') {
@@ -75,6 +78,8 @@ export async function POST(request: Request) {
         },
         include: { department: { select: { id: true, name: true } } },
       });
+      revalidateHome();
+      revalidateCourses();
       return NextResponse.json({ course });
 
     } else if (action === 'delete') {
@@ -84,6 +89,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Cannot delete: course has ${enrollmentCount} active enrollment(s)` }, { status: 400 });
       }
       await db.course.delete({ where: { id } });
+      revalidateHome();
+      revalidateCourses();
       return NextResponse.json({ success: true });
     }
 

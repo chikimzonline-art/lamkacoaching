@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidateHome } from '@/lib/revalidate';
 
 // Helper to verify auth
 
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       },
     });
 
-
+    revalidateHome();
     return NextResponse.json({ successStory }, { status: 201 });
   } catch (error) {
     console.error('Error creating success story:', error);

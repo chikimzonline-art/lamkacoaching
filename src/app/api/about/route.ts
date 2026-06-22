@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import type { Setting } from '@prisma/client';
+import { revalidateAbout, revalidateHome } from '@/lib/revalidate';
 
 // Helper to verify auth
 
@@ -83,6 +84,8 @@ export async function POST(request: Request) {
         });
         results.push(result);
       }
+      revalidateAbout();
+      revalidateHome();
       return NextResponse.json({ success: true, settings: results });
     }
 
@@ -100,6 +103,7 @@ export async function POST(request: Request) {
             active: data.active ?? true,
           },
         });
+        revalidateAbout();
         return NextResponse.json({ success: true, member });
       }
 
@@ -116,11 +120,13 @@ export async function POST(request: Request) {
             active: data.active,
           },
         });
+        revalidateAbout();
         return NextResponse.json({ success: true, member });
       }
 
       if (action === 'delete') {
         await db.teamMember.delete({ where: { id } });
+        revalidateAbout();
         return NextResponse.json({ success: true });
       }
     }
@@ -135,6 +141,7 @@ export async function POST(request: Request) {
             sortOrder: data.sortOrder ?? 0,
           },
         });
+        revalidateAbout();
         return NextResponse.json({ success: true, milestone });
       }
 
@@ -147,11 +154,13 @@ export async function POST(request: Request) {
             sortOrder: data.sortOrder,
           },
         });
+        revalidateAbout();
         return NextResponse.json({ success: true, milestone });
       }
 
       if (action === 'delete') {
         await db.aboutMilestone.delete({ where: { id } });
+        revalidateAbout();
         return NextResponse.json({ success: true });
       }
     }
@@ -170,6 +179,7 @@ export async function POST(request: Request) {
             active: data.active ?? true,
           },
         });
+        revalidateAbout();
         return NextResponse.json({ success: true, item });
       }
 
@@ -186,11 +196,13 @@ export async function POST(request: Request) {
             active: data.active,
           },
         });
+        revalidateAbout();
         return NextResponse.json({ success: true, item });
       }
 
       if (action === 'delete') {
         await db.campusGalleryItem.delete({ where: { id } });
+        revalidateAbout();
         return NextResponse.json({ success: true });
       }
     }

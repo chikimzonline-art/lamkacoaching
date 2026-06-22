@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidateHome, revalidateCabins } from '@/lib/revalidate';
 
 // Helper to verify auth
 
@@ -69,6 +70,8 @@ export async function POST(request: Request) {
           status: status || 'active',
         },
       });
+      revalidateHome();
+      revalidateCabins();
       return NextResponse.json({ cabin });
 
     } else if (action === 'add-bulk') {
@@ -89,6 +92,8 @@ export async function POST(request: Request) {
         });
         cabins.push(cabin);
       }
+      revalidateHome();
+      revalidateCabins();
       return NextResponse.json({ cabins, count: num, floor: cabinFloor });
 
     } else if (action === 'update') {
@@ -124,6 +129,8 @@ export async function POST(request: Request) {
         where: { id },
         data: updateData,
       });
+      revalidateHome();
+      revalidateCabins();
       return NextResponse.json({ cabin });
 
     } else if (action === 'delete') {
@@ -137,6 +144,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Cannot delete cabin with active bookings' }, { status: 400 });
       }
       await db.cabin.delete({ where: { id } });
+      revalidateHome();
+      revalidateCabins();
       return NextResponse.json({ success: true });
     }
 

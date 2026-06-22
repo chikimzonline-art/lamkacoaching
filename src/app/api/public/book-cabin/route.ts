@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { revalidateCabins } from '@/lib/revalidate';
 
 // POST /api/public/book-cabin - Public: student self-books a cabin
 export async function POST(request: Request) {
@@ -169,6 +170,7 @@ export async function POST(request: Request) {
       },
     });
 
+    revalidateCabins();
     return NextResponse.json({
       success: true,
       message: 'Cabin booking request submitted successfully! We will contact you to confirm your booking.',

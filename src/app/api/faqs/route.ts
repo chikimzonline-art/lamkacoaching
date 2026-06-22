@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
+import { revalidateHome } from '@/lib/revalidate';
 
 export async function GET() {
   try {
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
       },
     });
 
+    revalidateHome();
     return NextResponse.json({ faq }, { status: 201 });
   } catch (error) {
     console.error('Error creating FAQ:', error);
