@@ -1,48 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Quote } from 'lucide-react';
-
-// Fallback data when API is unavailable
-const fallbackStories = [
-  {
-    id: '1',
-    name: 'Amit Kumar',
-    exam: 'SSC CGL 2024',
-    quote: 'The structured approach and regular mock tests helped me stay consistent.',
-    result: 'AIR 347',
-    initials: 'AK',
-    gradient: 'from-cyan-500 to-sky-500',
-  },
-  {
-    id: '2',
-    name: 'Sunita Devi',
-    exam: 'IBPS Clerk 2024',
-    quote: 'From basic concepts to cracking the exam, Lamka Center was my guide.',
-    result: 'Selected',
-    initials: 'SD',
-    gradient: 'from-blue-500 to-indigo-500',
-  },
-  {
-    id: '3',
-    name: 'Rajesh Singh',
-    exam: 'NIELIT CCC',
-    quote: 'Scored 92% in CCC exam. The practical training approach is unmatched.',
-    result: '92% Score',
-    initials: 'RS',
-    gradient: 'from-green-500 to-emerald-500',
-  },
-  {
-    id: '4',
-    name: 'Meera Patel',
-    exam: 'UPSC NDA 2024',
-    quote: 'Disciplined preparation with expert mentorship made all the difference.',
-    result: 'AIR 189',
-    initials: 'MP',
-    gradient: 'from-purple-500 to-violet-500',
-  },
-];
 
 interface SuccessStory {
   id: string;
@@ -52,27 +11,10 @@ interface SuccessStory {
   result: string;
   initials: string;
   gradient: string;
-  sortOrder: number;
-  active: boolean;
 }
 
-export default function SuccessStoriesSection() {
-  const [stories, setStories] = useState<SuccessStory[] | typeof fallbackStories>(fallbackStories);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/api/public/homepage')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.successStories && data.successStories.length > 0) {
-          setStories(data.successStories);
-        }
-      })
-      .catch(() => {
-        // Keep fallback data on error
-      })
-      .finally(() => setLoading(false));
-  }, []);
+export default function SuccessStoriesSection({ initialStories }: { initialStories: SuccessStory[] }) {
+  const stories = initialStories;
 
   return (
     <section className="py-20 sm:py-28 bg-gray-950 dark:bg-gray-900 relative overflow-hidden">
