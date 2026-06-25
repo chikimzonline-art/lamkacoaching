@@ -140,14 +140,14 @@ export default function BookingsView() {
     try {
       const res = await fetch('/api/settings');
       const json = await res.json();
-        if (json.settings) {
-          setShiftMorningRate(Number(json.settings.shift_morning_rate) || 500);
-          setShiftDayRate(Number(json.settings.shift_day_rate) || 800);
-          setShiftNightRate(Number(json.settings.shift_night_rate) || 800);
-          setBookingRegistrationFee(Number(json.settings.booking_registration_fee) || 500);
-          setMonthlyRate(Number(json.settings.monthly_rate) || 3000);
-          setBusinessName(json.settings.business_name || 'Lamka Coaching Center');
-        }
+      if (json.settings) {
+        setShiftMorningRate(Number(json.settings.shift_morning_rate) || 500);
+        setShiftDayRate(Number(json.settings.shift_day_rate) || 800);
+        setShiftNightRate(Number(json.settings.shift_night_rate) || 800);
+        setBookingRegistrationFee(Number(json.settings.booking_registration_fee) || 500);
+        setMonthlyRate(Number(json.settings.monthly_rate) || 3000);
+        setBusinessName(json.settings.business_name || 'Lamka Coaching Center');
+      }
     } catch {
       // ignore
     }
@@ -734,8 +734,8 @@ export default function BookingsView() {
                         {booking.startTime === '05:00'
                           ? 'Morning Shift (5 AM - 10 AM)'
                           : booking.startTime === '10:00'
-                          ? 'Day Shift (10 AM - 5 PM)'
-                          : 'Night Shift (5 PM - 12 AM)'}
+                            ? 'Day Shift (10 AM - 5 PM)'
+                            : 'Night Shift (5 PM - 12 AM)'}
                       </p>
                     ) : (
                       <p className="text-sm text-gray-500">
@@ -885,8 +885,8 @@ export default function BookingsView() {
                     i === stepIndex
                       ? 'bg-cyan-600 text-white'
                       : i < stepIndex
-                      ? 'bg-cyan-100 text-cyan-700 cursor-pointer'
-                      : 'bg-gray-100 text-gray-400'
+                        ? 'bg-cyan-100 text-cyan-700 cursor-pointer'
+                        : 'bg-gray-100 text-gray-400'
                   )}
                 >
                   {i + 1}
@@ -919,7 +919,7 @@ export default function BookingsView() {
                       : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
-                  <p className="font-semibold text-gray-900">Reserved Reservation</p>
+                  <p className="font-semibold text-gray-900">Reserved Cabin</p>
                   <p className="text-sm text-gray-500 mt-1">Reserve a cabin exclusively (Full-Day) for ₹{monthlyRate}/month</p>
                 </button>
 
@@ -1127,8 +1127,8 @@ export default function BookingsView() {
                         {wizardShift === 'morning'
                           ? 'Morning Shift (5 AM - 10 AM)'
                           : wizardShift === 'day'
-                          ? 'Day Shift (10 AM - 05:00 PM)'
-                          : 'Night Shift (05:00 PM - 12:00 AM)'} &bull; Auto-renewable
+                            ? 'Day Shift (10 AM - 05:00 PM)'
+                            : 'Night Shift (05:00 PM - 12:00 AM)'} &bull; Auto-renewable
                       </p>
                     </div>
                     <p className="text-sm text-gray-500">
@@ -1240,8 +1240,8 @@ export default function BookingsView() {
                         {wizardShift === 'morning'
                           ? 'Morning Shift (5 AM - 10 AM)'
                           : wizardShift === 'day'
-                          ? 'Day Shift (10 AM - 5 PM)'
-                          : 'Night Shift (5 PM - 12 AM)'}
+                            ? 'Day Shift (10 AM - 5 PM)'
+                            : 'Night Shift (5 PM - 12 AM)'}
                       </span>
                     </div>
                   ) : (
