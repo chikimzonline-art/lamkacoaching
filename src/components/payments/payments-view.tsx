@@ -249,7 +249,7 @@ export default function PaymentsView() {
           studentId: b.student.id,
           studentName: b.student.name,
           studentPhone: b.student.phone,
-          type: b.type === 'hourly' ? 'Hourly Cabin' : 'Exclusive Cabin',
+          type: b.type === 'shift' ? 'Shift Cabin' : 'Reserved Cabin',
           cabinNum: b.cabin.cabinNum,
           totalAmount: b.totalAmount,
           paidAmount: b.paidAmount,
@@ -443,7 +443,7 @@ export default function PaymentsView() {
     if (payment.type === 'booking' && payment.booking) {
       const booking = payment.booking;
       const period =
-        booking.type === 'hourly'
+        booking.type === 'shift'
           ? formatDate(payment.receivedAt)
           : formatDate(payment.receivedAt);
 

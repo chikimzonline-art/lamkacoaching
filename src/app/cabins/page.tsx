@@ -29,8 +29,8 @@ export default async function CabinsPage() {
   // Compute availability status for each cabin
   const now = new Date();
   const cabinsWithAvailability = cabins.map((cabin) => {
-    const activeExclusive = cabin.bookings.find((b) => {
-      if (b.type !== 'exclusive') return false;
+    const activeReserved = cabin.bookings.find((b) => {
+      if (b.type !== 'reserved') return false;
       const startLimit = new Date(b.startDate);
       startLimit.setHours(0, 0, 0, 0);
       if (startLimit > now) return false;
@@ -42,8 +42,8 @@ export default async function CabinsPage() {
 
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
-    const todayHourlyBookings = cabin.bookings.filter((b) => {
-      if (b.type !== 'hourly') return false;
+    const todayShiftBookings = cabin.bookings.filter((b) => {
+      if (b.type !== 'shift') return false;
       const startLimit = new Date(b.startDate);
       startLimit.setHours(0, 0, 0, 0);
       if (startLimit > now) return false;
@@ -61,8 +61,8 @@ export default async function CabinsPage() {
       floor: cabin.floor,
       cabinNum: cabin.cabinNum,
       notes: cabin.notes,
-      isOccupied: !!activeExclusive,
-      hourlyBookingsToday: todayHourlyBookings.map((b) => ({
+      isOccupied: !!activeReserved,
+      shiftBookingsToday: todayShiftBookings.map((b) => ({
         startTime: b.startTime || '',
         endTime: b.endTime || '',
       })),
@@ -79,19 +79,28 @@ export default async function CabinsPage() {
   }));
 
   // Get pricing from settings
-  const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
+  const morningRateSetting = await db.setting.findUnique({ where: { key: 'shift_morning_rate' } });
+  const dayRateSetting = await db.setting.findUnique({ where: { key: 'shift_day_rate' } });
+  const nightRateSetting = await db.setting.findUnique({ where: { key: 'shift_night_rate' } });
   const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
+  const regFeeSetting = await db.setting.findUnique({ where: { key: 'booking_registration_fee' } });
 
-  const hourlyMonthlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 1000;
+  const morningRate = morningRateSetting ? parseInt(morningRateSetting.value, 10) : 500;
+  const dayRate = dayRateSetting ? parseInt(dayRateSetting.value, 10) : 800;
+  const nightRate = nightRateSetting ? parseInt(nightRateSetting.value, 10) : 800;
   const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) : 3000;
+  const regFee = regFeeSetting ? parseInt(regFeeSetting.value, 10) : 500;
 
   const cabinData = {
     cabins: cabinsWithAvailability,
     cabinsByFloor,
     floors,
     pricing: {
-      hourlyMonthlyRate,
+      morningRate,
+      dayRate,
+      nightRate,
       monthlyRate,
+      regFee,
     },
     totalCabins: cabins.length,
     availableCabins: cabinsWithAvailability.filter((c) => !c.isOccupied).length,

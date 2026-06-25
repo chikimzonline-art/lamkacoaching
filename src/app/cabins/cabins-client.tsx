@@ -29,7 +29,7 @@ interface CabinInfo {
   cabinNum: number;
   notes: string | null;
   isOccupied: boolean;
-  hourlyBookingsToday: { startTime: string; endTime: string }[];
+  shiftBookingsToday: { startTime: string; endTime: string }[];
   activeBookingsCount: number;
 }
 
@@ -44,8 +44,11 @@ interface CabinData {
   cabinsByFloor: FloorGroup[];
   floors: number[];
   pricing: {
-    hourlyMonthlyRate: number;
+    morningRate: number;
+    dayRate: number;
+    nightRate: number;
     monthlyRate: number;
+    regFee: number;
   };
   totalCabins: number;
   availableCabins: number;
@@ -64,7 +67,8 @@ function formatFloorLabel(floor: number): string {
 export default function CabinsClient({ initialCabinData }: { initialCabinData: CabinData }) {
   const data = initialCabinData;
   const [selectedCabin, setSelectedCabin] = useState<string | null>(null);
-  const [bookingType, setBookingType] = useState<'hourly' | 'monthly'>('monthly');
+  const [bookingType, setBookingType] = useState<'shift' | 'reserved'>('reserved');
+  const [selectedShift, setSelectedShift] = useState<'morning' | 'day' | 'night'>('morning');
   const [activeFloor, setActiveFloor] = useState<number | 'all'>('all');
 
   // Form fields
@@ -87,12 +91,21 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
     ? (data?.cabins || [])
     : (data?.cabins.filter((c) => c.floor === activeFloor) || []);
 
-  // Calculate estimated amount
-  let estimatedAmount = 0;
-  if (data && bookingType === 'hourly') {
-    estimatedAmount = data.pricing.hourlyMonthlyRate * 100;
-  } else if (data && bookingType === 'monthly') {
-    estimatedAmount = data.pricing.monthlyRate * 100;
+  // Pricing constants and calculations
+  const regFeeVal = data?.pricing.regFee || 500;
+  let baseRateVal = 0;
+  if (data) {
+    if (bookingType === 'reserved') {
+      baseRateVal = data.pricing.monthlyRate;
+    } else {
+      if (selectedShift === 'morning') {
+        baseRateVal = data.pricing.morningRate;
+      } else if (selectedShift === 'day') {
+        baseRateVal = data.pricing.dayRate;
+      } else {
+        baseRateVal = data.pricing.nightRate;
+      }
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -101,6 +114,13 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
     setSubmitting(true);
 
     try {
+      const startTimeVal = bookingType === 'shift'
+        ? (selectedShift === 'morning' ? '05:00' : selectedShift === 'day' ? '10:00' : '17:00')
+        : undefined;
+      const endTimeVal = bookingType === 'shift'
+        ? (selectedShift === 'morning' ? '10:00' : selectedShift === 'day' ? '17:00' : '00:00')
+        : undefined;
+
       const res = await fetch('/api/public/book-cabin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,6 +132,8 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
           cabinId: selectedCabin,
           bookingType,
           startDate,
+          startTime: startTimeVal,
+          endTime: endTimeVal,
         }),
       });
 
@@ -186,7 +208,7 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
             <h1 className="text-3xl sm:text-4xl font-bold text-white">Study Cabin Booking</h1>
           </div>
           <p className="mt-2 text-lg max-w-xl mx-auto text-white/80">
-            Book a quiet, comfortable study space — hourly (5 hrs/day) or full-day monthly
+            Book a quiet, comfortable study space — Reserved (Full Day) or Shift bookings
           </p>
           {data && (
             <div className="mt-4 flex items-center justify-center gap-4 text-sm text-white/60">
@@ -208,18 +230,42 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Pricing overview */}
           {data && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-              <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
-                <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Hourly Booking</h3>
-                <p className="text-3xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.hourlyMonthlyRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span></p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">5 hours/day &bull; 1 month duration</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-6 flex flex-col justify-between">
+                <div>
+                  <CalendarDays className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mb-2" />
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Reserved Booking</h3>
+                  <p className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">₹{data.pricing.monthlyRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span></p>
+                  <p className="text-sm text-gray-550 dark:text-gray-400 mt-2 leading-relaxed">
+                    Get full-day exclusive access to your assigned cabin. Perfect for dedicated students seeking a permanent setup.
+                  </p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-emerald-100 dark:border-emerald-900/20 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+                  + ₹{data.pricing.regFee} One-time Registration Fee
+                </div>
               </div>
-              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-6 text-center">
-                <CalendarDays className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Monthly Booking</h3>
-                <p className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">₹{data.pricing.monthlyRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span></p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Full-day access, best value for regular students</p>
+              <div className="bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-100 dark:border-cyan-900/30 rounded-2xl p-6 flex flex-col justify-between">
+                <div>
+                  <Clock className="h-6 w-6 text-cyan-600 dark:text-cyan-400 mb-2" />
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Shift Bookings</h3>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Morning Shift <span className="font-normal text-xs text-gray-500">(5:00 AM - 10:00 AM)</span></span>
+                      <span className="font-bold text-cyan-700 dark:text-cyan-400">₹{data.pricing.morningRate}/mo</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Day Shift <span className="font-normal text-xs text-gray-500">(10:00 AM - 5:00 PM)</span></span>
+                      <span className="font-bold text-cyan-700 dark:text-cyan-400">₹{data.pricing.dayRate}/mo</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Night Shift <span className="font-normal text-xs text-gray-500">(5:00 PM - 12:00 AM)</span></span>
+                      <span className="font-bold text-cyan-700 dark:text-cyan-400">₹{data.pricing.nightRate}/mo</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-cyan-100 dark:border-cyan-900/20 text-xs text-cyan-700 dark:text-cyan-400 font-medium">
+                  + ₹{data.pricing.regFee} One-time Registration Fee
+                </div>
               </div>
             </div>
           )}
@@ -360,36 +406,86 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
                     <div className="flex rounded-xl bg-gray-100 dark:bg-gray-700 p-1 gap-1">
                       <button
                         type="button"
-                        onClick={() => setBookingType('monthly')}
+                        onClick={() => setBookingType('reserved')}
                         className={cn(
                           'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
-                          bookingType === 'monthly'
+                          bookingType === 'reserved'
                             ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                         )}
                       >
                         <CalendarDays className="h-4 w-4" />
-                        Monthly
+                        Reserved
                       </button>
                       <button
                         type="button"
-                        onClick={() => setBookingType('hourly')}
+                        onClick={() => setBookingType('shift')}
                         className={cn(
                           'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
-                          bookingType === 'hourly'
+                          bookingType === 'shift'
                             ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                         )}
                       >
                         <Clock className="h-4 w-4" />
-                        Hourly
+                        Shift
                       </button>
                     </div>
                   </div>
 
+                  {/* Shift Selection (only visible if bookingType is shift) */}
+                  {bookingType === 'shift' && (
+                    <div className="mb-6">
+                      <Label className="mb-2 block font-semibold text-gray-700 dark:text-gray-300">Select Shift *</Label>
+                      <div className="grid grid-cols-1 gap-2">
+                        {[
+                          {
+                            id: 'morning',
+                            name: 'Morning Shift',
+                            time: '5:00 AM - 10:00 AM (5 hrs/day)',
+                            rate: data.pricing.morningRate,
+                          },
+                          {
+                            id: 'day',
+                            name: 'Day Shift',
+                            time: '10:00 AM - 5:00 PM (7 hrs/day)',
+                            rate: data.pricing.dayRate,
+                          },
+                          {
+                            id: 'night',
+                            name: 'Night Shift',
+                            time: '5:00 PM - 12:00 AM (7 hrs/day)',
+                            rate: data.pricing.nightRate,
+                          },
+                        ].map((shift) => (
+                          <button
+                            key={shift.id}
+                            type="button"
+                            onClick={() => setSelectedShift(shift.id as 'morning' | 'day' | 'night')}
+                            className={cn(
+                              'w-full flex items-center justify-between p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer',
+                              selectedShift === shift.id
+                                ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20 text-green-900 dark:text-green-300 font-semibold'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
+                            )}
+                          >
+                            <div>
+                              <p className="text-sm font-bold">{shift.name}</p>
+                              <p className="text-xs text-gray-550 dark:text-gray-400 mt-0.5">{shift.time}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-extrabold text-green-600 dark:text-green-400">₹{shift.rate}</p>
+                              <p className="text-[10px] text-gray-400">/month</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Date & Time */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                    {bookingType === 'monthly' ? (
+                    {bookingType === 'reserved' ? (
                       <>
                         <div>
                           <Label htmlFor="startDate" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</Label>
@@ -406,7 +502,7 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
                         <div>
                           <Label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Duration</Label>
                           <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300">
-                            1 Month (auto-renewable)
+                            1 Month (exclusive access, auto-renewable)
                           </div>
                         </div>
                       </>
@@ -427,7 +523,7 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
                         <div>
                           <Label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Duration</Label>
                           <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300">
-                            1 Month (5 hrs/day, auto-renewable)
+                            1 Month ({selectedShift === 'morning' ? 'Morning' : selectedShift === 'day' ? 'Day' : 'Night'} Shift, auto-renewable)
                           </div>
                         </div>
                       </>
@@ -485,16 +581,22 @@ export default function CabinsClient({ initialCabinData }: { initialCabinData: C
                     </div>
                   </div>
 
-                  {/* Estimated Cost */}
-                  {estimatedAmount > 0 && (
-                    <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-xl p-4 mb-5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Estimated Amount</span>
-                        <span className="text-xl font-bold text-green-700 dark:text-green-400">{formatCurrency(estimatedAmount)}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Payment to be made at the center upon confirmation</p>
+                  {/* Estimated Cost Breakdown */}
+                  <div className="bg-green-50/50 dark:bg-green-950/20 border border-green-100 dark:border-green-900/20 rounded-xl p-4 mb-5 space-y-2">
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                      <span>Monthly Fee ({bookingType === 'reserved' ? 'Reserved' : `${selectedShift === 'morning' ? 'Morning' : selectedShift === 'day' ? 'Day' : 'Night'} Shift`})</span>
+                      <span className="font-semibold">{formatCurrency(baseRateVal * 100)}</span>
                     </div>
-                  )}
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                      <span>Registration Fee (One-time)</span>
+                      <span className="font-semibold">{formatCurrency(regFeeVal * 100)}</span>
+                    </div>
+                    <div className="border-t border-green-200 dark:border-green-900/40 my-2 pt-2 flex items-center justify-between text-base">
+                      <span className="font-bold text-gray-900 dark:text-gray-100">Total Amount</span>
+                      <span className="text-xl font-extrabold text-green-700 dark:text-green-400">{formatCurrency((baseRateVal + regFeeVal) * 100)}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center mt-1">Payment to be made at the center upon confirmation</p>
+                  </div>
 
                   {/* Error */}
                   {error && (
@@ -602,13 +704,13 @@ function CabinListItem({ cabin, isSelected, showFloorLabel, onSelect }: {
           {cabin.isOccupied ? 'Occupied' : 'Available'}
         </Badge>
       </div>
-      {!cabin.isOccupied && cabin.hourlyBookingsToday.length > 0 && (
+      {!cabin.isOccupied && cabin.shiftBookingsToday && cabin.shiftBookingsToday.length > 0 && (
         <div className="mt-2 pt-2 border-t border-green-100 dark:border-green-900/30">
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Booked hours today:</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Booked shifts today:</p>
           <div className="flex flex-wrap gap-1">
-            {cabin.hourlyBookingsToday.map((h, i) => (
+            {cabin.shiftBookingsToday.map((h, i) => (
               <span key={i} className="text-[10px] bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 px-1.5 py-0.5 rounded">
-                {h.startTime} - {h.endTime}
+                {h.startTime === '05:00' ? 'Morning' : h.startTime === '10:00' ? 'Day' : 'Night'} ({h.startTime} - {h.endTime === '00:00' ? '12 AM' : h.endTime})
               </span>
             ))}
           </div>

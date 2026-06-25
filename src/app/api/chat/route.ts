@@ -72,17 +72,17 @@ function getFallbackChatResponse(
 
   if (cabinDetailsList && cabinDetailsList.length > 0) {
     resp += `🏢 **Study Cabins & Availability:**\n`;
-    resp += `- Monthly Rate: ₹${settingsMap?.['monthly_rate'] || '3000'} | Hourly Rate: ₹${settingsMap?.['hourly_rate'] || '1000'}/hr\n`;
+    resp += `- Reserved Monthly Rate: ₹${settingsMap?.['monthly_rate'] || '3000'} | Shifts: Morning (5am-10am): ₹${settingsMap?.['shift_morning_rate'] || '500'}, Day (10am-5pm): ₹${settingsMap?.['shift_day_rate'] || '800'}, Night (5pm-12am): ₹${settingsMap?.['shift_night_rate'] || '800'} | Registration Fee: ₹${settingsMap?.['booking_registration_fee'] || '500'}\n`;
     cabinDetailsList.forEach((c: any) => {
       const floorStr = c.floor === 1 ? '1st' : c.floor === 2 ? '2nd' : c.floor === 3 ? '3rd' : `${c.floor}th`;
       let statusStr = '';
-      if (c.isOccupiedExclusive) {
-        statusStr = 'Occupied (Exclusive Booked today)';
+      if (c.isOccupiedReserved) {
+        statusStr = 'Occupied (Reserved today)';
       } else {
-        const hourlyStatus = c.hourlySlotsBookedToday && c.hourlySlotsBookedToday.length > 0
-          ? `Booked hourly slots: ${c.hourlySlotsBookedToday.join(', ')}`
-          : 'No hourly slots booked today';
-        statusStr = `Available monthly | ${hourlyStatus}`;
+        const shiftStatus = c.shiftsBookedToday && c.shiftsBookedToday.length > 0
+          ? `Booked shifts: ${c.shiftsBookedToday.join(', ')}`
+          : 'No shifts booked today';
+        statusStr = `Available for Reserved | ${shiftStatus}`;
       }
       resp += `- Cabin ${c.cabinNum} (${floorStr} Floor): ${statusStr}\n`;
     });
@@ -165,7 +165,10 @@ export async function POST(request: NextRequest) {
             'business_email',
             'business_address',
             'business_description',
-            'hourly_rate',
+            'shift_morning_rate',
+            'shift_day_rate',
+            'shift_night_rate',
+            'booking_registration_fee',
             'monthly_rate',
           ],
         },
@@ -210,8 +213,8 @@ export async function POST(request: NextRequest) {
     todayStart.setHours(0, 0, 0, 0);
 
     cabinDetailsList = cabins.map((c) => {
-      const activeExclusive = c.bookings.find((b) => {
-        if (b.type !== 'exclusive') return false;
+      const activeReserved = c.bookings.find((b) => {
+        if (b.type !== 'reserved') return false;
         const startLimit = new Date(b.startDate);
         startLimit.setHours(0, 0, 0, 0);
         if (startLimit > now) return false;
@@ -220,8 +223,8 @@ export async function POST(request: NextRequest) {
         endLimit.setHours(23, 59, 59, 999);
         return endLimit >= now;
       });
-      const todayHourly = c.bookings.filter((b) => {
-        if (b.type !== 'hourly') return false;
+      const todayShift = c.bookings.filter((b) => {
+        if (b.type !== 'shift') return false;
         const startLimit = new Date(b.startDate);
         startLimit.setHours(0, 0, 0, 0);
         if (startLimit > now) return false;
@@ -236,8 +239,8 @@ export async function POST(request: NextRequest) {
       return {
         cabinNum: c.cabinNum,
         floor: c.floor,
-        isOccupiedExclusive: !!activeExclusive,
-        hourlySlotsBookedToday: todayHourly.map((b) => `${b.startTime} to ${b.endTime}`),
+        isOccupiedReserved: !!activeReserved,
+        shiftsBookedToday: todayShift.map((b) => `${b.startTime} to ${b.endTime}`),
       };
     });
 
@@ -271,7 +274,7 @@ export async function POST(request: NextRequest) {
     }
 
     dynamicPromptInfo += `\n#### Study Cabin Facilities & Availability:\n`;
-    dynamicPromptInfo += `- **Pricing:** Monthly Exclusive Rate: ₹${settingsMap['monthly_rate'] || '3000'} | Hourly Slot Rate: ₹${settingsMap['hourly_rate'] || '1000'}/hour.\n`;
+    dynamicPromptInfo += `- **Pricing:** Monthly Reserved Rate: ₹${settingsMap['monthly_rate'] || '3000'} | Shifts: Morning (5am-10am): ₹${settingsMap['shift_morning_rate'] || '500'}, Day (10am-5pm): ₹${settingsMap['shift_day_rate'] || '800'}, Night (5pm-12am): ₹${settingsMap['shift_night_rate'] || '800'} | Registration Fee: ₹${settingsMap['booking_registration_fee'] || '500'} for all bookings.\n`;
     dynamicPromptInfo += `- **Available Cabins:**\n`;
     if (cabinDetailsList.length === 0) {
       dynamicPromptInfo += `- No study cabins are active currently.\n`;
@@ -279,13 +282,13 @@ export async function POST(request: NextRequest) {
       cabinDetailsList.forEach((c) => {
         const floorStr = c.floor === 1 ? '1st' : c.floor === 2 ? '2nd' : c.floor === 3 ? '3rd' : `${c.floor}th`;
         let statusStr = '';
-        if (c.isOccupiedExclusive) {
-          statusStr = 'Occupied (Exclusive Booked - strictly not available for any monthly or hourly bookings today)';
+        if (c.isOccupiedReserved) {
+          statusStr = 'Occupied (Reserved - strictly not available for any bookings today)';
         } else {
-          const hourlyStatus = c.hourlySlotsBookedToday.length > 0
-            ? `Booked hourly slots today: ${c.hourlySlotsBookedToday.join(', ')}`
-            : 'No hourly slots booked today (Available for hourly bookings)';
-          statusStr = `Free for Monthly Booking | ${hourlyStatus}`;
+          const shiftStatus = c.shiftsBookedToday.length > 0
+            ? `Booked shifts today: ${c.shiftsBookedToday.join(', ')}`
+            : 'No shifts booked today (All shifts available)';
+          statusStr = `Free for Reserved Booking | ${shiftStatus}`;
         }
         dynamicPromptInfo += `- **Cabin ${c.cabinNum}** (${floorStr} Floor): ${statusStr}\n`;
       });

@@ -86,7 +86,8 @@ export default function BookingsView() {
   // New booking wizard
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState<StepType>('type');
-  const [wizardType, setWizardType] = useState<'hourly' | 'exclusive'>('hourly');
+  const [wizardType, setWizardType] = useState<'shift' | 'reserved'>('shift');
+  const [wizardShift, setWizardShift] = useState<'morning' | 'day' | 'night'>('morning');
   const [wizardStudentId, setWizardStudentId] = useState('');
   const [wizardStudentSearch, setWizardStudentSearch] = useState('');
   const [wizardCabinId, setWizardCabinId] = useState('');
@@ -122,7 +123,10 @@ export default function BookingsView() {
   const [wizardPayMode, setWizardPayMode] = useState<'cash' | 'upi'>('cash');
 
   // Settings for rate calculation
-  const [hourlyRate, setHourlyRate] = useState(1000);
+  const [shiftMorningRate, setShiftMorningRate] = useState(500);
+  const [shiftDayRate, setShiftDayRate] = useState(800);
+  const [shiftNightRate, setShiftNightRate] = useState(800);
+  const [bookingRegistrationFee, setBookingRegistrationFee] = useState(500);
   const [monthlyRate, setMonthlyRate] = useState(3000);
 
   // Business name for receipts
@@ -136,11 +140,14 @@ export default function BookingsView() {
     try {
       const res = await fetch('/api/settings');
       const json = await res.json();
-      if (json.settings) {
-        setHourlyRate(Number(json.settings.hourly_rate) || 1000);
-        setMonthlyRate(Number(json.settings.monthly_rate) || 3000);
-        setBusinessName(json.settings.business_name || 'Lamka Coaching Center');
-      }
+        if (json.settings) {
+          setShiftMorningRate(Number(json.settings.shift_morning_rate) || 500);
+          setShiftDayRate(Number(json.settings.shift_day_rate) || 800);
+          setShiftNightRate(Number(json.settings.shift_night_rate) || 800);
+          setBookingRegistrationFee(Number(json.settings.booking_registration_fee) || 500);
+          setMonthlyRate(Number(json.settings.monthly_rate) || 3000);
+          setBusinessName(json.settings.business_name || 'Lamka Coaching Center');
+        }
     } catch {
       // ignore
     }
@@ -217,27 +224,28 @@ export default function BookingsView() {
   // Auto-calculate amount when details change
   useEffect(() => {
     if (step === 'details') {
-      if (wizardType === 'hourly') {
-        // Hourly booking = monthly fee (5 hrs/day, 1 month)
-        setWizardAmount(String(hourlyRate));
-      } else if (wizardType === 'exclusive' && wizardEndDate) {
+      if (wizardType === 'shift') {
+        let baseRate = shiftDayRate;
+        if (wizardShift === 'morning') baseRate = shiftMorningRate;
+        else if (wizardShift === 'night') baseRate = shiftNightRate;
+        setWizardAmount(String(baseRate + bookingRegistrationFee));
+      } else if (wizardType === 'reserved' && wizardEndDate) {
         const months = calculateMonths(wizardDate, wizardEndDate);
-        const amount = months * monthlyRate;
+        const amount = (months * monthlyRate) + bookingRegistrationFee;
         setWizardAmount(String(amount));
       }
     }
-  }, [step, wizardType, wizardDate, wizardEndDate, hourlyRate, monthlyRate]);
+  }, [step, wizardType, wizardShift, wizardDate, wizardEndDate, shiftMorningRate, shiftDayRate, shiftNightRate, bookingRegistrationFee, monthlyRate]);
 
-  // Auto-set end date to 1 month from start date when start date changes (exclusive bookings)
+  // Auto-set end date when start date changes
   useEffect(() => {
-    if (wizardType === 'exclusive') {
-      setWizardEndDate(addMonths(wizardDate, 1));
-    }
+    setWizardEndDate(addMonths(wizardDate, 1));
   }, [wizardDate, wizardType]);
 
   const resetWizard = () => {
     setStep('type');
-    setWizardType('hourly');
+    setWizardType('shift');
+    setWizardShift('morning');
     setWizardStudentId('');
     setWizardStudentSearch('');
     setWizardCabinId('');
@@ -278,11 +286,19 @@ export default function BookingsView() {
         body.payMode = wizardPayMode;
       }
 
-      if (wizardType === 'hourly') {
+      if (wizardType === 'shift') {
         body.startDate = wizardDate.toISOString().split('T')[0];
-        body.startTime = '09:00';
-        body.endTime = '14:00';
         body.endDate = addMonths(wizardDate, 1).toISOString().split('T')[0];
+        if (wizardShift === 'morning') {
+          body.startTime = '05:00';
+          body.endTime = '10:00';
+        } else if (wizardShift === 'day') {
+          body.startTime = '10:00';
+          body.endTime = '17:00';
+        } else if (wizardShift === 'night') {
+          body.startTime = '17:00';
+          body.endTime = '00:00';
+        }
       } else {
         body.startDate = wizardDate.toISOString().split('T')[0];
         if (wizardEndDate) body.endDate = wizardEndDate.toISOString().split('T')[0];
@@ -406,8 +422,13 @@ export default function BookingsView() {
   };
 
   const handleRenewBooking = async (booking: Booking) => {
-    const rate = booking.type === 'hourly' ? hourlyRate : monthlyRate;
-    const typeLabel = booking.type === 'hourly' ? 'hourly' : 'exclusive';
+    let rate = monthlyRate;
+    if (booking.type === 'shift') {
+      if (booking.startTime === '05:00') rate = shiftMorningRate;
+      else if (booking.startTime === '10:00') rate = shiftDayRate;
+      else if (booking.startTime === '17:00') rate = shiftNightRate;
+    }
+    const typeLabel = booking.type === 'shift' ? 'shift' : 'reserved';
     if (!confirm(`Renew ${typeLabel} booking for ${booking.student.name} (Cabin #${booking.cabin.cabinNum}) by 1 month?\n\nAdditional cost: ${formatCurrency(rate * 100)}`)) return;
     try {
       const res = await fetch('/api/bookings', {
@@ -428,9 +449,13 @@ export default function BookingsView() {
   };
 
   const openReceipt = (booking: Booking, payment: { amount: number; mode: string; receivedAt: string }) => {
-    const period = booking.type === 'hourly'
-      ? `${formatDate(booking.startDate)}${booking.endDate ? ` - ${formatDate(booking.endDate)}` : ''} (5 hrs/day)`
-      : `${formatDate(booking.startDate)} - ${booking.endDate ? formatDate(booking.endDate) : 'Ongoing'}`;
+    let period = `${formatDate(booking.startDate)} - ${booking.endDate ? formatDate(booking.endDate) : 'Ongoing'}`;
+    if (booking.type === 'shift') {
+      let shiftLabel = 'Morning Shift';
+      if (booking.startTime === '10:00') shiftLabel = 'Day Shift';
+      else if (booking.startTime === '17:00') shiftLabel = 'Night Shift';
+      period = `${formatDate(booking.startDate)}${booking.endDate ? ` - ${formatDate(booking.endDate)}` : ''} (${shiftLabel})`;
+    }
 
     setReceiptData({
       receiptNo: payment.receivedAt.slice(0, 10).replace(/-/g, '').toUpperCase(),
@@ -519,9 +544,37 @@ export default function BookingsView() {
 
   const availableCabins = cabinOptions.filter((c) => {
     if (c.status !== 'active') return false;
-    return !bookings.some(
-      (b) => b.cabin.id === c.id && b.status === 'active' && b.type === 'exclusive'
-    );
+
+    const bookingDate = wizardDate;
+    const bookingEndDate = wizardEndDate || addMonths(bookingDate, 1);
+
+    return !bookings.some((b) => {
+      if (b.cabin.id !== c.id || b.status !== 'active') return false;
+
+      const bStart = new Date(b.startDate);
+      const bEnd = b.endDate ? new Date(b.endDate) : null;
+
+      const dateOverlap = bStart <= bookingEndDate && (bEnd === null || bEnd >= bookingDate);
+      if (!dateOverlap) return false;
+
+      if (b.type === 'reserved') return true;
+      if (wizardType === 'reserved') return true;
+
+      if (wizardType === 'shift' && b.type === 'shift') {
+        let currentStartTime = '05:00';
+        let currentEndTime = '10:00';
+        if (wizardShift === 'day') {
+          currentStartTime = '10:00';
+          currentEndTime = '17:00';
+        } else if (wizardShift === 'night') {
+          currentStartTime = '17:00';
+          currentEndTime = '00:00';
+        }
+        return b.startTime === currentStartTime && b.endTime === currentEndTime;
+      }
+
+      return false;
+    });
   });
 
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -559,8 +612,8 @@ export default function BookingsView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="hourly">Hourly</SelectItem>
-              <SelectItem value="exclusive">Exclusive</SelectItem>
+              <SelectItem value="shift">Shift</SelectItem>
+              <SelectItem value="reserved">Reserved</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -642,10 +695,10 @@ export default function BookingsView() {
                       <Badge
                         variant="outline"
                         className={cn(
-                          'text-xs',
-                          booking.type === 'exclusive'
+                          'text-xs capitalize',
+                          booking.type === 'reserved'
                             ? 'bg-sky-100 text-sky-800 border-sky-200'
-                            : 'bg-sky-100 text-sky-800 border-sky-200'
+                            : 'bg-teal-100 text-teal-800 border-teal-200'
                         )}
                       >
                         {booking.type}
@@ -674,10 +727,15 @@ export default function BookingsView() {
                     <p className="text-sm text-gray-500">
                       Cabin #{booking.cabin.cabinNum} &bull; {booking.student.phone}
                     </p>
-                    {booking.type === 'hourly' ? (
+                    {booking.type === 'shift' ? (
                       <p className="text-sm text-gray-500">
                         {formatDate(booking.startDate)}
-                        {booking.endDate ? ` - ${formatDate(booking.endDate)}` : ''} &bull; 5 hrs/day
+                        {booking.endDate ? ` - ${formatDate(booking.endDate)}` : ''} &bull;{' '}
+                        {booking.startTime === '05:00'
+                          ? 'Morning Shift (5 AM - 10 AM)'
+                          : booking.startTime === '10:00'
+                          ? 'Day Shift (10 AM - 5 PM)'
+                          : 'Night Shift (5 PM - 12 AM)'}
                       </p>
                     ) : (
                       <p className="text-sm text-gray-500">
@@ -745,7 +803,7 @@ export default function BookingsView() {
                           Record Payment
                         </Button>
                       )}
-                      {(booking.type === 'exclusive' || booking.type === 'hourly') && (
+                      {(booking.type === 'reserved' || booking.type === 'shift') && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -851,29 +909,72 @@ export default function BookingsView() {
               <div className="space-y-3">
                 <p className="text-sm text-gray-500 mb-4">Select the type of booking</p>
                 <button
-                  onClick={() => setWizardType('hourly')}
+                  onClick={() => {
+                    setWizardType('reserved');
+                  }}
                   className={cn(
                     'w-full p-4 rounded-xl border-2 text-left transition-all',
-                    wizardType === 'hourly'
+                    wizardType === 'reserved'
                       ? 'border-cyan-500 bg-cyan-50'
                       : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
-                  <p className="font-semibold text-gray-900">Hourly Booking</p>
-                  <p className="text-sm text-gray-500 mt-1">5 hrs/day, 1 month duration (₹{hourlyRate}/month)</p>
+                  <p className="font-semibold text-gray-900">Reserved Reservation</p>
+                  <p className="text-sm text-gray-500 mt-1">Reserve a cabin exclusively (Full-Day) for ₹{monthlyRate}/month</p>
                 </button>
-                <button
-                  onClick={() => setWizardType('exclusive')}
-                  className={cn(
-                    'w-full p-4 rounded-xl border-2 text-left transition-all',
-                    wizardType === 'exclusive'
-                      ? 'border-cyan-500 bg-cyan-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  <p className="font-semibold text-gray-900">Exclusive Reservation</p>
-                  <p className="text-sm text-gray-500 mt-1">Reserve a cabin exclusively for a period</p>
-                </button>
+
+                <div className="border-t border-gray-100 my-2 pt-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Shift Bookings (₹{bookingRegistrationFee} Registration Fee applies)</p>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        setWizardType('shift');
+                        setWizardShift('morning');
+                      }}
+                      className={cn(
+                        'w-full p-3 rounded-xl border-2 text-left transition-all',
+                        wizardType === 'shift' && wizardShift === 'morning'
+                          ? 'border-cyan-500 bg-cyan-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      )}
+                    >
+                      <p className="font-semibold text-gray-900">Morning Shift</p>
+                      <p className="text-xs text-gray-500 mt-0.5">5 hrs/day &bull; 5:00 AM - 10:00 AM &bull; ₹{shiftMorningRate}/month</p>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setWizardType('shift');
+                        setWizardShift('day');
+                      }}
+                      className={cn(
+                        'w-full p-3 rounded-xl border-2 text-left transition-all',
+                        wizardType === 'shift' && wizardShift === 'day'
+                          ? 'border-cyan-500 bg-cyan-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      )}
+                    >
+                      <p className="font-semibold text-gray-900">Day Shift</p>
+                      <p className="text-xs text-gray-500 mt-0.5">7 hrs/day &bull; 10:00 AM - 05:00 PM &bull; ₹{shiftDayRate}/month</p>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setWizardType('shift');
+                        setWizardShift('night');
+                      }}
+                      className={cn(
+                        'w-full p-3 rounded-xl border-2 text-left transition-all',
+                        wizardType === 'shift' && wizardShift === 'night'
+                          ? 'border-cyan-500 bg-cyan-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      )}
+                    >
+                      <p className="font-semibold text-gray-900">Night Shift</p>
+                      <p className="text-xs text-gray-500 mt-0.5">7 hrs/day &bull; 05:00 PM - 12:00 AM &bull; ₹{shiftNightRate}/month</p>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1000,7 +1101,7 @@ export default function BookingsView() {
             {step === 'details' && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-500 mb-2">Enter booking details</p>
-                {wizardType === 'hourly' ? (
+                {wizardType === 'shift' ? (
                   <>
                     <div className="space-y-2">
                       <Label>Start Date</Label>
@@ -1022,10 +1123,17 @@ export default function BookingsView() {
                     </div>
                     <div className="bg-cyan-50 border border-cyan-100 rounded-lg p-3">
                       <p className="text-sm text-cyan-800 font-medium">Duration: 1 Month</p>
-                      <p className="text-xs text-cyan-600 mt-0.5">5 hours/day &bull; 9:00 AM - 2:00 PM &bull; Auto-renewable</p>
+                      <p className="text-xs text-cyan-600 mt-0.5">
+                        {wizardShift === 'morning'
+                          ? 'Morning Shift (5 AM - 10 AM)'
+                          : wizardShift === 'day'
+                          ? 'Day Shift (10 AM - 05:00 PM)'
+                          : 'Night Shift (05:00 PM - 12:00 AM)'} &bull; Auto-renewable
+                      </p>
                     </div>
                     <p className="text-sm text-gray-500">
-                      Monthly fee: ₹{hourlyRate}/month
+                      Monthly Fee: ₹{wizardShift === 'morning' ? shiftMorningRate : wizardShift === 'day' ? shiftDayRate : shiftNightRate}/month
+                      <span className="block text-xs text-gray-400 mt-0.5">+ ₹{bookingRegistrationFee} Registration Fee</span>
                     </p>
                   </>
                 ) : (
@@ -1071,6 +1179,7 @@ export default function BookingsView() {
                     {wizardEndDate && (
                       <p className="text-sm text-gray-500">
                         Duration: {calculateMonths(wizardDate, wizardEndDate)} month(s) &times; ₹{monthlyRate}/month
+                        <span className="block text-xs text-gray-400 mt-0.5">+ ₹{bookingRegistrationFee} Registration Fee</span>
                       </p>
                     )}
                   </>
@@ -1106,9 +1215,9 @@ export default function BookingsView() {
                     <Badge
                       variant="outline"
                       className={
-                        wizardType === 'exclusive'
-                          ? 'bg-sky-100 text-sky-800 border-sky-200'
-                          : 'bg-sky-100 text-sky-800 border-sky-200'
+                        wizardType === 'reserved'
+                          ? 'bg-sky-100 text-sky-800 border-sky-200 capitalize'
+                          : 'bg-teal-100 text-teal-800 border-teal-200 capitalize'
                       }
                     >
                       {wizardType}
@@ -1122,12 +1231,17 @@ export default function BookingsView() {
                     <span className="text-sm text-gray-500">Cabin</span>
                     <span className="text-sm font-medium">#{selectedCabin?.cabinNum}</span>
                   </div>
-                  {wizardType === 'hourly' ? (
+                  {wizardType === 'shift' ? (
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500">Period</span>
                       <span className="text-sm font-medium">
-                        {formatDate(wizardDate.toISOString())} - {' '}
-                        {formatDate(addMonths(wizardDate, 1).toISOString())} &bull; 5 hrs/day
+                        {formatDate(wizardDate.toISOString())} -{' '}
+                        {formatDate(addMonths(wizardDate, 1).toISOString())} &bull;{' '}
+                        {wizardShift === 'morning'
+                          ? 'Morning Shift (5 AM - 10 AM)'
+                          : wizardShift === 'day'
+                          ? 'Day Shift (10 AM - 5 PM)'
+                          : 'Night Shift (5 PM - 12 AM)'}
                       </span>
                     </div>
                   ) : (
@@ -1145,6 +1259,21 @@ export default function BookingsView() {
                       <span className="text-sm text-gray-600">{wizardNotes}</span>
                     </div>
                   )}
+                  <div className="border-t border-gray-200 pt-2 space-y-1">
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Base Booking Fee</span>
+                      <span>
+                        {wizardType === 'shift'
+                          ? formatCurrency((wizardShift === 'morning' ? shiftMorningRate : wizardShift === 'day' ? shiftDayRate : shiftNightRate) * 100)
+                          : formatCurrency((calculateMonths(wizardDate, wizardEndDate || addMonths(wizardDate, 1)) * monthlyRate) * 100)
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Registration Fee</span>
+                      <span>{formatCurrency(bookingRegistrationFee * 100)}</span>
+                    </div>
+                  </div>
                   <div className="pt-2 border-t border-gray-200 flex justify-between">
                     <span className="text-sm font-semibold text-gray-700">Total Amount</span>
                     <span className="text-lg font-bold text-cyan-600">

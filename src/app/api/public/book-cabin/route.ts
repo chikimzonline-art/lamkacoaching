@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!bookingType || !['hourly', 'monthly'].includes(bookingType)) {
+    if (!bookingType || !['shift', 'reserved'].includes(bookingType)) {
       return NextResponse.json(
         { error: 'Please select a valid booking type' },
         { status: 400 }
@@ -57,11 +57,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get pricing
-    const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
+    // Get pricing settings
+    const morningRateSetting = await db.setting.findUnique({ where: { key: 'shift_morning_rate' } });
+    const dayRateSetting = await db.setting.findUnique({ where: { key: 'shift_day_rate' } });
+    const nightRateSetting = await db.setting.findUnique({ where: { key: 'shift_night_rate' } });
     const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
-    const hourlyMonthlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 1000;
+    const regFeeSetting = await db.setting.findUnique({ where: { key: 'booking_registration_fee' } });
+
+    const morningRate = morningRateSetting ? parseInt(morningRateSetting.value, 10) : 500;
+    const dayRate = dayRateSetting ? parseInt(dayRateSetting.value, 10) : 800;
+    const nightRate = nightRateSetting ? parseInt(nightRateSetting.value, 10) : 800;
     const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) : 3000;
+    const regFee = regFeeSetting ? parseInt(regFeeSetting.value, 10) : 500;
 
     let totalAmount: number; // in paise
     let bookingStartDate: Date;
@@ -70,63 +77,96 @@ export async function POST(request: Request) {
     let bookingEndTime: string | null = null;
     let dbBookingType: string;
 
-    if (bookingType === 'hourly') {
-      // Hourly booking: 5 hrs/day, 1 month duration, monthly fee
+    if (bookingType === 'shift') {
+      const { startTime, endTime } = body;
+      if (!startTime || !endTime) {
+        return NextResponse.json(
+          { error: 'Please select a shift' },
+          { status: 400 }
+        );
+      }
+
       bookingStartDate = new Date(startDate);
       bookingStartDate.setHours(0, 0, 0, 0);
       bookingEndDate = new Date(bookingStartDate);
       bookingEndDate.setMonth(bookingEndDate.getMonth() + 1);
       bookingEndDate.setHours(23, 59, 59, 999);
-      dbBookingType = 'hourly';
-      bookingStartTime = '09:00'; // Default 5-hour window start
-      bookingEndTime = '14:00';   // Default 5-hour window end
-      totalAmount = hourlyMonthlyRate * 100; // Monthly fee in paise
+      dbBookingType = 'shift';
+      bookingStartTime = startTime;
+      bookingEndTime = endTime;
 
-      // Check for conflicting hourly bookings (same cabin, overlapping period)
+      let baseRate = dayRate;
+      if (startTime === '05:00') {
+        baseRate = morningRate;
+      } else if (startTime === '10:00') {
+        baseRate = dayRate;
+      } else if (startTime === '17:00') {
+        baseRate = nightRate;
+      }
+
+      totalAmount = (baseRate + regFee) * 100; // Total in paise (shift rate + registration fee)
+
+      // Check for conflicting bookings (same cabin, overlapping period, overlapping shift time or reserved booking)
       const overlappingBookings = await db.booking.findMany({
         where: {
           cabinId,
           status: 'active',
-          type: 'hourly',
           OR: [
-            { startDate: { lte: bookingEndDate }, endDate: { gte: bookingStartDate } },
-            { startDate: { lte: bookingEndDate }, endDate: null },
-          ],
+            {
+              type: 'reserved',
+              startDate: { lte: bookingEndDate },
+              OR: [
+                { endDate: null },
+                { endDate: { gte: bookingStartDate } }
+              ]
+            },
+            {
+              type: 'shift',
+              startTime: bookingStartTime,
+              endTime: bookingEndTime,
+              startDate: { lte: bookingEndDate },
+              OR: [
+                { endDate: null },
+                { endDate: { gte: bookingStartDate } }
+              ]
+            }
+          ]
         },
       });
 
       if (overlappingBookings.length > 0) {
         return NextResponse.json(
-          { error: 'This cabin already has an active hourly booking for the selected period. Please choose a different cabin or date.' },
+          { error: 'This cabin already has a conflict for the selected period/shift. Please choose a different cabin, shift, or date.' },
           { status: 409 }
         );
       }
 
     } else {
-      // Monthly booking (exclusive/full-day)
+      // Monthly booking (reserved/full-day)
       bookingStartDate = new Date(startDate);
       bookingStartDate.setHours(0, 0, 0, 0);
       bookingEndDate = new Date(bookingStartDate);
       bookingEndDate.setMonth(bookingEndDate.getMonth() + 1);
       bookingEndDate.setHours(23, 59, 59, 999);
-      dbBookingType = 'exclusive';
-      totalAmount = monthlyRate * 100; // convert to paise
+      dbBookingType = 'reserved';
+      totalAmount = (monthlyRate + regFee) * 100; // Total in paise (monthly rate + registration fee)
 
-      // Check for conflicting bookings
+      // Check for conflicting bookings (any active booking during this period)
       const overlappingBookings = await db.booking.findMany({
         where: {
           cabinId,
           status: 'active',
+          startDate: { lte: bookingEndDate },
           OR: [
-            { startDate: { lte: bookingEndDate }, endDate: { gte: bookingStartDate } },
-            { startDate: { lte: bookingEndDate }, endDate: null },
+            { endDate: null },
+            { endDate: { gte: bookingStartDate } }
           ],
         },
       });
 
       if (overlappingBookings.length > 0) {
         return NextResponse.json(
-          { error: 'This cabin is already booked for the selected period. Please choose a different cabin or date.' },
+          { error: 'This cabin is already booked/reserved for the selected period. Please choose a different cabin or date.' },
           { status: 409 }
         );
       }

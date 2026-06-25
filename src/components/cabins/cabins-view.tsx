@@ -47,7 +47,7 @@ interface Cabin {
   bookings: CabinBooking[];
 }
 
-type CabinDisplayState = 'available' | 'exclusive' | 'hourly' | 'timeslot-full' | 'inactive';
+type CabinDisplayState = 'available' | 'reserved' | 'shift' | 'timeslot-full' | 'inactive';
 type FilterType = 'all' | CabinDisplayState;
 
 // Parse "HH:MM" to minutes from midnight
@@ -75,19 +75,11 @@ function mergeTimeSlots(bookings: { startTime: string; endTime: string }[]): { s
   return merged;
 }
 
-// Check if the merged hourly bookings fully cover the operating hours
 function isTimeslotFullyCovered(
-  hourlyBookings: { startTime: string; endTime: string }[],
-  opStart: string,
-  opEnd: string
+  shiftBookings: { startTime: string | null; endTime: string | null }[]
 ): boolean {
-  if (hourlyBookings.length === 0) return false;
-  const opStartMin = timeToMinutes(opStart);
-  const opEndMin = timeToMinutes(opEnd);
-  const merged = mergeTimeSlots(hourlyBookings);
-
-  if (merged.length === 0) return false;
-  return merged[0].start <= opStartMin && merged[merged.length - 1].end >= opEndMin;
+  const shifts = new Set(shiftBookings.map((b) => b.startTime));
+  return shifts.has('05:00') && shifts.has('10:00') && shifts.has('17:00');
 }
 
 function getCabinDisplayState(
@@ -96,31 +88,24 @@ function getCabinDisplayState(
   opEnd: string
 ): CabinDisplayState {
   if (cabin.status === 'inactive' || cabin.status === 'maintenance') return 'inactive';
-  const exclusiveBooking = cabin.bookings.find((b) => b.type === 'exclusive' && b.status === 'active');
-  if (exclusiveBooking) return 'exclusive';
+  const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && b.status === 'active');
+  if (reservedBooking) return 'reserved';
 
-  const hourlyBookings = cabin.bookings.filter((b) => b.type === 'hourly' && b.status === 'active');
-  if (hourlyBookings.length === 0) return 'available';
+  const shiftBookings = cabin.bookings.filter((b) => b.type === 'shift' && b.status === 'active');
+  if (shiftBookings.length === 0) return 'available';
 
-  // Only pass bookings with valid time values to the time-slot checker
-  const timedHourlyBookings = hourlyBookings.filter(
-    (b): b is typeof b & { startTime: string; endTime: string } =>
-      b.startTime !== null && b.endTime !== null
-  );
+  if (isTimeslotFullyCovered(shiftBookings)) return 'timeslot-full';
 
-  if (isTimeslotFullyCovered(timedHourlyBookings, opStart, opEnd)) return 'timeslot-full';
-
-  return 'hourly';
-
+  return 'shift';
 }
 
 function getDisplayStyles(state: CabinDisplayState) {
   switch (state) {
     case 'available':
       return 'border-emerald-300 bg-emerald-50/50 hover:border-emerald-400';
-    case 'exclusive':
+    case 'reserved':
       return 'border-red-300 bg-red-50/50 hover:border-red-400';
-    case 'hourly':
+    case 'shift':
       return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
     case 'timeslot-full':
       return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
@@ -135,10 +120,10 @@ function getStatusBadge(state: CabinDisplayState) {
   switch (state) {
     case 'available':
       return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">Available</Badge>;
-    case 'exclusive':
-      return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">Exclusive</Badge>;
-    case 'hourly':
-      return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Hourly</Badge>;
+    case 'reserved':
+      return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">Reserved</Badge>;
+    case 'shift':
+      return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Shift</Badge>;
     case 'timeslot-full':
       return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Fully Booked</Badge>;
     case 'inactive':
@@ -374,8 +359,8 @@ export default function CabinsView() {
   }));
 
   const availableCount = cabinStates.filter((c) => c.state === 'available').length;
-  const exclusiveCount = cabinStates.filter((c) => c.state === 'exclusive').length;
-  const hourlyCount = cabinStates.filter((c) => c.state === 'hourly').length;
+  const reservedCount = cabinStates.filter((c) => c.state === 'reserved').length;
+  const shiftCount = cabinStates.filter((c) => c.state === 'shift').length;
   const timeslotFullCount = cabinStates.filter((c) => c.state === 'timeslot-full').length;
   const inactiveCount = cabinStates.filter((c) => c.state === 'inactive').length;
 
@@ -396,8 +381,8 @@ export default function CabinsView() {
       label: formatFloorLabel(f),
       total: floorCabins.length,
       available: floorCabins.filter((c) => c.state === 'available').length,
-      occupied: floorCabins.filter((c) => c.state === 'exclusive').length,
-      hourly: floorCabins.filter((c) => c.state === 'hourly' || c.state === 'timeslot-full').length,
+      occupied: floorCabins.filter((c) => c.state === 'reserved').length,
+      hourly: floorCabins.filter((c) => c.state === 'shift' || c.state === 'timeslot-full').length,
       inactive: floorCabins.filter((c) => c.state === 'inactive').length,
     };
   });
@@ -425,8 +410,8 @@ export default function CabinsView() {
   const filterBadges: { key: FilterType; label: string; count: number; color: string; activeColor: string }[] = [
     { key: 'all', label: 'All', count: cabins.length, color: 'border-cyan-200 text-cyan-600 bg-cyan-50', activeColor: 'border-cyan-500 text-cyan-900 bg-cyan-200' },
     { key: 'available', label: 'Available', count: availableCount, color: 'border-emerald-200 text-emerald-700 bg-emerald-50', activeColor: 'border-emerald-500 text-emerald-900 bg-emerald-200' },
-    { key: 'exclusive', label: 'Exclusive', count: exclusiveCount, color: 'border-red-200 text-red-700 bg-red-50', activeColor: 'border-red-500 text-red-900 bg-red-200' },
-    { key: 'hourly', label: 'Hourly', count: hourlyCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' },
+    { key: 'reserved', label: 'Reserved', count: reservedCount, color: 'border-red-200 text-red-700 bg-red-50', activeColor: 'border-red-500 text-red-900 bg-red-200' },
+    { key: 'shift', label: 'Shift', count: shiftCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' },
     ...(timeslotFullCount > 0 ? [{ key: 'timeslot-full' as FilterType, label: 'Fully Booked', count: timeslotFullCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' }] : []),
     ...(inactiveCount > 0 ? [{ key: 'inactive' as FilterType, label: 'Inactive', count: inactiveCount, color: 'border-gray-200 text-gray-500 bg-gray-50', activeColor: 'border-gray-400 text-gray-700 bg-gray-200' }] : []),
   ];
@@ -924,9 +909,8 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick }: {
   onClick: () => void;
 }) {
   const styles = getDisplayStyles(state);
-  const exclusiveBooking = cabin.bookings.find((b) => b.type === 'exclusive' && b.status === 'active');
-  const hourlyBooking = cabin.bookings.find((b) => b.type === 'hourly' && b.status === 'active');
-  const hourlyBookings = cabin.bookings.filter((b) => b.type === 'hourly' && b.status === 'active');
+  const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && b.status === 'active');
+  const shiftBookings = cabin.bookings.filter((b) => b.type === 'shift' && b.status === 'active');
 
   return (
     <Card
@@ -948,26 +932,39 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick }: {
           <Building2 className="h-3 w-3" />
           {formatFloorLabel(cabin.floor)}
         </p>
-        {state === 'exclusive' && exclusiveBooking && (
+        {state === 'reserved' && reservedBooking && (
           <div className="mt-2 text-xs">
-            <p className="font-medium text-red-800 truncate">{exclusiveBooking.student.name}</p>
-            <p className="text-gray-500 truncate">{exclusiveBooking.student.phone}</p>
+            <p className="font-medium text-red-800 truncate">{reservedBooking.student.name}</p>
+            <p className="text-gray-500 truncate">{reservedBooking.student.phone}</p>
           </div>
         )}
-        {state === 'hourly' && hourlyBooking && (
-          <div className="mt-2 text-xs">
-            <p className="font-medium text-sky-800 truncate">{hourlyBooking.student.name}</p>
-            <p className="text-gray-500">
-              {formatTime(hourlyBooking.startTime || '')} - {formatTime(hourlyBooking.endTime || '')}
-            </p>
-          </div>
-        )}
-        {state === 'timeslot-full' && hourlyBookings.length > 0 && (
+        {state === 'shift' && shiftBookings.length > 0 && (
           <div className="mt-2 text-xs space-y-0.5">
-            <p className="font-medium text-sky-800">{hourlyBookings.length} booking{hourlyBookings.length > 1 ? 's' : ''}</p>
-            <p className="text-gray-500">
-              {formatTime(opStart)} - {formatTime(opEnd)} covered
-            </p>
+            {shiftBookings.map((b) => {
+              let shiftName = 'Morning Shift';
+              if (b.startTime === '10:00') shiftName = 'Day Shift';
+              else if (b.startTime === '17:00') shiftName = 'Night Shift';
+              return (
+                <div key={b.id} className="text-sky-800 truncate">
+                  <span className="font-medium">{shiftName}</span>: {b.student.name}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {state === 'timeslot-full' && shiftBookings.length > 0 && (
+          <div className="mt-2 text-xs space-y-0.5">
+            <p className="font-semibold text-sky-800">Fully Booked (3 Shifts)</p>
+            {shiftBookings.map((b) => {
+              let shiftName = 'Morning Shift';
+              if (b.startTime === '10:00') shiftName = 'Day Shift';
+              else if (b.startTime === '17:00') shiftName = 'Night Shift';
+              return (
+                <div key={b.id} className="text-gray-500 truncate">
+                  {shiftName}: {b.student.name}
+                </div>
+              );
+            })}
           </div>
         )}
         {state === 'inactive' && (

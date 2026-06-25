@@ -30,7 +30,10 @@ async function main() {
     { key: 'business_description', value: 'Empowering students with quality coaching for competitive exams and professional computer training. Your success is our mission.' },
     { key: 'operating_hours_start', value: '07:00' },
     { key: 'operating_hours_end', value: '22:00' },
-    { key: 'hourly_rate', value: '100' },
+    { key: 'shift_morning_rate', value: '500' },
+    { key: 'shift_day_rate', value: '800' },
+    { key: 'shift_night_rate', value: '800' },
+    { key: 'booking_registration_fee', value: '500' },
     { key: 'monthly_rate', value: '3000' },
     { key: 'hero_badge_text', value: 'Admissions Open 2025-26' },
     { key: 'hero_banner_text', value: 'New batches starting soon!' },
@@ -224,9 +227,9 @@ async function main() {
     if (!existing) {
       await db.booking.create({
         data: {
-          studentId: rahul.id, cabinId: cabin1.id, type: 'exclusive', status: 'active',
+          studentId: rahul.id, cabinId: cabin1.id, type: 'reserved', status: 'active',
           startDate: new Date('2026-04-01'), endDate: new Date('2026-05-01'),
-          totalAmount: 300000, paidAmount: 200000,
+          totalAmount: 350000, paidAmount: 200000,
         },
       });
     }
@@ -239,9 +242,9 @@ async function main() {
     if (!existing) {
       await db.booking.create({
         data: {
-          studentId: priya.id, cabinId: cabin2.id, type: 'hourly', status: 'active',
-          startDate: new Date(today), startTime: '09:00', endTime: '12:00',
-          totalAmount: 30000, paidAmount: 30000,
+          studentId: priya.id, cabinId: cabin2.id, type: 'shift', status: 'active',
+          startDate: new Date(today), startTime: '05:00', endTime: '10:00',
+          totalAmount: 100000, paidAmount: 100000,
         },
       });
     }
@@ -253,9 +256,9 @@ async function main() {
     if (!existing) {
       await db.booking.create({
         data: {
-          studentId: neha.id, cabinId: cabin3.id, type: 'exclusive', status: 'active',
+          studentId: neha.id, cabinId: cabin3.id, type: 'reserved', status: 'active',
           startDate: new Date('2026-03-15'), endDate: new Date('2026-04-15'),
-          totalAmount: 300000, paidAmount: 300000,
+          totalAmount: 350000, paidAmount: 350000,
         },
       });
     }
@@ -267,9 +270,9 @@ async function main() {
     if (!existing) {
       await db.booking.create({
         data: {
-          studentId: amit.id, cabinId: cabin5.id, type: 'exclusive', status: 'pending',
+          studentId: amit.id, cabinId: cabin5.id, type: 'reserved', status: 'pending',
           startDate: new Date('2026-05-01'), endDate: new Date('2026-06-01'),
-          totalAmount: 300000, paidAmount: 0,
+          totalAmount: 350000, paidAmount: 0,
         },
       });
     }
@@ -281,9 +284,9 @@ async function main() {
       const today = new Date().toISOString().split('T')[0];
       await db.booking.create({
         data: {
-          studentId: raj.id, cabinId: cabin6.id, type: 'hourly', status: 'pending',
-          startDate: new Date(today), startTime: '14:00', endTime: '18:00',
-          totalAmount: 40000, paidAmount: 0,
+          studentId: raj.id, cabinId: cabin6.id, type: 'shift', status: 'pending',
+          startDate: new Date(today), startTime: '10:00', endTime: '17:00',
+          totalAmount: 130000, paidAmount: 0,
         },
       });
     }

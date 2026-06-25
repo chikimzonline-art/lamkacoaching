@@ -40,7 +40,10 @@ interface SettingsData {
   business_name: string;
   operating_hours_start: string;
   operating_hours_end: string;
-  hourly_rate: string;
+  shift_morning_rate: string;
+  shift_day_rate: string;
+  shift_night_rate: string;
+  booking_registration_fee: string;
   monthly_rate: string;
   business_phone: string;
   business_email: string;
@@ -67,7 +70,10 @@ const defaultSettings: SettingsData = {
   business_name: 'Lamka Coaching Center',
   operating_hours_start: '07:00',
   operating_hours_end: '22:00',
-  hourly_rate: '1000',
+  shift_morning_rate: '500',
+  shift_day_rate: '800',
+  shift_night_rate: '800',
+  booking_registration_fee: '500',
   monthly_rate: '3000',
   business_phone: '',
   business_email: '',
@@ -94,7 +100,10 @@ function useSettingsState() {
           business_name: json.settings.business_name || defaultSettings.business_name,
           operating_hours_start: json.settings.operating_hours_start || defaultSettings.operating_hours_start,
           operating_hours_end: json.settings.operating_hours_end || defaultSettings.operating_hours_end,
-          hourly_rate: json.settings.hourly_rate || defaultSettings.hourly_rate,
+          shift_morning_rate: json.settings.shift_morning_rate || defaultSettings.shift_morning_rate,
+          shift_day_rate: json.settings.shift_day_rate || defaultSettings.shift_day_rate,
+          shift_night_rate: json.settings.shift_night_rate || defaultSettings.shift_night_rate,
+          booking_registration_fee: json.settings.booking_registration_fee || defaultSettings.booking_registration_fee,
           monthly_rate: json.settings.monthly_rate || defaultSettings.monthly_rate,
           business_phone: json.settings.business_phone || defaultSettings.business_phone,
           business_email: json.settings.business_email || defaultSettings.business_email,
@@ -538,28 +547,61 @@ export default function SettingsViewWrapper() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Hourly Booking Fee (₹/month)</Label>
+              <Label htmlFor="shift_morning_rate">Morning Shift Fee (₹/month)</Label>
               <Input
-                id="hourly_rate"
+                id="shift_morning_rate"
                 type="number"
-                value={settings.hourly_rate}
-                onChange={(e) => setSettings({ ...settings, hourly_rate: e.target.value })}
-                min={1}
+                value={settings.shift_morning_rate}
+                onChange={(e) => setSettings({ ...settings, shift_morning_rate: e.target.value })}
+                min={0}
               />
-              <p className="text-xs text-gray-400">Monthly fee for hourly booking (5 hrs/day, 1 month duration)</p>
+              <p className="text-xs text-gray-400">Morning (5am - 10am)</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="monthly_rate">Full-Day Monthly Rate (₹)</Label>
+              <Label htmlFor="shift_day_rate">Day Shift Fee (₹/month)</Label>
+              <Input
+                id="shift_day_rate"
+                type="number"
+                value={settings.shift_day_rate}
+                onChange={(e) => setSettings({ ...settings, shift_day_rate: e.target.value })}
+                min={0}
+              />
+              <p className="text-xs text-gray-400">Day (10am - 5pm)</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shift_night_rate">Night Shift Fee (₹/month)</Label>
+              <Input
+                id="shift_night_rate"
+                type="number"
+                value={settings.shift_night_rate}
+                onChange={(e) => setSettings({ ...settings, shift_night_rate: e.target.value })}
+                min={0}
+              />
+              <p className="text-xs text-gray-400">Night (5pm - 12am)</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="booking_registration_fee">Booking Registration Fee (₹)</Label>
+              <Input
+                id="booking_registration_fee"
+                type="number"
+                value={settings.booking_registration_fee}
+                onChange={(e) => setSettings({ ...settings, booking_registration_fee: e.target.value })}
+                min={0}
+              />
+              <p className="text-xs text-gray-400">One-time fee per booking</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="monthly_rate">Reserved Monthly Rate (₹)</Label>
               <Input
                 id="monthly_rate"
                 type="number"
                 value={settings.monthly_rate}
                 onChange={(e) => setSettings({ ...settings, monthly_rate: e.target.value })}
-                min={1}
+                min={0}
               />
-              <p className="text-xs text-gray-400">Rate per month for exclusive (full-day) bookings</p>
+              <p className="text-xs text-gray-400">Rate per month for reserved (full-day) bookings</p>
             </div>
           </div>
         </CardContent>

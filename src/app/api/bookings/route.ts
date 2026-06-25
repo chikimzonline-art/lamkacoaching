@@ -36,14 +36,14 @@ export async function GET(request: Request) {
       nextDay.setDate(nextDay.getDate() + 1);
 
       where.OR = [
-        // Hourly bookings on this date
+        // Shift bookings on this date
         {
-          type: 'hourly',
+          type: 'shift',
           startDate: { gte: filterDate, lt: nextDay },
         },
-        // Exclusive bookings that span this date
+        // Reserved bookings that span this date
         {
-          type: 'exclusive',
+          type: 'reserved',
           startDate: { lte: nextDay },
           OR: [
             { endDate: null },
@@ -96,9 +96,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Payment amount cannot exceed total booking amount' }, { status: 400 });
       }
 
-      if (type === 'hourly') {
+      if (type === 'shift') {
         if (!startTime || !endTime) {
-          return NextResponse.json({ error: 'Start time and end time are required for hourly bookings' }, { status: 400 });
+          return NextResponse.json({ error: 'Start time and end time are required for shift bookings' }, { status: 400 });
         }
         if (!startDate) {
           return NextResponse.json({ error: 'Start date is required' }, { status: 400 });
@@ -107,24 +107,44 @@ export async function POST(request: Request) {
         const bookingDate = new Date(startDate);
         bookingDate.setHours(0, 0, 0, 0);
 
-        // Check for overlapping hourly bookings on the same cabin and date
-        const existingBookings = await db.booking.findMany({
+        const bookingEndDate = body.endDate
+          ? new Date(body.endDate)
+          : new Date(new Date(bookingDate).setMonth(bookingDate.getMonth() + 1));
+        bookingEndDate.setHours(23, 59, 59, 999);
+
+        // Check for overlapping shift or reserved bookings
+        const conflictingBooking = await db.booking.findFirst({
           where: {
             cabinId,
             status: 'active',
-            type: 'hourly',
-            startDate: bookingDate,
+            OR: [
+              {
+                type: 'reserved',
+                startDate: { lte: bookingEndDate },
+                OR: [
+                  { endDate: null },
+                  { endDate: { gte: bookingDate } },
+                ],
+              },
+              {
+                type: 'shift',
+                startTime,
+                endTime,
+                startDate: { lte: bookingEndDate },
+                OR: [
+                  { endDate: null },
+                  { endDate: { gte: bookingDate } },
+                ],
+              },
+            ],
           },
         });
 
-        for (const existing of existingBookings) {
-          if (existing.startTime && existing.endTime &&
-              startTime < existing.endTime && endTime > existing.startTime) {
-            return NextResponse.json({
-              error: `Time slot conflict: Cabin already booked from ${existing.startTime} to ${existing.endTime} by ${existing.studentId}`,
-              conflict: existing,
-            }, { status: 409 });
-          }
+        if (conflictingBooking) {
+          return NextResponse.json({
+            error: 'Cabin has conflicting active bookings (reserved or shift) in this period',
+            conflict: conflictingBooking,
+          }, { status: 409 });
         }
 
         const bookingTotalAmount = Math.round(Number(totalAmount) * 100); // convert to paise
@@ -134,9 +154,10 @@ export async function POST(request: Request) {
           data: {
             studentId,
             cabinId,
-            type: 'hourly',
+            type: 'shift',
             status: 'active',
             startDate: bookingDate,
+            endDate: bookingEndDate,
             startTime,
             endTime,
             totalAmount: bookingTotalAmount,
@@ -166,9 +187,9 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ booking, payment });
 
-      } else if (type === 'exclusive') {
+      } else if (type === 'reserved') {
         if (!startDate || !endDate) {
-          return NextResponse.json({ error: 'Start date and end date are required for exclusive bookings' }, { status: 400 });
+          return NextResponse.json({ error: 'Start date and end date are required for reserved bookings' }, { status: 400 });
         }
 
         const start = new Date(startDate);
@@ -176,23 +197,23 @@ export async function POST(request: Request) {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
 
-        // Check for any active bookings on this cabin that overlap
-        const overlappingBookings = await db.booking.findMany({
+        // Check for any active bookings on this cabin that overlap in dates
+        const conflictingBooking = await db.booking.findFirst({
           where: {
             cabinId,
             status: 'active',
+            startDate: { lte: end },
             OR: [
-              // Existing booking starts before our end and ends after our start
-              { startDate: { lte: end }, endDate: { gte: start } },
-              { startDate: { lte: end }, endDate: null },
+              { endDate: null },
+              { endDate: { gte: start } },
             ],
           },
         });
 
-        if (overlappingBookings.length > 0) {
+        if (conflictingBooking) {
           return NextResponse.json({
             error: 'Cabin has conflicting active bookings in this period',
-            conflicts: overlappingBookings,
+            conflicts: [conflictingBooking],
           }, { status: 409 });
         }
 
@@ -203,7 +224,7 @@ export async function POST(request: Request) {
           data: {
             studentId,
             cabinId,
-            type: 'exclusive',
+            type: 'reserved',
             status: 'active',
             startDate: start,
             endDate: end,
@@ -302,9 +323,18 @@ export async function POST(request: Request) {
 
       // Get rate from settings based on booking type
       let renewAmount: number; // in paise
-      if (existing.type === 'hourly') {
-        const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
-        renewAmount = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) * 100 : 100000; // in paise
+      if (existing.type === 'shift') {
+        let rateKey = 'shift_morning_rate';
+        let defaultRate = 500;
+        if (existing.startTime === '10:00') {
+          rateKey = 'shift_day_rate';
+          defaultRate = 800;
+        } else if (existing.startTime === '17:00') {
+          rateKey = 'shift_night_rate';
+          defaultRate = 800;
+        }
+        const shiftRateSetting = await db.setting.findUnique({ where: { key: rateKey } });
+        renewAmount = shiftRateSetting ? parseInt(shiftRateSetting.value, 10) * 100 : defaultRate * 100;
       } else {
         const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
         renewAmount = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) * 100 : 300000; // in paise

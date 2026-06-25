@@ -50,10 +50,10 @@ export async function GET(request: Request) {
       // 1. Total cabins
       db.cabin.count({ where: { status: 'active' } }),
 
-      // 2. Active exclusive bookings (occupying cabins)
+      // 2. Active reserved bookings (occupying cabins)
       db.booking.findMany({
         where: {
-          type: 'exclusive',
+          type: 'reserved',
           status: 'active',
           startDate: { lte: tomorrow },
           OR: [{ endDate: { gte: today } }, { endDate: null }],
@@ -61,10 +61,10 @@ export async function GET(request: Request) {
         include: { cabin: true, student: { select: { name: true } } },
       }),
 
-      // 3. Today's hourly bookings
+      // 3. Today's shift bookings
       db.booking.findMany({
         where: {
-          type: 'hourly',
+          type: 'shift',
           status: 'active',
           startDate: { gte: today, lt: tomorrow },
         },
@@ -102,10 +102,10 @@ export async function GET(request: Request) {
         _sum: { totalAmount: true, paidAmount: true },
       }),
 
-      // 9. Expiring soon (exclusive bookings expiring in next 7 days)
+      // 9. Expiring soon (reserved bookings expiring in next 7 days)
       db.booking.findMany({
         where: {
-          type: 'exclusive',
+          type: 'reserved',
           status: 'active',
           endDate: { gte: today, lte: sevenDaysLater },
         },
@@ -165,7 +165,7 @@ export async function GET(request: Request) {
     const totalPending = (bookingsSums._sum.totalAmount || 0) - (bookingsSums._sum.paidAmount || 0);
     const enrollmentOutstanding = (enrollmentFees._sum.totalFee || 0) - (enrollmentFees._sum.paidAmount || 0);
 
-    // Occupied cabins (exclusive) count
+    // Occupied cabins (reserved) count
     const occupiedCabins = exclusiveBookings.length;
     const availableCabins = totalCabins - occupiedCabins;
 
@@ -181,7 +181,7 @@ export async function GET(request: Request) {
         totalPending,
         totalEnrollments,
         enrollmentOutstanding,
-        todayHourlyCount: todayHourlyBookings.length,
+        todayShiftCount: todayHourlyBookings.length,
       },
       todayBookings: todayHourlyBookings,
       exclusiveBookings,
