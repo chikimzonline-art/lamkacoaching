@@ -17,6 +17,10 @@ export async function GET() {
       'footer_cta_subtitle': 'footerCtaSubtitle',
       'logo_url': 'logoUrl',
       'favicon_url': 'faviconUrl',
+      'social_facebook': 'socialFacebook',
+      'social_instagram': 'socialInstagram',
+      'social_youtube': 'socialYoutube',
+      'social_twitter': 'socialTwitter',
     };
 
     const settings = await db.setting.findMany({

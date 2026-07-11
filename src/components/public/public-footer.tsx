@@ -28,6 +28,10 @@ interface BusinessSettings {
   footerCtaTitle?: string;
   footerCtaSubtitle?: string;
   logoUrl?: string;
+  socialFacebook?: string;
+  socialInstagram?: string;
+  socialYoutube?: string;
+  socialTwitter?: string;
 }
 
 const baseQuickLinks = [
@@ -50,12 +54,6 @@ const quickActions = [
   { href: '/notices', label: 'View Notices', icon: Megaphone },
 ];
 
-const socialLinks = [
-  { icon: Facebook, label: 'Facebook' },
-  { icon: Instagram, label: 'Instagram' },
-  { icon: Youtube, label: 'Youtube' },
-  { icon: Twitter, label: 'Twitter' },
-];
 
 export default function PublicFooter() {
   const [settings, setSettings] = useState<BusinessSettings>({});
@@ -163,23 +161,36 @@ export default function PublicFooter() {
             </p>
 
             {/* Social Media Icons */}
-            <div className="flex items-center gap-2 mt-5">
-              {socialLinks.map((social) => {
-                const Icon = social.icon;
-                return (
-                  <a
-                    key={social.label}
-                    href="#"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={social.label}
-                    className="h-8 w-8 rounded-lg bg-white/5 hover:bg-cyan-600/20 flex items-center justify-center text-gray-500 hover:text-cyan-400 transition-all"
-                  >
-                    <Icon className="h-4 w-4" />
-                  </a>
-                );
-              })}
-            </div>
+            {(() => {
+              const activeSocialLinks = [
+                { icon: Facebook, label: 'Facebook', href: settings.socialFacebook },
+                { icon: Instagram, label: 'Instagram', href: settings.socialInstagram },
+                { icon: Youtube, label: 'Youtube', href: settings.socialYoutube },
+                { icon: Twitter, label: 'Twitter', href: settings.socialTwitter },
+              ].filter((s) => s.href);
+
+              if (activeSocialLinks.length === 0) return null;
+
+              return (
+                <div className="flex items-center gap-2 mt-5">
+                  {activeSocialLinks.map((social) => {
+                    const Icon = social.icon;
+                    return (
+                      <a
+                        key={social.label}
+                        href={social.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={social.label}
+                        className="h-8 w-8 rounded-lg bg-white/5 hover:bg-cyan-600/20 flex items-center justify-center text-gray-500 hover:text-cyan-400 transition-all"
+                      >
+                        <Icon className="h-4 w-4" />
+                      </a>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             {/* Newsletter CTA */}
             <div className="mt-6 bg-white/5 rounded-lg border border-white/10 p-3">

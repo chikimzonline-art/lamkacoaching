@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Clock, DollarSign, Building2, Save, Users, Plus, Pencil, Trash2, Shield, ShieldCheck, Loader2, UserCircle, Eye, EyeOff, Phone, Globe, ImagePlus, Upload, X, BookOpen } from 'lucide-react';
+import { Clock, DollarSign, Building2, Save, Users, Plus, Pencil, Trash2, Shield, ShieldCheck, Loader2, UserCircle, Eye, EyeOff, Phone, Globe, ImagePlus, Upload, X, BookOpen, Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/auth-store';
 import { cn } from '@/lib/utils';
@@ -54,6 +54,10 @@ interface SettingsData {
   footer_cta_subtitle: string;
   logo_url: string;
   favicon_url: string;
+  social_facebook: string;
+  social_instagram: string;
+  social_youtube: string;
+  social_twitter: string;
 }
 
 interface UserRecord {
@@ -84,6 +88,10 @@ const defaultSettings: SettingsData = {
   footer_cta_subtitle: 'Enroll now to secure your seat.',
   logo_url: '',
   favicon_url: '',
+  social_facebook: '',
+  social_instagram: '',
+  social_youtube: '',
+  social_twitter: '',
 };
 
 function useSettingsState() {
@@ -114,6 +122,10 @@ function useSettingsState() {
           footer_cta_subtitle: json.settings.footer_cta_subtitle || defaultSettings.footer_cta_subtitle,
           logo_url: json.settings.logo_url || defaultSettings.logo_url,
           favicon_url: json.settings.favicon_url || defaultSettings.favicon_url,
+          social_facebook: json.settings.social_facebook || defaultSettings.social_facebook,
+          social_instagram: json.settings.social_instagram || defaultSettings.social_instagram,
+          social_youtube: json.settings.social_youtube || defaultSettings.social_youtube,
+          social_twitter: json.settings.social_twitter || defaultSettings.social_twitter,
         });
       }
     } catch (err) {
@@ -643,6 +655,70 @@ export default function SettingsViewWrapper() {
               onChange={(e) => setSettings({ ...settings, business_address: e.target.value })}
               placeholder="e.g. Lamka, Churachandpur, Manipur"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Social Media Links */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Facebook className="h-5 w-5 text-cyan-600" />
+            Social Media Links
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="social_facebook">Facebook URL</Label>
+            <div className="relative">
+              <Facebook className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                id="social_facebook"
+                value={settings.social_facebook}
+                onChange={(e) => setSettings({ ...settings, social_facebook: e.target.value })}
+                placeholder="e.g. https://facebook.com/lamkacoaching"
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="social_instagram">Instagram URL</Label>
+            <div className="relative">
+              <Instagram className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                id="social_instagram"
+                value={settings.social_instagram}
+                onChange={(e) => setSettings({ ...settings, social_instagram: e.target.value })}
+                placeholder="e.g. https://instagram.com/lamkacoaching"
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="social_youtube">YouTube Channel URL</Label>
+            <div className="relative">
+              <Youtube className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                id="social_youtube"
+                value={settings.social_youtube}
+                onChange={(e) => setSettings({ ...settings, social_youtube: e.target.value })}
+                placeholder="e.g. https://youtube.com/@lamkacoaching"
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="social_twitter">Twitter / X URL</Label>
+            <div className="relative">
+              <Twitter className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                id="social_twitter"
+                value={settings.social_twitter}
+                onChange={(e) => setSettings({ ...settings, social_twitter: e.target.value })}
+                placeholder="e.g. https://twitter.com/lamkacoaching"
+                className="pl-10"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

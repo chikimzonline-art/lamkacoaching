@@ -90,15 +90,25 @@ export default async function RootLayout({
 
   try {
     const settings = await db.setting.findMany({
-      where: { key: { in: ["businessPhone", "businessEmail", "businessAddress", "businessName"] } },
+      where: { key: { in: ["business_phone", "business_email", "business_address", "business_name", "social_facebook", "social_instagram", "social_youtube", "social_twitter"] } },
     });
     const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
-    businessPhone = settingsMap.businessPhone ?? "";
-    businessEmail = settingsMap.businessEmail ?? "";
-    businessAddress = settingsMap.businessAddress ?? businessAddress;
-    businessName = settingsMap.businessName ?? businessName;
+    businessPhone = settingsMap.business_phone ?? "";
+    businessEmail = settingsMap.business_email ?? "";
+    businessAddress = settingsMap.business_address ?? businessAddress;
+    businessName = settingsMap.business_name ?? businessName;
+
+    const socialUrls = [
+      settingsMap.social_facebook,
+      settingsMap.social_instagram,
+      settingsMap.social_youtube,
+      settingsMap.social_twitter,
+    ].filter(Boolean) as string[];
+
+    var sameAsLinks = ["https://lamkacoaching.in", ...socialUrls];
   } catch {
     // Use fallback values
+    var sameAsLinks = ["https://lamkacoaching.in"];
   }
 
   const localBusinessSchema = {
@@ -119,7 +129,7 @@ export default async function RootLayout({
     },
     ...(businessPhone && { telephone: businessPhone }),
     ...(businessEmail && { email: businessEmail }),
-    sameAs: ["https://lamkacoaching.in"],
+    sameAs: sameAsLinks,
     hasOfferCatalog: {
       "@type": "OfferCatalog",
       name: "Courses & Programs",
