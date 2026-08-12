@@ -47,14 +47,17 @@ export async function POST(request: Request) {
                      type === 'logo' ? `logo.${ext}` :
                      `${Date.now()}.${ext}`;
 
-    const response = await imagekit.upload({
-      file: buffer,
+    const response = await imagekit.files.upload({
+      file: buffer.toString('base64'),
       fileName,
       folder,
       useUniqueFileName: type !== 'favicon' && type !== 'logo',
     });
 
     const publicPath = response.url;
+    if (!publicPath) {
+      throw new Error('Upload failed: No URL returned from ImageKit');
+    }
 
     if (type === 'favicon') {
       await db.setting.upsert({
