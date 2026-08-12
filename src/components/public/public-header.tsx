@@ -23,22 +23,13 @@ import {
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 
+import { useSettings } from '@/components/providers/settings-provider';
+
 // Shared logo component that uses the uploaded logo or falls back to the icon
 function SiteLogo({ size = 'default', variant = 'dark', className }: { size?: 'default' | 'small' | 'mobile'; variant?: 'dark' | 'light'; className?: string }) {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [businessName, setBusinessName] = useState('Lamka Coaching');
-
-  useEffect(() => {
-    fetch('/api/public/settings')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.settings) {
-          if (d.settings.logoUrl) setLogoUrl(d.settings.logoUrl);
-          if (d.settings.businessName) setBusinessName(d.settings.businessName);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const settings = useSettings();
+  const logoUrl = settings?.logo_url || null;
+  const businessName = settings?.business_name || 'Lamka Coaching';
 
   const nameParts = businessName.split(' ');
   const primary = nameParts.slice(0, 2).join(' ');

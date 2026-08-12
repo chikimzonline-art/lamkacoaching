@@ -4,6 +4,8 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/public/theme-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { SettingsProvider } from "@/components/providers/settings-provider";
+import { db } from "@/lib/db";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,11 +35,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let settingsMap: Record<string, string> = {};
+  try {
+    const records = await db.setting.findMany();
+    records.forEach(r => {
+      settingsMap[r.key] = r.value;
+    });
+  } catch (error) {
+    console.error("Failed to load settings in RootLayout", error);
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -45,8 +57,10 @@ export default function RootLayout({
       >
         <SessionProvider>
           <ThemeProvider>
-            {children}
-            <Toaster richColors position="top-center" />
+            <SettingsProvider settings={settingsMap}>
+              {children}
+              <Toaster richColors position="top-center" />
+            </SettingsProvider>
           </ThemeProvider>
         </SessionProvider>
       </body>

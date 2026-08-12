@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 // POST /api/public/register - Public: student self-registration
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, email, address, courseId, batchId } = body;
+    const { name, phone, email, password } = body;
 
-    if (!name?.trim() || !phone?.trim()) {
+    if (!name?.trim() || !phone?.trim() || !email?.trim() || !password?.trim()) {
       return NextResponse.json(
-        { error: 'Name and phone number are required' },
+        { error: 'Name, phone number, email, and password are required' },
         { status: 400 }
       );
     }
@@ -24,69 +25,51 @@ export async function POST(request: Request) {
     }
 
     // Check for duplicate phone
-    const existing = await db.student.findUnique({
+    const existingPhone = await db.student.findUnique({
       where: { phone: phoneStr },
     });
-    if (existing) {
+    if (existingPhone) {
       return NextResponse.json(
-        { error: 'A student with this phone number is already registered. Please contact the center.' },
+        { error: 'A student with this phone number is already registered.' },
         { status: 409 }
       );
     }
+
+    // Check for duplicate email
+    const existingEmail = await db.student.findFirst({
+      where: { email: email.trim() },
+    });
+    if (existingEmail) {
+      return NextResponse.json(
+        { error: 'A student with this email address is already registered.' },
+        { status: 409 }
+      );
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create the student with source "website"
     const student = await db.student.create({
       data: {
         name: name.trim(),
         phone: phoneStr,
-        email: email?.trim() || null,
-        address: address?.trim() || null,
-        notes: 'Registered via website',
+        email: email.trim(),
+        username: phoneStr, // Set username to phone by default
+        password: hashedPassword,
+        notes: 'Registered via website auth',
         source: 'website',
       },
     });
 
-    // If a course was selected, create an enrollment
-    if (courseId && batchId) {
-      const course = await db.course.findUnique({
-        where: { id: courseId, status: 'active' },
-      });
-
-      if (course) {
-        const startDate = new Date();
-        const endDate = new Date();
-        
-        if (course.durationValue && course.durationUnit) {
-          if (course.durationUnit === 'days') endDate.setDate(endDate.getDate() + course.durationValue);
-          else if (course.durationUnit === 'months') endDate.setMonth(endDate.getMonth() + course.durationValue);
-          else if (course.durationUnit === 'years') endDate.setFullYear(endDate.getFullYear() + course.durationValue);
-        } else {
-          endDate.setMonth(endDate.getMonth() + 6);
-        }
-
-        await db.enrollment.create({
-          data: {
-            studentId: student.id,
-            courseId: course.id,
-            batchId: batchId,
-            startDate,
-            endDate,
-            totalFee: course.totalFee,
-            paidAmount: 0,
-            status: 'pending',
-            notes: 'Self-enrolled via website - awaiting confirmation',
-          },
-        });
-      }
-    }
-
     return NextResponse.json({
       success: true,
-      message: 'Registration successful! We will contact you shortly.',
+      message: 'Account created successfully!',
       student: {
         id: student.id,
         name: student.name,
         phone: student.phone,
+        email: student.email,
       },
     });
   } catch (error) {
