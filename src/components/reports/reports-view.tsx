@@ -14,10 +14,24 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
-import { Banknote, FileText, TrendingUp, Users, Download } from 'lucide-react';
+import { Banknote, FileText, TrendingUp, Users, Download, Calendar as CalendarIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/helpers';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
+import { format } from 'date-fns';
 
-type Period = 'daily' | 'weekly' | 'monthly';
+type Period = 'daily' | 'weekly' | 'monthly' | 'custom';
+
+interface PaymentDetail {
+  id: string;
+  amount: number;
+  receivedAt: string;
+  studentId: string;
+  studentName: string;
+  type: string;
+  details: string;
+  mode: string;
+}
 
 interface ReportData {
   labels: string[];
@@ -25,6 +39,7 @@ interface ReportData {
   totalRevenue: number;
   paymentCount: number;
   topStudents: { name: string; totalPaid: number }[];
+  paymentsList: PaymentDetail[];
 }
 
 interface ChartDataPoint {
@@ -126,16 +141,25 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export default function ReportsView() {
-  const [period, setPeriod] = useState<Period>('monthly');
+  const [period, setPeriod] = useState<Period>('daily');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/reports?period=${period}`);
+      let url = `/api/reports?period=${period}`;
+      if (period === 'custom' && dateRange?.from) {
+        url += `&startDate=${dateRange.from.toISOString()}`;
+        if (dateRange.to) {
+          url += `&endDate=${dateRange.to.toISOString()}`;
+        }
+      }
+
+      const res = await fetch(url);
       const json = await res.json();
-      if (json.labels) {
+      if (json.labels || json.paymentsList) {
         setData(json);
       }
     } catch (err) {
@@ -143,7 +167,7 @@ export default function ReportsView() {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, dateRange]);
 
   useEffect(() => {
     fetchReports();
@@ -153,24 +177,46 @@ export default function ReportsView() {
     if (!data) return;
 
     const periodLabel = period.charAt(0).toUpperCase() + period.slice(1);
-    const rows: string[][] = [
-      [`Lamka Coaching Center - Revenue Report (${periodLabel})`],
-      [`Generated on, ${new Date().toLocaleString('en-IN')}`],
-      [],
-      [`Period, Revenue (₹)`],
-      ...data.labels.map((label, i) => [label, data.revenue[i].toLocaleString('en-IN', { minimumFractionDigits: 2 })]),
-      [],
-      [`Total Revenue, ₹${data.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
-      [`Total Payments, ${data.paymentCount}`],
-      [`Average per Payment, ₹${data.paymentCount > 0 ? (data.totalRevenue / data.paymentCount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}`],
-      [],
-      [`Top Students`],
-      [`Name, Total Paid (₹)`],
-      ...data.topStudents.map((s) => [s.name, s.totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })]),
-    ];
+    let rows: string[][] = [];
+
+    if (period === 'daily' || period === 'custom') {
+      rows = [
+        [`Lamka Coaching Center - Payments Report (${periodLabel})`],
+        [`Generated on, ${new Date().toLocaleString('en-IN')}`],
+        [],
+        [`Time`, `Student Name`, `Type`, `Details`, `Mode`, `Amount (₹)`],
+        ...data.paymentsList.map((p) => [
+          `"${new Date(p.receivedAt).toLocaleString('en-IN')}"`,
+          `"${p.studentName}"`,
+          p.type,
+          `"${p.details}"`,
+          p.mode,
+          `"${p.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`,
+        ]),
+        [],
+        [`Total Revenue`, `"₹${data.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`],
+        [`Total Payments`, data.paymentCount.toString()],
+      ];
+    } else {
+      rows = [
+        [`Lamka Coaching Center - Revenue Report (${periodLabel})`],
+        [`Generated on, ${new Date().toLocaleString('en-IN')}`],
+        [],
+        [`Period`, `Revenue (₹)`],
+        ...data.labels.map((label, i) => [label, `"${data.revenue[i].toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`]),
+        [],
+        [`Total Revenue`, `"₹${data.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`],
+        [`Total Payments`, data.paymentCount.toString()],
+        [`Average per Payment`, `"₹${data.paymentCount > 0 ? (data.totalRevenue / data.paymentCount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}"`],
+        [],
+        [`Top Students`],
+        [`Name`, `Total Paid (₹)`],
+        ...data.topStudents.map((s) => [`"${s.name}"`, `"${s.totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`]),
+      ];
+    }
 
     const csvContent = rows.map((row) => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -187,7 +233,7 @@ export default function ReportsView() {
 
   const avgPerPayment = data && data.paymentCount > 0 ? data.totalRevenue / data.paymentCount : 0;
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -219,25 +265,33 @@ export default function ReportsView() {
     <div className="space-y-6">
       {/* Period selector and Export */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center bg-gray-100 rounded-lg p-1">
-          {(['daily', 'weekly', 'monthly'] as Period[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                period === p
-                  ? 'bg-white text-cyan-700 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {p.charAt(0).toUpperCase() + p.slice(1)}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="flex items-center bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
+            {(['daily', 'weekly', 'monthly', 'custom'] as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => {
+                  setPeriod(p);
+                  if (p !== 'custom') setDateRange(undefined);
+                }}
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-all flex-1 sm:flex-none text-center ${
+                  period === p
+                    ? 'bg-white text-cyan-700 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {p.charAt(0).toUpperCase() + p.slice(1)}
+              </button>
+            ))}
+          </div>
+          {period === 'custom' && (
+            <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+          )}
         </div>
         <Button
           variant="outline"
           onClick={handleExportCSV}
-          className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800"
+          className="gap-2 border-cyan-200 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800 shrink-0"
         >
           <Download className="h-4 w-4" />
           Export CSV
@@ -266,128 +320,212 @@ export default function ReportsView() {
         />
       </div>
 
-      {/* Revenue Chart */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-cyan-600" />
-              Revenue Overview
-            </CardTitle>
-            <Badge variant="outline" className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200">
-              {period.charAt(0).toUpperCase() + period.slice(1)}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-2">
-          <div className="h-[320px] w-full">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                    tickLine={false}
-                    interval="preserveStartEnd"
-                    angle={-30}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                    tickLine={false}
-                    tickFormatter={(value: number) => `₹${value.toLocaleString('en-IN')}`}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff7ed' }} />
-                  <Bar
-                    dataKey="revenue"
-                    fill="#ea580c"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+      {/* Main Data View (Chart or Table) */}
+      {(period === 'weekly' || period === 'monthly' || period === 'custom') ? (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-cyan-600" />
+                Revenue Overview
+              </CardTitle>
+              <Badge variant="outline" className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200">
+                {period.charAt(0).toUpperCase() + period.slice(1)}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="h-[320px] w-full">
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      interval="preserveStartEnd"
+                      angle={-30}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: '#6b7280' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      tickFormatter={(value: number) => `₹${value.toLocaleString('en-IN')}`}
+                    />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff7ed' }} />
+                    <Bar
+                      dataKey="revenue"
+                      fill="#ea580c"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={50}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                  No data available for the selected period
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4 text-cyan-600" />
+                Individual Payments
+              </CardTitle>
+              <Badge variant="outline" className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200">
+                Today
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {data.paymentsList.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-6">No payments received today</p>
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                No data available for the selected period
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
+                        Time
+                      </th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
+                        Student
+                      </th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
+                        Type
+                      </th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
+                        Details
+                      </th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
+                        Mode
+                      </th>
+                      <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-2">
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.paymentsList.map((payment) => (
+                      <tr
+                        key={payment.id}
+                        className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-3 pr-4 text-sm text-gray-500 whitespace-nowrap">
+                          {format(new Date(payment.receivedAt), 'hh:mm a')}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="text-sm font-medium text-gray-900">{payment.studentName}</p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-700 font-normal">
+                            {payment.type}
+                          </Badge>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="text-sm text-gray-600 truncate max-w-[200px]" title={payment.details}>
+                            {payment.details}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="text-sm text-gray-600 capitalize">{payment.mode}</p>
+                        </td>
+                        <td className="py-3 text-right">
+                          <span className="text-sm font-semibold text-cyan-700">
+                            {formatCurrency(payment.amount * 100)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Top Students Table */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 text-cyan-600" />
-              Top Students by Revenue
-            </CardTitle>
-            <Badge variant="outline" className="text-xs">
-              Top {data.topStudents.length}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {data.topStudents.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No payment data available</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
-                      Rank
-                    </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
-                      Student
-                    </th>
-                    <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-2">
-                      Total Paid
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.topStudents.map((student, index) => (
-                    <tr
-                      key={student.name}
-                      className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="py-3 pr-4">
-                        <span
-                          className={`inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold ${
-                            index === 0
-                              ? 'bg-sky-100 text-sky-700'
-                              : index === 1
-                                ? 'bg-gray-100 text-gray-600'
-                                : index === 2
-                                  ? 'bg-cyan-100 text-cyan-700'
-                                  : 'bg-gray-50 text-gray-400'
-                          }`}
-                        >
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <p className="text-sm font-medium text-gray-900">{student.name}</p>
-                      </td>
-                      <td className="py-3 text-right">
-                        <span className="text-sm font-semibold text-cyan-700">
-                          {formatCurrency(student.totalPaid * 100)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* Top Students Table (Only shown for aggregated views to save space) */}
+      {(period !== 'daily') && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Users className="h-4 w-4 text-cyan-600" />
+                Top Students by Revenue
+              </CardTitle>
+              <Badge variant="outline" className="text-xs">
+                Top {data.topStudents.length}
+              </Badge>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {data.topStudents.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-6">No payment data available</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
+                        Rank
+                      </th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2 pr-4">
+                        Student
+                      </th>
+                      <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider pb-2">
+                        Total Paid
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.topStudents.map((student, index) => (
+                      <tr
+                        key={student.name}
+                        className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-3 pr-4">
+                          <span
+                            className={`inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold ${
+                              index === 0
+                                ? 'bg-sky-100 text-sky-700'
+                                : index === 1
+                                  ? 'bg-gray-100 text-gray-600'
+                                  : index === 2
+                                    ? 'bg-cyan-100 text-cyan-700'
+                                    : 'bg-gray-50 text-gray-400'
+                            }`}
+                          >
+                            {index + 1}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="text-sm font-medium text-gray-900">{student.name}</p>
+                        </td>
+                        <td className="py-3 text-right">
+                          <span className="text-sm font-semibold text-cyan-700">
+                            {formatCurrency(student.totalPaid * 100)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+

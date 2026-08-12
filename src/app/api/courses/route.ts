@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
-
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+import { getAuthUser } from '@/lib/auth';
 
 // GET /api/courses
 export async function GET(request: Request) {
@@ -48,7 +40,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { action, id, name, departmentId, duration, totalFee, description, status } = body;
+    const { action, id, name, departmentId, durationValue, durationUnit, totalFee, description, status } = body;
 
     if (action === 'create') {
       if (!name?.trim() || !departmentId || !totalFee) {
@@ -58,7 +50,8 @@ export async function POST(request: Request) {
         data: {
           name: name.trim(),
           departmentId,
-          duration: duration?.trim() || null,
+          durationValue: durationValue !== undefined ? Number(durationValue) : null,
+          durationUnit: durationUnit?.trim() || null,
           totalFee: Math.round(Number(totalFee) * 100), // convert to paise
           description: description?.trim() || null,
         },
@@ -73,7 +66,8 @@ export async function POST(request: Request) {
         data: {
           name: name?.trim() || undefined,
           departmentId: departmentId || undefined,
-          duration: duration !== undefined ? (duration?.trim() || null) : undefined,
+          durationValue: durationValue !== undefined ? (durationValue ? Number(durationValue) : null) : undefined,
+          durationUnit: durationUnit !== undefined ? (durationUnit?.trim() || null) : undefined,
           totalFee: totalFee !== undefined ? Math.round(Number(totalFee) * 100) : undefined,
           description: description !== undefined ? (description?.trim() || null) : undefined,
           status: status || undefined,

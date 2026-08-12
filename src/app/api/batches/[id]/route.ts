@@ -16,14 +16,13 @@ export async function PUT(
     }
 
     const updateData: Record<string, unknown> = {};
-    if (body.courseName !== undefined) updateData.courseName = body.courseName;
-    if (body.department !== undefined) updateData.department = body.department;
+    if (body.courseId !== undefined) updateData.courseId = body.courseId;
+    if (body.batchName !== undefined) updateData.batchName = body.batchName;
     if (body.startDate !== undefined) updateData.startDate = new Date(body.startDate);
-    if (body.duration !== undefined) updateData.duration = body.duration;
+    if (body.endDate !== undefined) updateData.endDate = body.endDate ? new Date(body.endDate) : null;
     if (body.timing !== undefined) updateData.timing = body.timing;
     if (body.seats !== undefined) updateData.seats = Number(body.seats);
     if (body.status !== undefined) updateData.status = body.status;
-    if (body.fee !== undefined) updateData.fee = Number(body.fee);
     if (body.description !== undefined) updateData.description = body.description || null;
     if (body.sortOrder !== undefined) updateData.sortOrder = Number(body.sortOrder);
     if (body.active !== undefined) updateData.active = Boolean(body.active);

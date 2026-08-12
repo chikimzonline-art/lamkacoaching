@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, email, address, courseId } = body;
+    const { name, phone, email, address, courseId, batchId } = body;
 
     if (!name?.trim() || !phone?.trim()) {
       return NextResponse.json(
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     });
 
     // If a course was selected, create an enrollment
-    if (courseId) {
+    if (courseId && batchId) {
       const course = await db.course.findUnique({
         where: { id: courseId, status: 'active' },
       });
@@ -55,13 +55,20 @@ export async function POST(request: Request) {
       if (course) {
         const startDate = new Date();
         const endDate = new Date();
-        // Default duration: 6 months from now if no course duration specified
-        endDate.setMonth(endDate.getMonth() + 6);
+        
+        if (course.durationValue && course.durationUnit) {
+          if (course.durationUnit === 'days') endDate.setDate(endDate.getDate() + course.durationValue);
+          else if (course.durationUnit === 'months') endDate.setMonth(endDate.getMonth() + course.durationValue);
+          else if (course.durationUnit === 'years') endDate.setFullYear(endDate.getFullYear() + course.durationValue);
+        } else {
+          endDate.setMonth(endDate.getMonth() + 6);
+        }
 
         await db.enrollment.create({
           data: {
             studentId: student.id,
             courseId: course.id,
+            batchId: batchId,
             startDate,
             endDate,
             totalFee: course.totalFee,

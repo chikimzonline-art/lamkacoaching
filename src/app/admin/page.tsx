@@ -1,8 +1,9 @@
 'use client';
 
 import { useAppStore, type ViewType } from '@/store/app-store';
-import { useAuthStore } from '@/store/auth-store';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import {
   LayoutDashboard,
   DoorOpen,
@@ -25,6 +26,7 @@ import {
   CalendarDays,
   Mail,
   HelpCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -44,20 +46,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
-import LoginPage from '@/components/auth/login-page';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const DashboardView = dynamic(() => import('@/components/dashboard/dashboard-view'), {
-  loading: () => <PageSkeleton />,
-});
-const CabinsView = dynamic(() => import('@/components/cabins/cabins-view'), {
-  loading: () => <PageSkeleton />,
-});
-const StudentsView = dynamic(() => import('@/components/students/students-view'), {
-  loading: () => <PageSkeleton />,
-});
-const BookingsView = dynamic(() => import('@/components/bookings/bookings-view'), {
   loading: () => <PageSkeleton />,
 });
 const PaymentsView = dynamic(() => import('@/components/payments/payments-view'), {
@@ -69,78 +62,47 @@ const ReportsView = dynamic(() => import('@/components/reports/reports-view'), {
 const SettingsView = dynamic(() => import('@/components/settings/settings-view'), {
   loading: () => <PageSkeleton />,
 });
-const DepartmentsView = dynamic(() => import('@/components/departments/departments-view'), {
+const AcademicsContainer = dynamic(() => import('@/components/academics/academics-container'), {
   loading: () => <PageSkeleton />,
 });
-const CoursesView = dynamic(() => import('@/components/courses/courses-view'), {
+const CommunicationsContainer = dynamic(() => import('@/components/communications/communications-container'), {
   loading: () => <PageSkeleton />,
 });
-const EnrollmentsView = dynamic(() => import('@/components/enrollments/enrollments-view'), {
+const FacilitiesContainer = dynamic(() => import('@/components/facilities/facilities-container'), {
   loading: () => <PageSkeleton />,
 });
-const NoticesView = dynamic(() => import('@/components/notices/notices-view'), {
+const WebsiteContainer = dynamic(() => import('@/components/website/website-container'), {
   loading: () => <PageSkeleton />,
 });
-const AboutView = dynamic(() => import('@/components/about/about-view'), {
-  loading: () => <PageSkeleton />,
-});
-const BatchesView = dynamic(() => import('@/components/batches/batch-view'), {
-  loading: () => <PageSkeleton />,
-});
-const ContactView = dynamic(() => import('@/components/contacts/contact-view'), {
-  loading: () => <PageSkeleton />,
-});
-const FaqView = dynamic(() => import('@/components/faqs/faq-view'), {
-  loading: () => <PageSkeleton />,
-});
-const NewsletterView = dynamic(() => import('@/components/newsletter/newsletter-view'), {
-  loading: () => <PageSkeleton />,
-});
-const HomepageView = dynamic(() => import('@/components/homepage/homepage-view'), {
+const StudentsContainer = dynamic(() => import('@/components/students/students-container'), {
   loading: () => <PageSkeleton />,
 });
 
 // Bottom nav items (5 primary + More)
 const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
   { view: 'dashboard', label: 'Home', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { view: 'enrollments', label: 'Courses', icon: <GraduationCap className="h-5 w-5" /> },
-  { view: 'bookings', label: 'Bookings', icon: <Calendar className="h-5 w-5" /> },
+  { view: 'academics', label: 'Academics', icon: <GraduationCap className="h-5 w-5" /> },
   { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" /> },
+  { view: 'facilities', label: 'Facilities', icon: <DoorOpen className="h-5 w-5" /> },
   { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" /> },
 ];
 
 const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; adminOnly: boolean }[] = [
-  { view: 'cabins', label: 'Cabins', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
-  { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
-  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
-  { view: 'batches', label: 'Batches', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
-  { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
-  { view: 'contacts', label: 'Messages', icon: <Mail className="h-5 w-5" />, adminOnly: true },
-  { view: 'newsletter', label: 'Newsletter', icon: <Mail className="h-5 w-5" />, adminOnly: true },
-  { view: 'faqs', label: 'FAQs', icon: <HelpCircle className="h-5 w-5" />, adminOnly: true },
-  { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
-  { view: 'homepage', label: 'Homepage', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: true },
+  { view: 'communications', label: 'Communications', icon: <Mail className="h-5 w-5" />, adminOnly: true },
+  { view: 'website', label: 'Website CMS', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
 
 const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; adminOnly: boolean }[] = [
   { view: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: false },
-  { view: 'cabins', label: 'Cabins', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
-  { view: 'bookings', label: 'Bookings', icon: <Calendar className="h-5 w-5" />, adminOnly: false },
-  { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" />, adminOnly: false },
-  { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" />, adminOnly: false },
-  { view: 'departments', label: 'Departments', icon: <Building2 className="h-5 w-5" />, adminOnly: true },
-  { view: 'courses', label: 'Courses', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
-  { view: 'enrollments', label: 'Enrollments', icon: <UserPlus className="h-5 w-5" />, adminOnly: false },
-  { view: 'batches', label: 'Batches', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
-  { view: 'notices', label: 'Notices', icon: <Megaphone className="h-5 w-5" />, adminOnly: true },
-  { view: 'contacts', label: 'Messages', icon: <Mail className="h-5 w-5" />, adminOnly: true },
-  { view: 'newsletter', label: 'Newsletter', icon: <Mail className="h-5 w-5" />, adminOnly: true },
-  { view: 'faqs', label: 'FAQs', icon: <HelpCircle className="h-5 w-5" />, adminOnly: true },
-  { view: 'about', label: 'About Page', icon: <Info className="h-5 w-5" />, adminOnly: true },
-  { view: 'homepage', label: 'Homepage', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
+  { view: 'academics', label: 'Academics', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
+  { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" />, adminOnly: false },
+  { view: 'facilities', label: 'Facilities', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
+  { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" />, adminOnly: false },
+  { view: 'communications', label: 'Communications', icon: <Mail className="h-5 w-5" />, adminOnly: true },
+  { view: 'website', label: 'Website CMS', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: true },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
 
@@ -224,7 +186,14 @@ function LoadingScreen() {
 
 function PageHeader() {
   const { activeView } = useAppStore();
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  
+  const user = session?.user ? {
+    name: session.user.name || 'User',
+    username: (session.user as any).username || '',
+    role: (session.user as any).role as string
+  } : null;
+
   const currentDate = useMemo(() =>
     new Date().toLocaleDateString('en-IN', {
       weekday: 'long',
@@ -235,22 +204,14 @@ function PageHeader() {
 
   const viewTitles: Record<ViewType, string> = {
     dashboard: 'Dashboard',
-    cabins: 'Cabins',
-    bookings: 'Bookings',
     students: 'Students',
     payments: 'Payments',
-    departments: 'Departments',
-    courses: 'Courses',
-    enrollments: 'Enrollments',
-    batches: 'Batches',
-    notices: 'Notices',
-    contacts: 'Messages',
-    newsletter: 'Newsletter',
-    faqs: 'FAQs',
     reports: 'Reports',
     settings: 'Settings',
-    about: 'About Page',
-    homepage: 'Homepage',
+    academics: 'Academics & Curriculum',
+    facilities: 'Facilities Management',
+    communications: 'Communications & Support',
+    website: 'Website Content',
   };
 
   return (
@@ -287,7 +248,7 @@ function PageHeader() {
                 <p className="text-xs text-gray-500">@{user.username}</p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => useAuthStore.getState().logout()}>
+              <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => signOut()}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign out
               </DropdownMenuItem>
@@ -302,29 +263,28 @@ function PageHeader() {
 function renderView(view: ViewType) {
   switch (view) {
     case 'dashboard': return <DashboardView />;
-    case 'cabins': return <CabinsView />;
-    case 'bookings': return <BookingsView />;
-    case 'students': return <StudentsView />;
+    case 'students': return <StudentsContainer />;
     case 'payments': return <PaymentsView />;
-    case 'departments': return <DepartmentsView />;
-    case 'courses': return <CoursesView />;
-    case 'enrollments': return <EnrollmentsView />;
-    case 'batches': return <BatchesView />;
-    case 'notices': return <NoticesView />;
-    case 'contacts': return <ContactView />;
-    case 'newsletter': return <NewsletterView />;
-    case 'faqs': return <FaqView />;
     case 'reports': return <ReportsView />;
     case 'settings': return <SettingsView />;
-    case 'about': return <AboutView />;
-    case 'homepage': return <HomepageView />;
+    case 'academics': return <AcademicsContainer />;
+    case 'facilities': return <FacilitiesContainer />;
+    case 'communications': return <CommunicationsContainer />;
+    case 'website': return <WebsiteContainer />;
     default: return <DashboardView />;
   }
 }
 
 function SidebarContent({ onItemClick, pendingCount }: { onItemClick?: () => void; pendingCount?: number }) {
   const { activeView, setActiveView } = useAppStore();
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  
+  const user = session?.user ? {
+    name: session.user.name || 'User',
+    username: (session.user as any).username || '',
+    role: (session.user as any).role as string
+  } : null;
+
   const isAdmin = user?.role === 'admin';
 
   const visibleItems = allSidebarItems.filter(
@@ -354,11 +314,6 @@ function SidebarContent({ onItemClick, pendingCount }: { onItemClick?: () => voi
           >
             {item.icon}
             {item.label}
-            {item.view === 'bookings' && pendingCount && pendingCount > 0 && (
-              <span className="ml-auto flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">
-                {pendingCount}
-              </span>
-            )}
           </button>
         ))}
       </nav>
@@ -392,8 +347,8 @@ function SidebarContent({ onItemClick, pendingCount }: { onItemClick?: () => voi
 // Bottom Navigation Bar for mobile
 function BottomNav({ pendingCount }: { pendingCount?: number }) {
   const { activeView, setActiveView } = useAppStore();
-  const { user } = useAuthStore();
-  const isAdmin = user?.role === 'admin';
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
   const [moreOpen, setMoreOpen] = useState(false);
 
   const visibleMoreItems = moreNavItems.filter(
@@ -417,11 +372,6 @@ function BottomNav({ pendingCount }: { pendingCount?: number }) {
             >
               {item.icon}
               <span className="text-[10px] mt-1 font-medium">{item.label}</span>
-              {item.view === 'bookings' && pendingCount && pendingCount > 0 && (
-                <span className="absolute top-0.5 right-1/4 flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold">
-                  {pendingCount}
-                </span>
-              )}
             </button>
           ))}
           <button
@@ -472,32 +422,48 @@ function BottomNav({ pendingCount }: { pendingCount?: number }) {
 
 function AuthenticatedApp() {
   const { activeView, sidebarOpen } = useAppStore();
-  const { user } = useAuthStore();
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchPendingCount = async () => {
       try {
-        const res = await fetch('/api/dashboard');
+        const res = await fetch('/api/bookings/pending-count');
         if (res.ok) {
           const data = await res.json();
-          setPendingCount(data.pendingBookingCount || 0);
+          setPendingCount(data.count || 0);
         }
       } catch {
         // ignore
       }
     };
     fetchPendingCount();
-    const interval = setInterval(fetchPendingCount, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    if (user && user.role !== 'admin' && (activeView === 'settings' || activeView === 'courses')) {
+    if (activeView !== 'dashboard') return;
+    const fetchPendingCount = async () => {
+      try {
+        const res = await fetch('/api/bookings/pending-count');
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(data.count || 0);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    const interval = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, [activeView]);
+
+  useEffect(() => {
+    if (role && role !== 'admin' && (activeView === 'settings' || activeView === 'academics')) {
       useAppStore.getState().setActiveView('dashboard');
     }
-  }, [user, activeView]);
+  }, [role, activeView]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -563,33 +529,39 @@ function AuthenticatedApp() {
 }
 
 export default function Home() {
-  const { user, isLoading, setUser, setLoading } = useAuthStore();
-
-  const checkAuth = useCallback(async () => {
-    try {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-      if (res.ok && data.user) {
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
-    } catch {
-      setUser(null);
-    }
-  }, [setUser]);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
 
-  if (isLoading) {
+  if (status === 'loading') {
     return <LoadingScreen />;
   }
 
-  if (!user) {
-    return <LoginPage />;
+  if (!session) {
+    return null; // The useEffect will handle the redirect
   }
 
-  return <AuthenticatedApp />;
+  const role = (session.user as any)?.role;
+
+  return role === 'admin' || role === 'staff' ? (
+    <AuthenticatedApp />
+  ) : (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4 text-center">
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+      <p className="text-gray-600 mb-6 max-w-md">
+        You are signed in as a student. Admin dashboard is for staff only.
+      </p>
+      <a 
+        href="/student/dashboard" 
+        className="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
+      >
+        Go to Student Dashboard
+      </a>
+    </div>
+  );
 }

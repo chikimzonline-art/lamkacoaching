@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
-
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+import { getAuthUser } from '@/lib/auth';
 
 // GET /api/enrollments
 export async function GET(request: Request) {
@@ -81,16 +73,17 @@ export async function POST(request: Request) {
             payNow, payAmount, payMode } = body;
 
     if (action === 'create') {
-      if (!studentId || !courseId || !totalFee) {
-        return NextResponse.json({ error: 'Student, course, and total fee are required' }, { status: 400 });
+      if (!studentId || !courseId || !totalFee || !body.batchId) {
+        return NextResponse.json({ error: 'Student, course, batch and total fee are required' }, { status: 400 });
       }
 
       const enrollmentPaidAmount = payNow && payAmount ? Math.round(Number(payAmount) * 100) : 0;
 
       const enrollment = await db.enrollment.create({
         data: {
-          studentId,
-          courseId,
+          studentId: studentId.toString(),
+          courseId: courseId.toString(),
+          batchId: body.batchId.toString(),
           startDate: startDate ? new Date(startDate) : new Date(),
           endDate: endDate ? new Date(endDate) : null,
           totalFee: Math.round(Number(totalFee) * 100),

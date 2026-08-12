@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { BookOpen, Menu, LogIn, GraduationCap, DoorOpen, ChevronDown, Monitor, Info, Sun, Moon, Search } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -77,7 +78,7 @@ const navItemVariants = {
   visible: (i: number) => ({
     opacity: 1,
     x: 0,
-    transition: { delay: i * 0.05, duration: 0.3, ease: 'easeOut' }
+    transition: { delay: i * 0.05, duration: 0.3 }
   })
 };
 
@@ -120,6 +121,7 @@ function ThemeToggle() {
 export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => void }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session } = useSession();
 
   const isRegisterActive = pathname === '/register' || pathname === '/cabins';
   const isComputerTrainingActive = pathname === '/computer-training';
@@ -199,12 +201,26 @@ export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => voi
               <Search className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             </Button>
             <ThemeToggle />
-            <Link href="/admin">
-              <Button variant="outline" size="sm" className="gap-2 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/50">
-                <LogIn className="h-4 w-4" />
-                Admin Login
-              </Button>
-            </Link>
+            
+            {!session ? (
+              <Link href="/login">
+                <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2">
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </Button>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href={(session.user as any)?.role === 'admin' || (session.user as any)?.role === 'staff' ? '/admin' : '/dashboard'}>
+                  <Button size="sm" variant="outline" className="border-cyan-600 text-cyan-600">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button size="sm" variant="ghost" className="text-gray-500" onClick={() => signOut()}>
+                  Logout
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu */}
@@ -335,12 +351,18 @@ export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => voi
                     <span className="text-sm text-gray-500 dark:text-gray-400">Theme</span>
                     <ThemeToggle />
                   </div>
-                  <Link href="/admin" onClick={() => setMobileOpen(false)}>
-                    <Button className="w-full gap-2 bg-cyan-600 hover:bg-cyan-700 text-white">
-                      <LogIn className="h-4 w-4" />
-                      Admin Login
+                  {!session ? (
+                    <Link href="/login" onClick={() => setMobileOpen(false)}>
+                      <Button className="w-full gap-2 bg-cyan-600 hover:bg-cyan-700 text-white">
+                        <LogIn className="h-4 w-4" />
+                        Login
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button variant="outline" className="w-full gap-2 border-red-200 text-red-600" onClick={() => { setMobileOpen(false); signOut(); }}>
+                      Logout
                     </Button>
-                  </Link>
+                  )}
                 </motion.div>
               </div>
             </SheetContent>

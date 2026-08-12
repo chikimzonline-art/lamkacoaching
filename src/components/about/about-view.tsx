@@ -153,6 +153,7 @@ export default function AboutView() {
   const [formGalleryRowSpan, setFormGalleryRowSpan] = useState('');
   const [formGallerySort, setFormGallerySort] = useState(0);
   const [formGalleryActive, setFormGalleryActive] = useState(true);
+  const [uploadingGalleryImage, setUploadingGalleryImage] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -384,6 +385,7 @@ export default function AboutView() {
     setFormGalleryRowSpan('');
     setFormGallerySort(galleryItems.length);
     setFormGalleryActive(true);
+    setUploadingGalleryImage(false);
     setEditingGallery(null);
   };
 
@@ -1010,9 +1012,38 @@ export default function AboutView() {
               <Textarea value={formGalleryDesc} onChange={(e) => setFormGalleryDesc(e.target.value)} placeholder="Brief description of this image..." rows={2} />
             </div>
             <div className="space-y-2">
-              <Label>Image Path</Label>
-              <Input value={formGalleryImage} onChange={(e) => setFormGalleryImage(e.target.value)} placeholder="/gallery/gallery-computer-lab.jpg" />
-              <p className="text-xs text-gray-400">Path relative to the public folder (e.g. /gallery/my-image.jpg)</p>
+              <Label>Image</Label>
+              <div className="flex items-center gap-2">
+                <Input 
+                  type="file" 
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  disabled={uploadingGalleryImage}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingGalleryImage(true);
+                    try {
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      formData.append('type', 'gallery');
+                      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                      const json = await res.json();
+                      if (res.ok && json.url) {
+                        setFormGalleryImage(json.url);
+                        toast.success('Image uploaded successfully');
+                      } else {
+                        toast.error(json.error || 'Failed to upload image');
+                      }
+                    } catch (error) {
+                      toast.error('Error uploading image');
+                    } finally {
+                      setUploadingGalleryImage(false);
+                    }
+                  }}
+                />
+                {uploadingGalleryImage && <Loader2 className="h-4 w-4 animate-spin text-gray-500 shrink-0" />}
+              </div>
+              {formGalleryImage && <p className="text-xs text-green-600 truncate">Uploaded: {formGalleryImage}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

@@ -7,6 +7,11 @@ export async function GET() {
     const batches = await db.batch.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { startDate: 'asc' }],
+      include: {
+        course: {
+          include: { department: true }
+        }
+      }
     });
     return NextResponse.json(batches);
   } catch (error) {
@@ -22,29 +27,50 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { courseName, department, startDate, duration, timing, seats, status, fee, description, sortOrder } = body;
+    const { courseId, batchName, startDate, endDate, timing, seats, status, description, sortOrder } = body;
 
-    if (!courseName || !department || !startDate || !duration || !timing || seats === undefined || fee === undefined) {
+    if (!courseId || !batchName || !startDate || !timing || seats === undefined) {
       return NextResponse.json(
-        { error: 'Missing required fields: courseName, department, startDate, duration, timing, seats, fee' },
+        { error: 'Missing required fields: courseId, batchName, startDate, timing, seats' },
         { status: 400 }
       );
     }
 
     const batch = await db.batch.create({
       data: {
-        courseName,
-        department,
+        courseId,
+        batchName,
         startDate: new Date(startDate),
-        duration,
+        endDate: endDate ? new Date(endDate) : null,
         timing,
         seats: Number(seats),
         status: status || 'enrolling',
-        fee: Number(fee),
         description: description || null,
         sortOrder: sortOrder !== undefined ? Number(sortOrder) : 0,
       },
     });
+
+    if (batch.active && (batch.status === 'enrolling' || batch.status === 'almost_full')) {
+      const waitlisted = await db.courseWaitlist.findMany({
+        where: { courseId: batch.courseId },
+        include: { course: true }
+      });
+      
+      if (waitlisted.length > 0) {
+        await db.studentNotification.createMany({
+          data: waitlisted.map(w => ({
+            studentId: w.studentId,
+            title: `New Batch Open: ${w.course.name}`,
+            message: `A new batch starting on ${batch.startDate.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'})} has opened for ${w.course.name}. Enroll now before seats fill up!`,
+            link: `/dashboard`
+          }))
+        });
+        
+        await db.courseWaitlist.deleteMany({
+          where: { courseId: batch.courseId }
+        });
+      }
+    }
 
     return NextResponse.json(batch, { status: 201 });
   } catch (error) {

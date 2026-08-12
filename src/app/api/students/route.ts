@@ -1,15 +1,7 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
-
-// Helper to verify auth
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+import { getAuthUser } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 // GET /api/students - List all students with search
 export async function GET(request: Request) {
@@ -27,6 +19,7 @@ export async function GET(request: Request) {
       where: search ? {
         OR: [
           { name: { contains: search } },
+          { username: { contains: search } },
           { phone: { contains: search } },
           { email: { contains: search } },
         ],
@@ -62,8 +55,11 @@ export async function GET(request: Request) {
       const enrollmentPaid = enrollments.reduce((sum, e) => sum + e.paidAmount, 0);
       const enrollmentTotal = enrollments.reduce((sum, e) => sum + e.totalFee, 0);
 
+      const { password, ...studentData } = student;
+
       return {
-        ...student,
+        ...studentData,
+        hasLoginAccess: !!password,
         totalDue: bookingDue + enrollmentDue,
         totalPaid: bookingPaid + enrollmentPaid,
         totalAmount: bookingTotal + enrollmentTotal,
@@ -88,7 +84,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { action, id, name, phone, email, address, notes } = body;
+    const { action, id, name, username, phone, email, address, notes, password, avatar } = body;
 
     if (action === 'create') {
       if (!name || !phone) {
@@ -98,8 +94,21 @@ export async function POST(request: Request) {
       if (existing) {
         return NextResponse.json({ error: 'A student with this phone number already exists' }, { status: 400 });
       }
+
+      if (username) {
+        const existingUsername = await db.student.findUnique({ where: { username } });
+        if (existingUsername) {
+          return NextResponse.json({ error: 'Username is already taken' }, { status: 400 });
+        }
+      }
+
+      let hashedPassword = null;
+      if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+      }
+
       const student = await db.student.create({
-        data: { name, phone, email: email || null, address: address || null, notes: notes || null },
+        data: { name, username: username || null, phone, email: email || null, address: address || null, notes: notes || null, password: hashedPassword },
       });
       return NextResponse.json({ student });
 
@@ -107,15 +116,31 @@ export async function POST(request: Request) {
       if (!id) {
         return NextResponse.json({ error: 'Student ID is required' }, { status: 400 });
       }
+
+      if (username) {
+        const existingUsername = await db.student.findUnique({ where: { username } });
+        if (existingUsername && existingUsername.id !== id) {
+          return NextResponse.json({ error: 'Username is already taken' }, { status: 400 });
+        }
+      }
+
+      const updateData: any = {
+        name: name || undefined,
+        username: username !== undefined ? (username || null) : undefined,
+        phone: phone || undefined,
+        email: email !== undefined ? email : undefined,
+        address: address !== undefined ? address : undefined,
+        notes: notes !== undefined ? notes : undefined,
+        avatar: avatar !== undefined ? avatar : undefined,
+      };
+
+      if (password) {
+        updateData.password = await bcrypt.hash(password, 10);
+      }
+
       const student = await db.student.update({
         where: { id },
-        data: {
-          name: name || undefined,
-          phone: phone || undefined,
-          email: email !== undefined ? email : undefined,
-          address: address !== undefined ? address : undefined,
-          notes: notes !== undefined ? notes : undefined,
-        },
+        data: updateData,
       });
       return NextResponse.json({ student });
 

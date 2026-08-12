@@ -33,6 +33,7 @@ import {
   Users,
   Loader2,
   Banknote,
+  Key,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickPayDialog from './QuickPayDialog';
@@ -40,6 +41,7 @@ import QuickPayDialog from './QuickPayDialog';
 interface Student {
   id: string;
   name: string;
+  username?: string | null;
   phone: string;
   email?: string | null;
   address?: string | null;
@@ -50,22 +52,27 @@ interface Student {
   totalAmount: number;
   activeBookingCount: number;
   activeEnrollmentCount: number;
+  hasLoginAccess?: boolean;
 }
 
 interface StudentFormData {
   name: string;
+  username: string;
   phone: string;
   email: string;
   address: string;
   notes: string;
+  password?: string;
 }
 
 const emptyForm: StudentFormData = {
   name: '',
+  username: '',
   phone: '',
   email: '',
   address: '',
   notes: '',
+  password: '',
 };
 
 function formatCurrency(amount: number): string {
@@ -125,10 +132,12 @@ export default function StudentsView() {
     setEditingStudent(student);
     setForm({
       name: student.name,
+      username: student.username || '',
       phone: student.phone,
       email: student.email || '',
       address: student.address || '',
       notes: student.notes || '',
+      password: '',
     });
     setDialogOpen(true);
   };
@@ -144,10 +153,12 @@ export default function StudentsView() {
       const body: Record<string, unknown> = {
         action: editingStudent ? 'update' : 'create',
         name: form.name.trim(),
+        username: form.username.trim() || null,
         phone: form.phone.trim(),
         email: form.email.trim() || null,
         address: form.address.trim() || null,
         notes: form.notes.trim() || null,
+        password: form.password?.trim() || undefined,
       };
 
       if (editingStudent) {
@@ -317,6 +328,11 @@ export default function StudentsView() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="font-semibold text-gray-900">{student.name}</h3>
+                    {student.username && (
+                      <div className="flex items-center gap-1 text-sm text-cyan-600 mt-0.5">
+                        <span>@{student.username}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-1 text-sm text-gray-500 mt-0.5">
                       <Phone className="h-3 w-3" />
                       <span>{student.phone}</span>
@@ -369,6 +385,11 @@ export default function StudentsView() {
                       {student.activeEnrollmentCount} Course{(student.activeEnrollmentCount ?? 0) !== 1 ? 's' : ''}
                     </Badge>
                   )}
+                  {student.hasLoginAccess && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700">
+                      Login Enabled
+                    </Badge>
+                  )}
                   {student.totalDue > 0 && (
                     <Badge variant="secondary" className="bg-sky-100 text-sky-700">
                       Due: {formatCurrency(student.totalDue)}
@@ -401,6 +422,7 @@ export default function StudentsView() {
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead className="text-center">Login</TableHead>
                 <TableHead className="text-center">Bookings</TableHead>
                 <TableHead className="text-center">Courses</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -412,7 +434,12 @@ export default function StudentsView() {
             <TableBody>
               {students.map((student) => (
                 <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {student.name}
+                    {student.username && (
+                      <div className="text-xs font-normal text-cyan-600">@{student.username}</div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       <Phone className="h-3.5 w-3.5 text-gray-400" />
@@ -425,6 +452,13 @@ export default function StudentsView() {
                         <Mail className="h-3.5 w-3.5 text-gray-400" />
                         {student.email}
                       </div>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {student.hasLoginAccess ? (
+                      <Badge variant="secondary" className="bg-green-100 text-green-700">Enabled</Badge>
                     ) : (
                       <span className="text-gray-300">—</span>
                     )}
@@ -538,6 +572,15 @@ export default function StudentsView() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="student-username">Username</Label>
+                <Input
+                  id="student-username"
+                  placeholder="e.g. johndoe (optional)"
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="student-phone">Phone *</Label>
                 <Input
                   id="student-phone"
@@ -546,17 +589,47 @@ export default function StudentsView() {
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="student-email">Email</Label>
+                <Input
+                  id="student-email"
+                  type="email"
+                  placeholder="Email address (optional)"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="student-email">Email</Label>
-              <Input
-                id="student-email"
-                type="email"
-                placeholder="Email address (optional)"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="student-password">
+                  {editingStudent ? 'New Password (leave blank to keep current)' : 'Password'}
+                </Label>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  id="student-password"
+                  type="text"
+                  placeholder="Enter password..."
+                  value={form.password || ''}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+                    let pass = '';
+                    for (let i = 0; i < 8; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                    setForm({ ...form, password: pass });
+                  }}
+                  title="Generate Random Password"
+                >
+                  <Key className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">

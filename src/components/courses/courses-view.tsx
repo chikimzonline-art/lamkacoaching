@@ -37,7 +37,8 @@ interface Course {
   id: string;
   name: string;
   departmentId: string;
-  duration: string | null;
+  durationValue: number | null;
+  durationUnit: string | null;
   totalFee: number;
   description: string | null;
   status: string;
@@ -55,9 +56,11 @@ export default function CoursesView() {
   const [editing, setEditing] = useState<Course | null>(null);
   const [formName, setFormName] = useState('');
   const [formDeptId, setFormDeptId] = useState('');
-  const [formDuration, setFormDuration] = useState('');
+  const [formDurationValue, setFormDurationValue] = useState('');
+  const [formDurationUnit, setFormDurationUnit] = useState('months');
   const [formFee, setFormFee] = useState('');
   const [formDesc, setFormDesc] = useState('');
+  const [formStatus, setFormStatus] = useState('active');
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -91,9 +94,11 @@ export default function CoursesView() {
     setEditing(null);
     setFormName('');
     setFormDeptId('');
-    setFormDuration('');
+    setFormDurationValue('');
+    setFormDurationUnit('months');
     setFormFee('');
     setFormDesc('');
+    setFormStatus('active');
   };
 
   const openCreate = () => {
@@ -105,9 +110,11 @@ export default function CoursesView() {
     setEditing(course);
     setFormName(course.name);
     setFormDeptId(course.departmentId);
-    setFormDuration(course.duration || '');
+    setFormDurationValue(course.durationValue ? String(course.durationValue) : '');
+    setFormDurationUnit(course.durationUnit || 'months');
     setFormFee(String(course.totalFee / 100));
     setFormDesc(course.description || '');
+    setFormStatus(course.status || 'active');
     setDialogOpen(true);
   };
 
@@ -124,17 +131,21 @@ export default function CoursesView() {
             id: editing.id,
             name: formName.trim(),
             departmentId: formDeptId,
-            duration: formDuration.trim() || null,
+            durationValue: formDurationValue ? Number(formDurationValue) : null,
+            durationUnit: formDurationValue ? formDurationUnit : null,
             totalFee: Number(formFee),
             description: formDesc.trim() || null,
+            status: formStatus,
           }
         : {
             action: 'create',
             name: formName.trim(),
             departmentId: formDeptId,
-            duration: formDuration.trim() || null,
+            durationValue: formDurationValue ? Number(formDurationValue) : null,
+            durationUnit: formDurationValue ? formDurationUnit : null,
             totalFee: Number(formFee),
             description: formDesc.trim() || null,
+            status: formStatus,
           };
 
       const res = await fetch('/api/courses', {
@@ -238,9 +249,12 @@ export default function CoursesView() {
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-cyan-50 text-cyan-700 border-cyan-200">
                           {course.department.name}
                         </Badge>
-                        {course.duration && (
-                          <span className="text-[10px] text-gray-400">{course.duration}</span>
+                        {course.durationValue && (
+                          <span className="text-[10px] text-gray-400">{course.durationValue} {course.durationUnit}</span>
                         )}
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
+                          {course.status.replace('_', ' ')}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -304,11 +318,26 @@ export default function CoursesView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Duration</Label>
-                <Input
-                  placeholder="e.g., 6 months"
-                  value={formDuration}
-                  onChange={(e) => setFormDuration(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="e.g. 6"
+                    value={formDurationValue}
+                    onChange={(e) => setFormDurationValue(e.target.value)}
+                    min={1}
+                    className="flex-1"
+                  />
+                  <Select value={formDurationUnit} onValueChange={setFormDurationUnit}>
+                    <SelectTrigger className="w-[110px]">
+                      <SelectValue placeholder="Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="days">Days</SelectItem>
+                      <SelectItem value="months">Months</SelectItem>
+                      <SelectItem value="years">Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Total Fee (₹) *</Label>
@@ -320,6 +349,20 @@ export default function CoursesView() {
                   min={0}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={formStatus} onValueChange={setFormStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="coming_soon">Coming Soon</SelectItem>
+                  <SelectItem value="waitlist">Waitlist</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>

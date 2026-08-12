@@ -14,7 +14,8 @@ export async function GET() {
           select: {
             id: true,
             name: true,
-            duration: true,
+            durationValue: true,
+            durationUnit: true,
             totalFee: true,
             description: true,
           },

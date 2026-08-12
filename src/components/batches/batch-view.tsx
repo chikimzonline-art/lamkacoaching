@@ -38,14 +38,14 @@ import { toast } from 'sonner';
 
 interface Batch {
   id: string;
-  courseName: string;
-  department: string;
+  courseId: string;
+  course: { id: string; name: string; totalFee: number; department: { id: string; name: string } };
+  batchName: string;
   startDate: string;
-  duration: string;
+  endDate: string | null;
   timing: string;
   seats: number;
   status: string;
-  fee: number;
   description: string | null;
   sortOrder: number;
   active: boolean;
@@ -54,27 +54,25 @@ interface Batch {
 }
 
 interface BatchFormData {
-  courseName: string;
-  department: string;
+  courseId: string;
+  batchName: string;
   startDate: string;
-  duration: string;
+  endDate: string;
   timing: string;
   seats: number;
   status: string;
-  fee: number;
   description: string;
   sortOrder: number;
 }
 
 const emptyForm: BatchFormData = {
-  courseName: '',
-  department: 'Computer Training',
+  courseId: '',
+  batchName: '',
   startDate: '',
-  duration: '',
+  endDate: '',
   timing: '',
   seats: 10,
   status: 'enrolling',
-  fee: 0,
   description: '',
   sortOrder: 0,
 };
@@ -111,6 +109,7 @@ function formatCurrency(amount: number): string {
 
 export default function BatchView() {
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [courses, setCourses] = useState<{id: string; name: string; durationValue: number | null; durationUnit: string | null}[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<BatchFormData>(emptyForm);
@@ -133,13 +132,22 @@ export default function BatchView() {
     }
   }, []);
 
+  const fetchCourses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/courses');
+      const data = await res.json();
+      setCourses(data.courses || []);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     fetchBatches();
-  }, [fetchBatches]);
+    fetchCourses();
+  }, [fetchBatches, fetchCourses]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.courseName || !form.startDate || !form.duration || !form.timing) {
+    if (!form.courseId || !form.batchName || !form.startDate || !form.timing) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -214,14 +222,13 @@ export default function BatchView() {
   const openEditDialog = (batch: Batch) => {
     setEditingId(batch.id);
     setForm({
-      courseName: batch.courseName,
-      department: batch.department,
+      courseId: batch.courseId,
+      batchName: batch.batchName,
       startDate: batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : '',
-      duration: batch.duration,
+      endDate: batch.endDate ? new Date(batch.endDate).toISOString().split('T')[0] : '',
       timing: batch.timing,
       seats: batch.seats,
       status: batch.status,
-      fee: batch.fee,
       description: batch.description || '',
       sortOrder: batch.sortOrder,
     });
@@ -237,27 +244,27 @@ export default function BatchView() {
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="courseName">Course Name *</Label>
-          <Input
-            id="courseName"
-            value={form.courseName}
-            onChange={(e) => setForm({ ...form, courseName: e.target.value })}
-            placeholder="e.g., SSC CGL 2025 Batch"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="department">Department *</Label>
-          <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
+          <Label htmlFor="courseId">Course *</Label>
+          <Select value={form.courseId} onValueChange={(v) => setForm({ ...form, courseId: v })}>
             <SelectTrigger>
-              <SelectValue placeholder="Select department" />
+              <SelectValue placeholder="Select course" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Competitive Exams">Competitive Exams</SelectItem>
-              <SelectItem value="Computer Training">Computer Training</SelectItem>
-              <SelectItem value="Banking Exams">Banking Exams</SelectItem>
+              {courses.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="batchName">Batch Name *</Label>
+          <Input
+            id="batchName"
+            value={form.batchName}
+            onChange={(e) => setForm({ ...form, batchName: e.target.value })}
+            placeholder="e.g., Batch 001 - Evening"
+            required
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="startDate">Start Date *</Label>
@@ -265,18 +272,33 @@ export default function BatchView() {
             id="startDate"
             type="date"
             value={form.startDate}
-            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+            onChange={(e) => {
+              const newStart = e.target.value;
+              let newEnd = form.endDate;
+              if (newStart && form.courseId) {
+                const c = courses.find(x => x.id === form.courseId);
+                if (c && c.durationValue && c.durationUnit) {
+                  const d = new Date(newStart);
+                  if (!isNaN(d.getTime())) {
+                    if (c.durationUnit === 'days') d.setDate(d.getDate() + c.durationValue);
+                    else if (c.durationUnit === 'months') d.setMonth(d.getMonth() + c.durationValue);
+                    else if (c.durationUnit === 'years') d.setFullYear(d.getFullYear() + c.durationValue);
+                    newEnd = d.toISOString().split('T')[0];
+                  }
+                }
+              }
+              setForm({ ...form, startDate: newStart, endDate: newEnd });
+            }}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="duration">Duration *</Label>
+          <Label htmlFor="endDate">End Date</Label>
           <Input
-            id="duration"
-            value={form.duration}
-            onChange={(e) => setForm({ ...form, duration: e.target.value })}
-            placeholder="e.g., 6 Months"
-            required
+            id="endDate"
+            type="date"
+            value={form.endDate}
+            onChange={(e) => setForm({ ...form, endDate: e.target.value })}
           />
         </div>
         <div className="space-y-2">
@@ -297,16 +319,6 @@ export default function BatchView() {
             min={0}
             value={form.seats}
             onChange={(e) => setForm({ ...form, seats: Number(e.target.value) })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="fee">Fee (₹)</Label>
-          <Input
-            id="fee"
-            type="number"
-            min={0}
-            value={form.fee}
-            onChange={(e) => setForm({ ...form, fee: Number(e.target.value) })}
           />
         </div>
         <div className="space-y-2">
@@ -392,8 +404,8 @@ export default function BatchView() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate">{batch.courseName}</h3>
-                        <p className="text-sm text-gray-500">{batch.department}</p>
+                        <h3 className="font-semibold text-gray-900 truncate">{batch.batchName || batch.course?.name || 'Unknown Course'}</h3>
+                        <p className="text-sm text-gray-500">{batch.course?.name || 'Unknown Course'} • {batch.course?.department?.name || 'Unknown Dept'}</p>
                       </div>
                       <Badge className={`text-[10px] shrink-0 ${statusColors[batch.status] || 'bg-gray-100 text-gray-700'}`}>
                         {batch.status.replace('_', ' ')}
@@ -403,15 +415,11 @@ export default function BatchView() {
                     <div className="space-y-1.5 text-sm text-gray-600 mb-3">
                       <div className="flex items-center gap-2">
                         <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
-                        {formatDate(batch.startDate)}
+                        {formatDate(batch.startDate)} {batch.endDate ? `- ${formatDate(batch.endDate)}` : ''}
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-3.5 w-3.5 text-gray-400" />
                         {batch.timing}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Hourglass className="h-3.5 w-3.5 text-gray-400" />
-                        {batch.duration}
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
@@ -420,7 +428,7 @@ export default function BatchView() {
                         </div>
                         <div className="flex items-center gap-1">
                           <IndianRupee className="h-3.5 w-3.5 text-gray-400" />
-                          {formatCurrency(batch.fee)}
+                          {batch.course?.totalFee ? formatCurrency(batch.course.totalFee) : '-'}
                         </div>
                       </div>
                     </div>

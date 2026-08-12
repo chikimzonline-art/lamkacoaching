@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
-
-// Helper to verify auth
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
@@ -23,8 +14,8 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    if (!['daily', 'weekly', 'monthly'].includes(period)) {
-      return NextResponse.json({ error: 'Invalid period. Use daily, weekly, or monthly.' }, { status: 400 });
+    if (!['daily', 'weekly', 'monthly', 'custom'].includes(period)) {
+      return NextResponse.json({ error: 'Invalid period. Use daily, weekly, monthly, or custom.' }, { status: 400 });
     }
 
     // Calculate date range based on period
@@ -45,18 +36,22 @@ export async function GET(request: Request) {
       switch (period) {
         case 'daily':
           rangeStart = new Date(now);
-          rangeStart.setDate(rangeStart.getDate() - 29);
           rangeStart.setHours(0, 0, 0, 0);
           break;
-        case 'weekly':
+        case 'weekly': {
           rangeStart = new Date(now);
-          rangeStart.setDate(rangeStart.getDate() - 83); // ~12 weeks
+          const dayOfWeek = rangeStart.getDay();
+          const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+          rangeStart.setDate(rangeStart.getDate() - daysToMonday);
           rangeStart.setHours(0, 0, 0, 0);
           break;
+        }
         case 'monthly':
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          rangeStart.setHours(0, 0, 0, 0);
+          break;
+        default:
           rangeStart = new Date(now);
-          rangeStart.setMonth(rangeStart.getMonth() - 11);
-          rangeStart.setDate(1);
           rangeStart.setHours(0, 0, 0, 0);
           break;
       }
@@ -75,7 +70,9 @@ export async function GET(request: Request) {
       },
       include: {
         student: true,
-        booking: true,
+        booking: {
+          include: { cabin: true }
+        },
       },
       orderBy: {
         receivedAt: 'asc',
@@ -103,91 +100,77 @@ export async function GET(request: Request) {
 
     // Combine all payments into a unified list for grouping
     type UnifiedPayment = {
+      id: string;
       amount: number;
       receivedAt: Date;
       studentId: string;
       studentName: string;
+      type: string;
+      details: string;
+      mode: string;
     };
 
     const allPayments: UnifiedPayment[] = [
       ...payments.map((p) => ({
+        id: p.id,
         amount: p.amount,
         receivedAt: p.receivedAt,
         studentId: p.studentId,
-        studentName: p.student.name,
+        studentName: p.student?.name || 'Unknown',
+        type: 'Cabin Booking',
+        details: `Cabin ${p.booking?.cabin?.cabinNum || 'N/A'} (Floor ${p.booking?.cabin?.floor || 'N/A'})`,
+        mode: p.mode,
       })),
       ...enrollmentPayments.map((p) => ({
+        id: p.id,
         amount: p.amount,
         receivedAt: p.receivedAt,
         studentId: p.studentId,
-        studentName: p.student.name,
+        studentName: p.student?.name || 'Unknown',
+        type: 'Course Enrollment',
+        details: p.enrollment?.course?.name || 'N/A',
+        mode: p.mode,
       })),
-    ];
+    ].sort((a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime());
 
     // Group payments by period
     const grouped: Record<string, number> = {};
 
-    switch (period) {
-      case 'daily': {
-        // Generate all days in range
-        const current = new Date(rangeStart);
-        while (current <= rangeEnd) {
-          const key = current.toISOString().split('T')[0];
-          grouped[key] = 0;
-          current.setDate(current.getDate() + 1);
-        }
-        // Fill in payment data
-        for (const payment of allPayments) {
-          const key = new Date(payment.receivedAt).toISOString().split('T')[0];
-          grouped[key] = (grouped[key] || 0) + payment.amount;
-        }
-        break;
+    if (period === 'weekly') {
+      // Group by day of the week for the week
+      const current = new Date(rangeStart);
+      while (current <= rangeEnd) {
+        const key = current.toLocaleDateString('en-IN', { weekday: 'short' });
+        grouped[key] = 0;
+        current.setDate(current.getDate() + 1);
       }
-      case 'weekly': {
-        // Group by week start (Monday)
-        const current = new Date(rangeStart);
-        // Go back to the nearest Monday
-        const dayOfWeek = current.getDay();
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        current.setDate(current.getDate() - daysToMonday);
-
-        while (current <= rangeEnd) {
-          const weekEnd = new Date(current);
-          weekEnd.setDate(weekEnd.getDate() + 6);
-          const label = `${current.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - ${weekEnd.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`;
-          grouped[label] = 0;
-          const weekStart = new Date(current);
-          weekStart.setHours(0, 0, 0, 0);
-          const weekEndDay = new Date(current);
-          weekEndDay.setDate(weekEndDay.getDate() + 6);
-          weekEndDay.setHours(23, 59, 59, 999);
-          for (const payment of allPayments) {
-            const paymentDate = new Date(payment.receivedAt);
-            if (paymentDate >= weekStart && paymentDate <= weekEndDay) {
-              grouped[label] = (grouped[label] || 0) + payment.amount;
-            }
-          }
-          current.setDate(current.getDate() + 7);
+      for (const payment of allPayments) {
+        const paymentDate = new Date(payment.receivedAt);
+        const key = paymentDate.toLocaleDateString('en-IN', { weekday: 'short' });
+        if (grouped[key] !== undefined) {
+          grouped[key] += payment.amount;
         }
-        break;
       }
-      case 'monthly': {
-        // Generate all months in range
-        const current = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
-        const endMonth = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
-        while (current <= endMonth) {
-          const key = current.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-          grouped[key] = 0;
-          current.setMonth(current.getMonth() + 1);
-        }
-        // Fill in payment data
-        for (const payment of allPayments) {
-          const paymentDate = new Date(payment.receivedAt);
-          const key = paymentDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-          grouped[key] = (grouped[key] || 0) + payment.amount;
-        }
-        break;
+    } else if (period === 'monthly' || period === 'custom') {
+      // Group by specific day (e.g., 1-Jul, 2-Jul)
+      const current = new Date(rangeStart);
+      while (current <= rangeEnd) {
+        const key = current.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+        if (!grouped[key]) grouped[key] = 0;
+        current.setDate(current.getDate() + 1);
       }
+      for (const payment of allPayments) {
+        const paymentDate = new Date(payment.receivedAt);
+        const key = paymentDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+        if (grouped[key] !== undefined) {
+          grouped[key] += payment.amount;
+        } else {
+           grouped[key] = payment.amount; // fallback if it somehow falls out of loop
+        }
+      }
+    } else if (period === 'daily') {
+      // We don't really need chart grouping for daily if it's a table,
+      // but we can group by hour if we wanted to. We'll just provide the flat list.
     }
 
     const labels = Object.keys(grouped);
@@ -212,15 +195,23 @@ export async function GET(request: Request) {
       .sort((a, b) => b.totalPaid - a.totalPaid)
       .slice(0, 5);
 
+    // Format the paymentsList for daily view (convert amount to rupees)
+    const paymentsList = allPayments.map(p => ({
+      ...p,
+      amount: p.amount / 100
+    }));
+
     return NextResponse.json({
       labels,
       revenue,
       totalRevenue,
       paymentCount,
       topStudents,
+      paymentsList,
     });
   } catch (error) {
     console.error('Reports API error:', error);
     return NextResponse.json({ error: 'Failed to fetch reports data' }, { status: 500 });
   }
 }
+

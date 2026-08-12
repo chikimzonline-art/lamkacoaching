@@ -1,18 +1,9 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { db } from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth';
+import { imagekit } from '@/lib/imagekit';
 
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
-}
-
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
 
 export async function POST(request: Request) {
@@ -24,7 +15,7 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const type = formData.get('type') as string | null; // 'logo' | 'favicon'
+    const type = formData.get('type') as string | null; // 'logo' | 'favicon' | 'gallery' | 'avatar'
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -39,35 +30,31 @@ export async function POST(request: Request) {
 
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size: 2MB' },
+        { error: 'File too large. Maximum size: 5MB' },
         { status: 400 }
       );
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    // Ensure upload directory exists
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch {
-      // Directory may already exist
-    }
-
-    // Determine file extension and name
+    const folder = type ? `/lamkacoaching/${type}` : '/lamkacoaching/misc';
     const ext = file.type === 'image/svg+xml' ? 'svg' :
                 file.type === 'image/png' ? 'png' :
                 file.type === 'image/webp' ? 'webp' : 'jpg';
+                
+    const fileName = type === 'favicon' ? `favicon.${ext}` :
+                     type === 'logo' ? `logo.${ext}` :
+                     `${Date.now()}.${ext}`;
 
-    const fileName = type === 'favicon' ? `favicon.${ext}` : `logo.${ext}`;
-    const filePath = path.join(uploadDir, fileName);
+    const response = await imagekit.upload({
+      file: buffer,
+      fileName,
+      folder,
+      useUniqueFileName: type !== 'favicon' && type !== 'logo',
+    });
 
-    // Write file to disk
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
-
-    // Store the public URL path in settings
-    const publicPath = `/uploads/${fileName}`;
+    const publicPath = response.url;
 
     if (type === 'favicon') {
       await db.setting.upsert({
@@ -75,7 +62,7 @@ export async function POST(request: Request) {
         update: { value: publicPath },
         create: { key: 'favicon_url', value: publicPath },
       });
-    } else {
+    } else if (type === 'logo') {
       await db.setting.upsert({
         where: { key: 'logo_url' },
         update: { value: publicPath },
@@ -86,7 +73,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       url: publicPath,
-      message: `${type === 'favicon' ? 'Favicon' : 'Logo'} uploaded successfully`,
+      message: `${type || 'File'} uploaded successfully`,
     });
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -102,11 +89,11 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type'); // 'logo' | 'favicon'
+    const type = searchParams.get('type');
 
     if (type === 'favicon') {
       await db.setting.deleteMany({ where: { key: 'favicon_url' } });
-    } else {
+    } else if (type === 'logo') {
       await db.setting.deleteMany({ where: { key: 'logo_url' } });
     }
 

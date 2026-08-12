@@ -23,17 +23,23 @@ model Cabin {
 model Student {
   id          String        @id @default(cuid())
   name        String
+  username    String?       @unique
+  password    String?
   phone       String        @unique
   email       String?
   address     String?
   notes       String?
   source      String        @default("admin")
+  avatar      String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   bookings           Booking[]
   payments           Payment[]
   enrollments        Enrollment[]
   enrollmentPayments EnrollmentPayment[]
+  supportTickets     SupportTicket[]
+  waitlists          CourseWaitlist[]
+  notifications      StudentNotification[]
 }
 
 model Department {
@@ -49,7 +55,8 @@ model Course {
   id           String   @id @default(cuid())
   name         String
   departmentId String
-  duration     String?
+  durationValue Int?
+  durationUnit String?
   totalFee     Int
   description  String?
   status       String   @default("active")
@@ -57,6 +64,8 @@ model Course {
   updatedAt    DateTime @updatedAt
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   enrollments  Enrollment[]
+  batches      Batch[]
+  waitlists    CourseWaitlist[]
 }
 
 model Enrollment {
@@ -74,6 +83,11 @@ model Enrollment {
   student     Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
   course      Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   payments    EnrollmentPayment[]
+  batchId     String
+  batch       Batch               @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 model EnrollmentPayment {
@@ -87,6 +101,8 @@ model EnrollmentPayment {
   notes        String?
   enrollment   Enrollment  @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   student      Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([receivedAt])
 }
 
 model Booking {
@@ -108,6 +124,9 @@ model Booking {
   cabin       Cabin       @relation(fields: [cabinId], references: [id])
   payments    Payment[]
   attendance  Attendance[]
+
+  @@index([status, type, startDate])
+  @@index([status, endDate])
 }
 
 model Payment {
@@ -121,6 +140,8 @@ model Payment {
   notes      String?
   booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([receivedAt])
 }
 
 model Attendance {
@@ -141,10 +162,11 @@ model Setting {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
+  id          String   @id @default(cuid())
+  username    String   @unique
+  password    String
   name      String
+  avatar    String?
   role      String   @default("staff")
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -184,20 +206,21 @@ model AboutMilestone {
 }
 
 model Batch {
-  id          String   @id @default(cuid())
-  courseName  String
-  department  String
+  id          String       @id @default(cuid())
+  courseId    String
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batchName   String
   startDate   DateTime
-  duration    String
+  endDate     DateTime?
   timing      String
   seats       Int
-  status      String   @default("enrolling")
-  fee         Int
+  status      String       @default("enrolling")
   description String?
-  sortOrder   Int      @default(0)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  sortOrder   Int          @default(0)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  enrollments Enrollment[]
 }
 
 model NewsletterSubscriber {
@@ -309,4 +332,38 @@ model CampusGalleryItem {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  studentId String
+  subject   String
+  message   String
+  adminReply String?
+  status    String   @default("open") // "open" or "resolved"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model CourseWaitlist {
+  id        String   @id @default(cuid())
+  studentId String
+  courseId  String
+  createdAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+}
+
+model StudentNotification {
+  id        String   @id @default(cuid())
+  studentId String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }

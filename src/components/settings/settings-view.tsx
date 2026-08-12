@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/select';
 import { Clock, DollarSign, Building2, Save, Users, Plus, Pencil, Trash2, Shield, ShieldCheck, Loader2, UserCircle, Eye, EyeOff, Phone, Globe, ImagePlus, Upload, X, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/store/auth-store';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 interface SettingsData {
@@ -141,8 +141,8 @@ function useSettingsState() {
 }
 
 export default function SettingsViewWrapper() {
-  const { user } = useAuthStore();
-  const isAdmin = user?.role === 'admin';
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
   const { settings, setSettings, loading, saving, handleSave } = useSettingsState();
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -555,7 +555,8 @@ export default function SettingsViewWrapper() {
 }
 
 function UserManagement() {
-  const { user: currentUser } = useAuthStore();
+  const { data: session } = useSession();
+  const currentUserId = (session?.user as any)?.id;
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -790,7 +791,7 @@ function UserManagement() {
                           disabled
                         </Badge>
                       )}
-                      {u.id === currentUser?.id && (
+                      {u.id === currentUserId && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-sky-200 text-sky-600">
                           you
                         </Badge>
@@ -820,7 +821,7 @@ function UserManagement() {
                     >
                       <Pencil className="h-4 w-4 text-gray-400" />
                     </Button>
-                    {u.id !== currentUser?.id && (
+                    {u.id !== currentUserId && (
                       <Button
                         variant="ghost"
                         size="icon"
