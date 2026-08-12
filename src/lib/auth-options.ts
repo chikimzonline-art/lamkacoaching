@@ -37,7 +37,8 @@ export const authOptions: NextAuthOptions = {
               id: user.id,
               name: user.name,
               username: user.username,
-              role: user.role as UserRole
+              role: user.role as UserRole,
+              image: user.avatar || null
             };
           }
         }
@@ -62,7 +63,8 @@ export const authOptions: NextAuthOptions = {
                  name: student.name,
                  username: student.username,
                  email: student.email,
-                 role: "student" as UserRole
+                 role: "student" as UserRole,
+                 image: student.avatar || null
                };
              }
           }
@@ -78,6 +80,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.id = user.id;
         token.username = (user as any).username;
+        token.picture = (user as any).image;
       }
       return token;
     },
@@ -86,6 +89,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).id = token.id;
         (session.user as any).username = token.username;
+        session.user.image = token.picture as string | null | undefined;
       }
       return session;
     }
