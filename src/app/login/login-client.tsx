@@ -50,7 +50,12 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
       } else {
         toast.success("Welcome back!");
         router.refresh();
-        router.push("/dashboard");
+        const callbackUrl = searchParams.get("callbackUrl");
+        if (callbackUrl && callbackUrl.startsWith("/")) {
+          router.push(callbackUrl);
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (error) {
       toast.error("An error occurred during login.");
@@ -97,7 +102,12 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
         setIsLogin(true);
       } else {
         router.refresh();
-        router.push("/dashboard");
+        const callbackUrl = searchParams.get("callbackUrl");
+        if (callbackUrl && callbackUrl.startsWith("/")) {
+          router.push(callbackUrl);
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (error) {
       toast.error("An error occurred during registration.");

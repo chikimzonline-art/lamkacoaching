@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Calendar, Users, Loader2, Bell } from "lucide-react";
 import { RazorpayCheckoutButton } from "@/components/payments/razorpay-checkout-button";
+import { formatCurrency } from "@/lib/helpers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
@@ -46,7 +47,7 @@ export function CourseCard({ course, student }: { course: any, student: any }) {
         <div className="border-t pt-4">
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm text-gray-500">Fee</span>
-            <span className="text-lg font-bold text-gray-900">₹{course.totalFee / 100}</span>
+            <span className="text-lg font-bold text-gray-900">{formatCurrency(course.totalFee)}</span>
           </div>
 
           {showWaitlist ? (

@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, CalendarIcon, Check, X, ChevronRight, ChevronLeft, RefreshCw, Receipt, UserPlus, Banknote, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Plus, CalendarIcon, Check, X, ChevronRight, ChevronLeft, RefreshCw, Receipt, UserPlus, Banknote, AlertTriangle, ThumbsUp, ThumbsDown, Search } from 'lucide-react';
 import PaymentReceipt from '@/components/payments/payment-receipt';
 import { toast } from 'sonner';
 import { formatCurrency, formatDate, formatTime, calculateHours, calculateMonths, addMonths } from '@/lib/helpers';
@@ -82,30 +82,7 @@ export default function BookingsView() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
-
-  // New booking wizard
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [step, setStep] = useState<StepType>('type');
-  const [wizardType, setWizardType] = useState<'hourly' | 'exclusive'>('hourly');
-  const [wizardStudentId, setWizardStudentId] = useState('');
-  const [wizardStudentSearch, setWizardStudentSearch] = useState('');
-  const [wizardCabinId, setWizardCabinId] = useState('');
-  const [wizardDate, setWizardDate] = useState<Date>(new Date());
-
-  const [wizardEndDate, setWizardEndDate] = useState<Date | undefined>(addMonths(new Date(), 1));
-  const [wizardAmount, setWizardAmount] = useState('');
-  const [wizardNotes, setWizardNotes] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  // Inline student creation in wizard
-  const [showNewStudentForm, setShowNewStudentForm] = useState(false);
-  const [newStudentName, setNewStudentName] = useState('');
-  const [newStudentPhone, setNewStudentPhone] = useState('');
-  const [creatingStudent, setCreatingStudent] = useState(false);
-
-  // Options for student & cabin selects
-  const [studentOptions, setStudentOptions] = useState<StudentOption[]>([]);
-  const [cabinOptions, setCabinOptions] = useState<CabinOption[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Payment dialog (for existing bookings)
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -116,14 +93,13 @@ export default function BookingsView() {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
-  // Inline payment during booking wizard (Step 5)
-  const [wizardPayNow, setWizardPayNow] = useState(false);
-  const [wizardPayAmount, setWizardPayAmount] = useState('');
-  const [wizardPayMode, setWizardPayMode] = useState<'cash' | 'upi'>('cash');
-
   // Settings for rate calculation
-  const [hourlyRate, setHourlyRate] = useState(1000);
-  const [monthlyRate, setMonthlyRate] = useState(3000);
+  const [rates, setRates] = useState({
+    morning: 500,
+    day: 800,
+    night: 800,
+    reserved: 1100,
+  });
 
   // Business name for receipts
   const [businessName, setBusinessName] = useState('Lamka Coaching Center');
@@ -149,8 +125,12 @@ export default function BookingsView() {
       const res = await fetch('/api/settings');
       const json = await res.json();
       if (json.settings) {
-        setHourlyRate(Number(json.settings.hourly_rate) || 1000);
-        setMonthlyRate(Number(json.settings.monthly_rate) || 3000);
+        setRates({
+          morning: Number(json.settings.cabin_morning_shift_rate) || 500,
+          day: Number(json.settings.cabin_day_shift_rate) || 800,
+          night: Number(json.settings.cabin_night_shift_rate) || 800,
+          reserved: Number(json.settings.cabin_reserved_rate) || 1100,
+        });
         setBusinessName(json.settings.business_name || 'Lamka Coaching Center');
       }
     } catch {
@@ -194,139 +174,7 @@ export default function BookingsView() {
     fetchPendingCount();
   }, [fetchBookings, fetchPendingCount]);
 
-  const fetchStudentOptions = useCallback(async (search: string) => {
-    try {
-      const res = await fetch(`/api/students?search=${encodeURIComponent(search)}`);
-      const json = await res.json();
-      if (json.students) setStudentOptions(json.students);
-    } catch {
-      // ignore
-    }
-  }, []);
 
-  const fetchCabinOptions = useCallback(async () => {
-    try {
-      const res = await fetch('/api/cabins');
-      const json = await res.json();
-      if (json.cabins) setCabinOptions(json.cabins);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    if (wizardOpen && step === 'student') {
-      fetchStudentOptions(wizardStudentSearch);
-    }
-  }, [wizardOpen, step, wizardStudentSearch, fetchStudentOptions]);
-
-  useEffect(() => {
-    if (wizardOpen && step === 'cabin') {
-      fetchCabinOptions();
-    }
-  }, [wizardOpen, step, fetchCabinOptions]);
-
-  // Auto-calculate amount when details change
-  useEffect(() => {
-    if (step === 'details') {
-      if (wizardType === 'hourly') {
-        // Hourly booking = monthly fee (5 hrs/day, 1 month)
-        setWizardAmount(String(hourlyRate));
-      } else if (wizardType === 'exclusive' && wizardEndDate) {
-        const months = calculateMonths(wizardDate, wizardEndDate);
-        const amount = months * monthlyRate;
-        setWizardAmount(String(amount));
-      }
-    }
-  }, [step, wizardType, wizardDate, wizardEndDate, hourlyRate, monthlyRate]);
-
-  // Auto-set end date to 1 month from start date when start date changes (exclusive bookings)
-  useEffect(() => {
-    if (wizardType === 'exclusive') {
-      setWizardEndDate(addMonths(wizardDate, 1));
-    }
-  }, [wizardDate, wizardType]);
-
-  const resetWizard = () => {
-    setStep('type');
-    setWizardType('hourly');
-    setWizardStudentId('');
-    setWizardStudentSearch('');
-    setWizardCabinId('');
-    setWizardDate(new Date());
-    setWizardEndDate(addMonths(new Date(), 1));
-    setWizardAmount('');
-    setWizardNotes('');
-    setShowNewStudentForm(false);
-    setNewStudentName('');
-    setNewStudentPhone('');
-    setCreatingStudent(false);
-    setWizardPayNow(false);
-    setWizardPayAmount('');
-    setWizardPayMode('cash');
-  };
-
-  const openWizard = () => {
-    resetWizard();
-    setWizardOpen(true);
-  };
-
-  const handleCreateBooking = async () => {
-    setSubmitting(true);
-    try {
-      const body: Record<string, unknown> = {
-        action: 'create',
-        studentId: wizardStudentId,
-        cabinId: wizardCabinId,
-        type: wizardType,
-        totalAmount: Number(wizardAmount),
-        notes: wizardNotes || undefined,
-      };
-
-      // Include payment info if Pay Now is enabled
-      if (wizardPayNow && wizardPayAmount && Number(wizardPayAmount) > 0) {
-        body.payNow = true;
-        body.payAmount = Number(wizardPayAmount);
-        body.payMode = wizardPayMode;
-      }
-
-      if (wizardType === 'hourly') {
-        body.startDate = wizardDate.toISOString().split('T')[0];
-        body.startTime = '09:00';
-        body.endTime = '14:00';
-        body.endDate = addMonths(wizardDate, 1).toISOString().split('T')[0];
-      } else {
-        body.startDate = wizardDate.toISOString().split('T')[0];
-        if (wizardEndDate) body.endDate = wizardEndDate.toISOString().split('T')[0];
-      }
-
-      const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-
-      if (!res.ok) {
-        toast.error(json.error || 'Failed to create booking');
-        return;
-      }
-
-      // Show success with payment info if applicable
-      if (wizardPayNow && wizardPayAmount && Number(wizardPayAmount) > 0) {
-        toast.success(`Booking created with payment of ${formatCurrency(Number(wizardPayAmount) * 100)} recorded!`);
-      } else {
-        toast.success('Booking created successfully!');
-      }
-      setWizardOpen(false);
-      resetWizard();
-      fetchBookings();
-    } catch {
-      toast.error('Failed to create booking');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleApproveBooking = async (booking: Booking) => {
     try {
@@ -418,8 +266,13 @@ export default function BookingsView() {
   };
 
   const handleRenewBooking = async (booking: Booking) => {
-    const rate = booking.type === 'hourly' ? hourlyRate : monthlyRate;
-    const typeLabel = booking.type === 'hourly' ? 'hourly' : 'exclusive';
+    let rate = rates.reserved;
+    if (booking.type === 'morning_shift') rate = rates.morning;
+    if (booking.type === 'day_shift' || booking.type === 'hourly') rate = rates.day;
+    if (booking.type === 'night_shift') rate = rates.night;
+    if (booking.type === 'monthly' || booking.type === 'exclusive') rate = rates.reserved;
+    
+    const typeLabel = booking.type.replace('_', ' ');
     if (!confirm(`Renew ${typeLabel} booking for ${booking.student.name} (Cabin #${booking.cabin.cabinNum}) by 1 month?\n\nAdditional cost: ${formatCurrency(rate * 100)}`)) return;
     try {
       const res = await fetch('/api/bookings', {
@@ -494,48 +347,17 @@ export default function BookingsView() {
     }
   };
 
-  const handleCreateInlineStudent = async () => {
-    if (!newStudentName.trim() || !newStudentPhone.trim()) {
-      toast.error('Name and phone are required');
-      return;
-    }
-    setCreatingStudent(true);
-    try {
-      const res = await fetch('/api/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', name: newStudentName.trim(), phone: newStudentPhone.trim() }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        toast.error(json.error || 'Failed to create student');
-        return;
-      }
-      const newStudent = json.student;
-      toast.success(`Student "${newStudent.name}" created successfully!`);
-      setWizardStudentId(newStudent.id);
-      setStudentOptions((prev) => [...prev, { id: newStudent.id, name: newStudent.name, phone: newStudent.phone }]);
-      setShowNewStudentForm(false);
-      setNewStudentName('');
-      setNewStudentPhone('');
-    } catch {
-      toast.error('Failed to create student');
-    } finally {
-      setCreatingStudent(false);
-    }
-  };
 
-  const selectedStudent = studentOptions.find((s) => s.id === wizardStudentId);
-  const selectedCabin = cabinOptions.find((c) => c.id === wizardCabinId);
 
-  const availableCabins = cabinOptions.filter((c) => {
-    if (c.status !== 'active') return false;
-    return !bookings.some(
-      (b) => b.cabinId === c.id && b.status === 'active' && b.type === 'exclusive'
+  const filteredBookings = bookings.filter((b) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      b.student.name.toLowerCase().includes(q) ||
+      b.student.phone.toLowerCase().includes(q) ||
+      String(b.cabin.cabinNum).includes(q)
     );
   });
-
-  const stepIndex = STEPS.findIndex((s) => s.key === step);
 
   return (
     <div className="space-y-4">
@@ -611,10 +433,15 @@ export default function BookingsView() {
             </PopoverContent>
           </Popover>
         </div>
-        <Button onClick={openWizard} className="bg-cyan-600 hover:bg-cyan-700">
-          <Plus className="h-4 w-4 mr-2" />
-          New Booking
-        </Button>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search student or cabin..."
+            className="pl-9 w-full sm:w-[250px]"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Booking Cards */}
@@ -624,17 +451,17 @@ export default function BookingsView() {
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
         </div>
-      ) : bookings.length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-8 text-center text-gray-400">
             <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>No bookings found</p>
-            <p className="text-sm mt-1">Try adjusting your filters or create a new booking</p>
+            <p className="text-sm mt-1">Try adjusting your filters or search query</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {bookings.map((booking) => {
+          {filteredBookings.map((booking) => {
             const pending = booking.totalAmount - booking.paidAmount;
             return (
               <Card
@@ -642,7 +469,8 @@ export default function BookingsView() {
                 className={cn(
                   'border shadow-sm hover:shadow-md transition-shadow',
                   booking.status === 'cancelled' && 'opacity-60',
-                  booking.status === 'active' && 'border-cyan-200',
+                  booking.status === 'active' && pending === 0 && 'border-cyan-200',
+                  booking.status === 'active' && pending > 0 && 'border-red-300 bg-red-50/10',
                   booking.status === 'pending' && 'border-amber-200'
                 )}
               >
@@ -673,6 +501,11 @@ export default function BookingsView() {
                       >
                         {booking.status}
                       </Badge>
+                      {pending > 0 && (
+                        <Badge variant="outline" className="text-xs bg-red-100 text-red-800 border-red-200">
+                          Payment Due
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
@@ -756,7 +589,7 @@ export default function BookingsView() {
                           Record Payment
                         </Button>
                       )}
-                      {(booking.type === 'exclusive' || booking.type === 'hourly') && (
+                      {(['reserved', 'morning_shift', 'day_shift', 'night_shift', 'exclusive', 'hourly', 'monthly'].includes(booking.type)) && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -818,520 +651,6 @@ export default function BookingsView() {
         </div>
       )}
 
-      {/* Booking Wizard Dialog */}
-      <Dialog open={wizardOpen} onOpenChange={(open) => { setWizardOpen(open); if (!open) resetWizard(); }}>
-        <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>New Booking</DialogTitle>
-          </DialogHeader>
-
-          {/* Step Indicator */}
-          <div className="flex items-center justify-between mb-4 px-2">
-            {STEPS.map((s, i) => (
-              <div key={s.key} className="flex items-center">
-                <button
-                  onClick={() => {
-                    if (i < stepIndex) setStep(s.key);
-                  }}
-                  className={cn(
-                    'flex items-center justify-center h-8 w-8 rounded-full text-xs font-medium transition-colors',
-                    i === stepIndex
-                      ? 'bg-cyan-600 text-white'
-                      : i < stepIndex
-                      ? 'bg-cyan-100 text-cyan-700 cursor-pointer'
-                      : 'bg-gray-100 text-gray-400'
-                  )}
-                >
-                  {i + 1}
-                </button>
-                {i < STEPS.length - 1 && (
-                  <div
-                    className={cn(
-                      'w-6 sm:w-10 h-0.5 mx-1',
-                      i < stepIndex ? 'bg-cyan-300' : 'bg-gray-200'
-                    )}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Step Content */}
-          <div className="min-h-[200px]">
-            {step === 'type' && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500 mb-4">Select the type of booking</p>
-                <button
-                  onClick={() => setWizardType('hourly')}
-                  className={cn(
-                    'w-full p-4 rounded-xl border-2 text-left transition-all',
-                    wizardType === 'hourly'
-                      ? 'border-cyan-500 bg-cyan-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  <p className="font-semibold text-gray-900">Hourly Booking</p>
-                  <p className="text-sm text-gray-500 mt-1">5 hrs/day, 1 month duration (₹{hourlyRate}/month)</p>
-                </button>
-                <button
-                  onClick={() => setWizardType('exclusive')}
-                  className={cn(
-                    'w-full p-4 rounded-xl border-2 text-left transition-all',
-                    wizardType === 'exclusive'
-                      ? 'border-cyan-500 bg-cyan-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  <p className="font-semibold text-gray-900">Exclusive Reservation</p>
-                  <p className="text-sm text-gray-500 mt-1">Reserve a cabin exclusively for a period</p>
-                </button>
-              </div>
-            )}
-
-            {step === 'student' && !showNewStudentForm && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500 mb-2">Select or search for a student</p>
-                <Input
-                  placeholder="Search by name, phone, or email..."
-                  value={wizardStudentSearch}
-                  onChange={(e) => setWizardStudentSearch(e.target.value)}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-cyan-300 text-cyan-700 hover:bg-cyan-50 hover:text-cyan-800"
-                  onClick={() => {
-                    setNewStudentName('');
-                    setNewStudentPhone('');
-                    setShowNewStudentForm(true);
-                  }}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Create New Student
-                </Button>
-                <div className="max-h-60 overflow-y-auto space-y-1 border rounded-lg p-2">
-                  {studentOptions.length === 0 ? (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-gray-400">No students found</p>
-                      <p className="text-xs text-gray-300 mt-1">Create a new student to get started</p>
-                    </div>
-                  ) : (
-                    studentOptions.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => setWizardStudentId(s.id)}
-                        className={cn(
-                          'w-full p-3 rounded-lg text-left transition-colors',
-                          wizardStudentId === s.id
-                            ? 'bg-cyan-50 border border-cyan-200'
-                            : 'hover:bg-gray-50'
-                        )}
-                      >
-                        <p className="font-medium text-gray-900 text-sm">{s.name}</p>
-                        <p className="text-xs text-gray-500">{s.phone}</p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {step === 'student' && showNewStudentForm && (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-500 mb-2">Add a new student</p>
-                <div className="space-y-3 rounded-xl border border-cyan-200 bg-cyan-50/50 p-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-student-name">Full Name</Label>
-                    <Input
-                      id="new-student-name"
-                      placeholder="Enter student name"
-                      value={newStudentName}
-                      onChange={(e) => setNewStudentName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-student-phone">Phone Number</Label>
-                    <Input
-                      id="new-student-phone"
-                      placeholder="Enter phone number"
-                      value={newStudentPhone}
-                      onChange={(e) => setNewStudentPhone(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      type="button"
-                      onClick={handleCreateInlineStudent}
-                      disabled={creatingStudent || !newStudentName.trim() || !newStudentPhone.trim()}
-                      className="flex-1 bg-cyan-600 hover:bg-cyan-700"
-                    >
-                      {creatingStudent ? 'Creating...' : 'Create & Select'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowNewStudentForm(false)}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 'cabin' && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500 mb-2">Select an available cabin</p>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto p-1">
-                  {availableCabins.length === 0 ? (
-                    <p className="col-span-full text-sm text-gray-400 text-center py-4">
-                      No available cabins
-                    </p>
-                  ) : (
-                    availableCabins.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => setWizardCabinId(c.id)}
-                        className={cn(
-                          'p-3 rounded-xl border-2 text-center transition-all',
-                          wizardCabinId === c.id
-                            ? 'border-cyan-500 bg-cyan-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        )}
-                      >
-                        <p className="font-bold text-gray-900">#{c.cabinNum}</p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {step === 'details' && (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-500 mb-2">Enter booking details</p>
-                {wizardType === 'hourly' ? (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Start Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className="w-full justify-start text-left font-normal">
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formatDate(wizardDate.toISOString())}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={wizardDate}
-                            onSelect={(d) => d && setWizardDate(d)}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="bg-cyan-50 border border-cyan-100 rounded-lg p-3">
-                      <p className="text-sm text-cyan-800 font-medium">Duration: 1 Month</p>
-                      <p className="text-xs text-cyan-600 mt-0.5">5 hours/day &bull; 9:00 AM - 2:00 PM &bull; Auto-renewable</p>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Monthly fee: ₹{hourlyRate}/month
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>Start Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left font-normal">
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {formatDate(wizardDate.toISOString())}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={wizardDate}
-                              onSelect={(d) => d && setWizardDate(d)}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>End Date <span className="text-xs font-normal text-gray-400">(auto: 1 month from start)</span></Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left font-normal">
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {wizardEndDate ? formatDate(wizardEndDate.toISOString()) : 'Select date'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={wizardEndDate}
-                              onSelect={(d) => setWizardEndDate(d)}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                    {wizardEndDate && (
-                      <p className="text-sm text-gray-500">
-                        Duration: {calculateMonths(wizardDate, wizardEndDate)} month(s) &times; ₹{monthlyRate}/month
-                      </p>
-                    )}
-                  </>
-                )}
-                <div className="space-y-2">
-                  <Label>Amount (₹)</Label>
-                  <Input
-                    type="number"
-                    value={wizardAmount}
-                    onChange={(e) => setWizardAmount(e.target.value)}
-                    min={0}
-                  />
-                  <p className="text-xs text-gray-400">Auto-calculated, you can adjust manually</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Notes (optional)</Label>
-                  <Textarea
-                    value={wizardNotes}
-                    onChange={(e) => setWizardNotes(e.target.value)}
-                    placeholder="Any additional notes..."
-                    rows={2}
-                  />
-                </div>
-              </div>
-            )}
-
-            {step === 'confirm' && (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-500 mb-2">Review and confirm your booking</p>
-                <div className="rounded-xl bg-gray-50 p-4 space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Type</span>
-                    <Badge
-                      variant="outline"
-                      className={
-                        wizardType === 'exclusive'
-                          ? 'bg-sky-100 text-sky-800 border-sky-200'
-                          : 'bg-sky-100 text-sky-800 border-sky-200'
-                      }
-                    >
-                      {wizardType}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Student</span>
-                    <span className="text-sm font-medium">{selectedStudent?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Cabin</span>
-                    <span className="text-sm font-medium">#{selectedCabin?.cabinNum}</span>
-                  </div>
-                  {wizardType === 'hourly' ? (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Period</span>
-                      <span className="text-sm font-medium">
-                        {formatDate(wizardDate.toISOString())} - {' '}
-                        {formatDate(addMonths(wizardDate, 1).toISOString())} &bull; 5 hrs/day
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Period</span>
-                      <span className="text-sm font-medium">
-                        {formatDate(wizardDate.toISOString())} -{' '}
-                        {wizardEndDate ? formatDate(wizardEndDate.toISOString()) : 'N/A'}
-                      </span>
-                    </div>
-                  )}
-                  {wizardNotes && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Notes</span>
-                      <span className="text-sm text-gray-600">{wizardNotes}</span>
-                    </div>
-                  )}
-                  <div className="pt-2 border-t border-gray-200 flex justify-between">
-                    <span className="text-sm font-semibold text-gray-700">Total Amount</span>
-                    <span className="text-lg font-bold text-cyan-600">
-                      {formatCurrency(Number(wizardAmount) * 100)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Pay Now Section */}
-                <div className="rounded-xl border-2 border-dashed border-cyan-200 bg-cyan-50/50 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Banknote className="h-5 w-5 text-cyan-600" />
-                      <span className="text-sm font-semibold text-gray-800">Payment at Admission</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWizardPayNow(!wizardPayNow);
-                        if (wizardPayNow) {
-                          setWizardPayAmount('');
-                          setWizardPayMode('cash');
-                        }
-                      }}
-                      className={cn(
-                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                        wizardPayNow ? 'bg-cyan-600' : 'bg-gray-300'
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
-                          wizardPayNow ? 'translate-x-6' : 'translate-x-1'
-                        )}
-                      />
-                    </button>
-                  </div>
-
-                  {wizardPayNow && (
-                    <div className="space-y-3 pt-1">
-                      <p className="text-xs text-gray-500">Record the amount paid by the student at the time of admission.</p>
-                      <div className="space-y-2">
-                        <Label>Amount Paid (₹)</Label>
-                        <Input
-                          type="number"
-                          placeholder="Enter amount paid"
-                          value={wizardPayAmount}
-                          onChange={(e) => setWizardPayAmount(e.target.value)}
-                          min={0}
-                          max={Number(wizardAmount)}
-                        />
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-400">
-                            Total: {formatCurrency(Number(wizardAmount) * 100)}
-                          </span>
-                          {wizardPayAmount && Number(wizardPayAmount) > 0 && (
-                            <span className={cn(
-                              'font-medium',
-                              Number(wizardPayAmount) >= Number(wizardAmount)
-                                ? 'text-emerald-600'
-                                : 'text-red-600'
-                            )}>
-                              {Number(wizardPayAmount) >= Number(wizardAmount)
-                                ? 'Fully paid'
-                                : `Due: ${formatCurrency((Number(wizardAmount) - Number(wizardPayAmount)) * 100)}`
-                              }
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Payment Mode</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setWizardPayMode('cash')}
-                            className={cn(
-                              'flex items-center justify-center gap-2 p-2.5 rounded-lg border-2 text-sm font-medium transition-all',
-                              wizardPayMode === 'cash'
-                                ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
-                                : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                            )}
-                          >
-                            <Banknote className="h-4 w-4" />
-                            Cash
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setWizardPayMode('upi')}
-                            className={cn(
-                              'flex items-center justify-center gap-2 p-2.5 rounded-lg border-2 text-sm font-medium transition-all',
-                              wizardPayMode === 'upi'
-                                ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
-                                : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                            )}
-                          >
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="2" y="4" width="20" height="16" rx="2" />
-                              <path d="M12 10v4" />
-                              <path d="M10 12h4" />
-                            </svg>
-                            UPI
-                          </button>
-                        </div>
-                      </div>
-                      {wizardPayAmount && Number(wizardPayAmount) > 0 && (
-                        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white border border-cyan-200">
-                          <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                          <p className="text-xs text-gray-600">
-                            <span className="font-semibold text-emerald-700">{formatCurrency(Number(wizardPayAmount) * 100)}</span> will be recorded as <span className="uppercase font-medium">{wizardPayMode}</span> payment upon booking creation.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {!wizardPayNow && (
-                    <p className="text-xs text-gray-400">Toggle on to record payment received from the student at admission.</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            {stepIndex > 0 && (
-              <Button variant="outline" onClick={() => setStep(STEPS[stepIndex - 1].key)} className="sm:mr-auto">
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Back
-              </Button>
-            )}
-            <div className="flex gap-2 sm:ml-auto">
-              <Button variant="outline" onClick={() => setWizardOpen(false)}>
-                Cancel
-              </Button>
-              {step !== 'confirm' ? (
-                <Button
-                  onClick={() => {
-                    const canProceed =
-                      (step === 'type') ||
-                      (step === 'student' && wizardStudentId) ||
-                      (step === 'cabin' && wizardCabinId) ||
-                      (step === 'details' && wizardAmount && Number(wizardAmount) > 0);
-
-                    if (!canProceed) {
-                      if (step === 'student') toast.error('Please select a student');
-                      else if (step === 'cabin') toast.error('Please select a cabin');
-                      else if (step === 'details') toast.error('Please enter a valid amount');
-                      return;
-                    }
-                    setStep(STEPS[stepIndex + 1].key);
-                  }}
-                  className="bg-cyan-600 hover:bg-cyan-700"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleCreateBooking}
-                  disabled={submitting}
-                  className="bg-cyan-600 hover:bg-cyan-700"
-                >
-                  {submitting
-                    ? 'Creating...'
-                    : wizardPayNow && wizardPayAmount && Number(wizardPayAmount) > 0
-                      ? `Book & Pay ${formatCurrency(Number(wizardPayAmount) * 100)}`
-                      : 'Create Booking'
-                  }
-                </Button>
-              )}
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Payment Receipt Dialog */}
       <PaymentReceipt

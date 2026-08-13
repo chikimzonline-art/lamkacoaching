@@ -8,10 +8,10 @@ export default function FacilitiesContainer() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="cabins" className="w-full">
-        <TabsList className="grid w-full sm:w-[400px] grid-cols-2">
-          <TabsTrigger value="cabins">Cabins</TabsTrigger>
-          <TabsTrigger value="bookings">Bookings</TabsTrigger>
-        </TabsList>
+          <TabsList className="grid w-full sm:w-[450px] grid-cols-2">
+            <TabsTrigger value="cabins">Cabins</TabsTrigger>
+            <TabsTrigger value="bookings">Booking History & Approvals</TabsTrigger>
+          </TabsList>
         <div className="mt-6">
           <TabsContent value="cabins" className="mt-0">
             <CabinsView />

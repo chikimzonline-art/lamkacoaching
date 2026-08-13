@@ -174,10 +174,10 @@ export async function GET(request: Request) {
     }
 
     const labels = Object.keys(grouped);
-    const revenue = Object.values(grouped).map((v) => v / 100); // Convert paise to rupees
+    const revenue = Object.values(grouped); // Return paise directly
 
     // Calculate totals
-    const totalRevenue = allPayments.reduce((sum, p) => sum + p.amount, 0) / 100;
+    const totalRevenue = allPayments.reduce((sum, p) => sum + p.amount, 0);
     const paymentCount = allPayments.length;
 
     // Top students
@@ -191,14 +191,13 @@ export async function GET(request: Request) {
     }
 
     const topStudents = Object.values(studentTotals)
-      .map((s) => ({ name: s.name, totalPaid: s.totalPaid / 100 }))
+      .map((s) => ({ name: s.name, totalPaid: s.totalPaid }))
       .sort((a, b) => b.totalPaid - a.totalPaid)
       .slice(0, 5);
 
-    // Format the paymentsList for daily view (convert amount to rupees)
+    // Format the paymentsList for daily view
     const paymentsList = allPayments.map(p => ({
-      ...p,
-      amount: p.amount / 100
+      ...p
     }));
 
     return NextResponse.json({

@@ -6,6 +6,19 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RazorpayCheckoutButton } from "@/components/payments/razorpay-checkout-button"
+import { formatCurrency } from "@/lib/helpers"
+
+function getBookingTypeLabel(type: string): string {
+  switch (type) {
+    case 'morning_shift': return 'Morning Shift (5AM - 10AM)';
+    case 'day_shift': return 'Day Shift (10AM - 5PM)';
+    case 'night_shift': return 'Night Shift (5PM - 12AM)';
+    case 'reserved': return 'Exclusive Reserved';
+    case 'monthly': return 'Monthly Plan';
+    case 'hourly': return 'Hourly Booking';
+    default: return type.replace('_', ' ');
+  }
+}
 
 export default async function MyLearningPage() {
   const { student } = await requireStudent()
@@ -58,7 +71,7 @@ export default async function MyLearningPage() {
                     <CardContent className="pb-4">
                       <div className="flex items-center justify-between text-sm mb-4">
                         <span className="text-muted-foreground">Fee Paid</span>
-                        <span className="font-semibold text-emerald-600">₹{enrollment.paidAmount / 100} / ₹{enrollment.totalFee / 100}</span>
+                        <span className="font-semibold text-emerald-600">{formatCurrency(enrollment.paidAmount)} / {formatCurrency(enrollment.totalFee)}</span>
                       </div>
                       <div className="space-y-1.5">
                         <div className="flex text-xs justify-between text-slate-500">
@@ -130,7 +143,9 @@ export default async function MyLearningPage() {
                         </Badge>
                         <span className="text-sm font-medium text-muted-foreground">Floor {booking.cabin.floor}</span>
                       </div>
-                      <CardTitle className="text-lg group-hover:text-emerald-700 transition-colors">Dedicated Study Space</CardTitle>
+                      <CardTitle className="text-lg group-hover:text-emerald-700 transition-colors">
+                        {getBookingTypeLabel(booking.type)}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="pb-4 space-y-3">
                       <div className="flex items-center text-sm text-slate-600">
@@ -139,10 +154,27 @@ export default async function MyLearningPage() {
                       </div>
                       <div className="flex items-center justify-between text-sm pt-2 border-t">
                         <span className="text-muted-foreground">Amount Paid</span>
-                        <span className="font-semibold text-slate-700">₹{booking.paidAmount} / ₹{booking.totalAmount}</span>
+                        <span className="font-semibold text-slate-700">
+                          {formatCurrency(booking.paidAmount)} / {formatCurrency(booking.totalAmount)}
+                        </span>
                       </div>
                     </CardContent>
-                    <CardFooter className="pt-0">
+                    <CardFooter className="pt-0 flex flex-col gap-2">
+                      {booking.paidAmount < booking.totalAmount && (
+                        <RazorpayCheckoutButton
+                          type="cabin"
+                          itemId={booking.cabin.id}
+                          itemName={`Cabin ${booking.cabin.cabinNum} (Floor ${booking.cabin.floor})`}
+                          studentId={student.id}
+                          studentName={student.name}
+                          studentEmail={student.email || undefined}
+                          studentPhone={student.phone}
+                          totalFee={booking.totalAmount}
+                          paidAmount={booking.paidAmount}
+                          buttonText="Pay Pending Dues"
+                          className="w-full"
+                        />
+                      )}
                       <Link 
                         href={`/dashboard/cabins/${booking.id}`} 
                         className="w-full inline-flex h-9 items-center justify-center rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"

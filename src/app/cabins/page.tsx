@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import PublicLayout from '@/components/public/public-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -69,17 +70,7 @@ export default function CabinsPage() {
   const [bookingType, setBookingType] = useState<'hourly' | 'monthly'>('monthly');
   const [activeFloor, setActiveFloor] = useState<number | 'all'>('all');
 
-  // Form fields
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [startDate, setStartDate] = useState('');
-
-  // Submission
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
+  const { data: session } = useSession();
 
   useEffect(() => {
     fetch('/api/public/cabins')
@@ -103,87 +94,6 @@ export default function CabinsPage() {
     estimatedAmount = data.pricing.hourlyMonthlyRate * 100;
   } else if (data && bookingType === 'monthly') {
     estimatedAmount = data.pricing.monthlyRate * 100;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-
-    try {
-      const res = await fetch('/api/public/book-cabin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          phone,
-          email: email || undefined,
-          address: address || undefined,
-          cabinId: selectedCabin,
-          bookingType,
-          startDate,
-        }),
-      });
-
-      const result = await res.json();
-      if (!res.ok) {
-        setError(result.error || 'Booking failed. Please try again.');
-        return;
-      }
-      setSubmitted(true);
-    } catch {
-      setError('Something went wrong. Please try again later.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  // Success state
-  if (submitted) {
-    return (
-      <PublicLayout>
-        <section className="py-20 sm:py-28 bg-white dark:bg-gray-950">
-          <div className="max-w-lg mx-auto px-4 text-center">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-5">
-              <CheckCircle2 className="h-8 w-8" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">Booking Request Submitted!</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed mb-6">
-              Your cabin booking request has been received. We will contact you shortly to confirm your booking and arrange payment.
-            </p>
-            <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-xl p-5 mb-6 text-left">
-              <p className="text-sm text-green-800 dark:text-green-300 font-medium mb-1">What happens next?</p>
-              <ul className="text-sm text-green-700 dark:text-green-400 space-y-1.5">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                  Our team will review your booking request
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                  We will call you to confirm the details
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                  Payment can be made at the center on your first visit
-                </li>
-              </ul>
-            </div>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link href="/">
-                <Button className="bg-green-600 hover:bg-green-700 text-white gap-2">
-                  Back to Home
-                </Button>
-              </Link>
-              <Link href="/cabins">
-                <Button variant="outline" onClick={() => { setSubmitted(false); setSelectedCabin(null); setName(''); setPhone(''); setEmail(''); setAddress(''); }}>
-                  Book Another Cabin
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-      </PublicLayout>
-    );
   }
 
   return (
@@ -355,7 +265,7 @@ export default function CabinsPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">Choose an available cabin from the list to start your booking</p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 sm:p-8 shadow-sm">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 sm:p-8 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-lg bg-green-600 text-white flex items-center justify-center font-bold text-sm">
                       {selectedCabinInfo?.cabinNum}
@@ -405,104 +315,6 @@ export default function CabinsPage() {
                     </div>
                   </div>
 
-                  {/* Date & Time */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                    {bookingType === 'monthly' ? (
-                      <>
-                        <div>
-                          <Label htmlFor="startDate" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</Label>
-                          <Input
-                            id="startDate"
-                            type="date"
-                            required
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            min={new Date().toISOString().split('T')[0]}
-                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                          />
-                        </div>
-                        <div>
-                          <Label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Duration</Label>
-                          <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300">
-                            1 Month (auto-renewable)
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <Label htmlFor="startDateH" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</Label>
-                          <Input
-                            id="startDateH"
-                            type="date"
-                            required
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            min={new Date().toISOString().split('T')[0]}
-                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                          />
-                        </div>
-                        <div>
-                          <Label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Duration</Label>
-                          <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300">
-                            1 Month (5 hrs/day, auto-renewable)
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Personal Details */}
-                  <div className="border-t border-gray-100 dark:border-gray-700 pt-5 mb-5">
-                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Your Details</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="name" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name *</Label>
-                        <Input
-                          id="name"
-                          required
-                          placeholder="Your full name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number *</Label>
-                        <Input
-                          id="phone"
-                          required
-                          placeholder="10-digit mobile number"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          maxLength={10}
-                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Email (optional)</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="you@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="address" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Address (optional)</Label>
-                        <Input
-                          id="address"
-                          placeholder="Your address"
-                          value={address}
-                          onChange={(e) => setAddress(e.target.value)}
-                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Estimated Cost */}
                   {estimatedAmount > 0 && (
                     <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-xl p-4 mb-5">
@@ -510,42 +322,25 @@ export default function CabinsPage() {
                         <span className="text-sm text-gray-600 dark:text-gray-400">Estimated Amount</span>
                         <span className="text-xl font-bold text-green-700 dark:text-green-400">{formatCurrency(estimatedAmount)}</span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Payment to be made at the center upon confirmation</p>
-                    </div>
-                  )}
-
-                  {/* Error */}
-                  {error && (
-                    <div className="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 rounded-xl p-4 mb-5 flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
-                      <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Payable in the student dashboard upon booking</p>
                     </div>
                   )}
 
                   {/* Submit */}
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={submitting}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-12 text-base rounded-xl gap-2"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        Submit Booking Request
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+                  <Link href={session ? "/dashboard/cabins" : "/login?callbackUrl=/dashboard/cabins"} className="block w-full">
+                    <Button
+                      size="lg"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-12 text-base rounded-xl gap-2"
+                    >
+                      {session ? "Book Now in Dashboard" : "Login to Book Cabin"}
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
 
                   <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-3">
-                    Your booking is a request. We will confirm and arrange payment on your first visit.
+                    You will be redirected to the student dashboard to complete your booking.
                   </p>
-                </form>
+                </div>
               )}
             </div>
           </div>

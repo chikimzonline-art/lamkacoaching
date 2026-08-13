@@ -2,15 +2,17 @@ import { requireStudent } from "@/lib/student-auth"
 import { AlertCircle, CreditCard, Receipt, FileText } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatCurrency } from "@/lib/helpers"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { RazorpayCheckoutButton } from "@/components/payments/razorpay-checkout-button"
 
 export default async function DashboardHistoryPage() {
   const { student } = await requireStudent()
 
   // Calculate pending items
   const pendingEnrollments = student.enrollments.filter(e => e.status === "pending_payment" || (e.totalFee - e.paidAmount > 0))
-  const pendingBookings = student.bookings.filter(b => b.status === "pending_payment" || (b.totalAmount - b.paidAmount > 0))
+  const pendingBookings = student.bookings.filter(b => (b.totalAmount - b.paidAmount > 0))
 
   return (
     <div className="space-y-8">
@@ -41,9 +43,25 @@ export default async function DashboardHistoryPage() {
                       <p className="text-sm text-slate-500">Course Enrollment</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-red-600 text-lg">₹{(enrollment.totalFee - enrollment.paidAmount) / 100}</p>
-                    <p className="text-xs text-slate-500">Total: ₹{enrollment.totalFee / 100}</p>
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <div>
+                      <p className="font-bold text-red-600 text-lg">{formatCurrency(enrollment.totalFee - enrollment.paidAmount)}</p>
+                      <p className="text-xs text-slate-500">Total: {formatCurrency(enrollment.totalFee)}</p>
+                    </div>
+                    <RazorpayCheckoutButton
+                      type="course"
+                      itemId={enrollment.course.id}
+                      itemName={enrollment.course.name}
+                      studentId={student.id}
+                      studentName={student.name}
+                      studentEmail={student.email || undefined}
+                      studentPhone={student.phone}
+                      totalFee={enrollment.totalFee}
+                      paidAmount={enrollment.paidAmount}
+                      buttonText="Pay Now"
+                      buttonVariant="destructive"
+                      className="h-8 text-xs px-3"
+                    />
                   </div>
                 </div>
               ))}
@@ -58,9 +76,25 @@ export default async function DashboardHistoryPage() {
                       <p className="text-sm text-slate-500">Duration: {booking.type}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-red-600 text-lg">₹{(booking.totalAmount - booking.paidAmount) / 100}</p>
-                    <p className="text-xs text-slate-500">Total: ₹{booking.totalAmount / 100}</p>
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <div>
+                      <p className="font-bold text-red-600 text-lg">{formatCurrency(booking.totalAmount - booking.paidAmount)}</p>
+                      <p className="text-xs text-slate-500">Total: {formatCurrency(booking.totalAmount)}</p>
+                    </div>
+                    <RazorpayCheckoutButton
+                      type="cabin"
+                      itemId={booking.cabin.id}
+                      itemName={`Cabin ${booking.cabin.cabinNum} (Floor ${booking.cabin.floor})`}
+                      studentId={student.id}
+                      studentName={student.name}
+                      studentEmail={student.email || undefined}
+                      studentPhone={student.phone}
+                      totalFee={booking.totalAmount}
+                      paidAmount={booking.paidAmount}
+                      buttonText="Pay Now"
+                      buttonVariant="destructive"
+                      className="h-8 text-xs px-3"
+                    />
                   </div>
                 </div>
               ))}
@@ -104,7 +138,7 @@ export default async function DashboardHistoryPage() {
                                 {payment.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right font-semibold text-green-600">₹{payment.amount / 100}</TableCell>
+                          <TableCell className="text-right font-semibold text-green-600">{formatCurrency(payment.amount)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -149,7 +183,7 @@ export default async function DashboardHistoryPage() {
                                 {payment.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right font-semibold text-green-600">₹{payment.amount / 100}</TableCell>
+                          <TableCell className="text-right font-semibold text-green-600">{formatCurrency(payment.amount)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

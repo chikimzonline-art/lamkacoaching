@@ -26,7 +26,7 @@ export async function GET() {
       }),
     ]);
 
-    const monthlyEnrollments = [];
+    const monthlyEnrollments: { month: string; enrollments: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
@@ -46,7 +46,7 @@ export async function GET() {
       color: COLORS[index % COLORS.length],
     }));
 
-    const revenueTrend = [];
+    const revenueTrend: { month: string; revenue: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
@@ -55,7 +55,7 @@ export async function GET() {
         .reduce((sum, p) => sum + p.amount, 0);
       revenueTrend.push({
         month: month.toLocaleDateString('en-IN', { month: 'short' }),
-        revenue: total / 100, // convert paise to rupees
+        revenue: total, // return paise directly
       });
     }
 

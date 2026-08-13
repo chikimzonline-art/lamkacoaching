@@ -99,6 +99,7 @@ model EnrollmentPayment {
   status       String      @default("completed")
   receivedAt   DateTime    @default(now())
   notes        String?
+  receiptNo    String?
   enrollment   Enrollment  @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   student      Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
@@ -138,6 +139,7 @@ model Payment {
   status     String   @default("completed")
   receivedAt DateTime @default(now())
   notes      String?
+  receiptNo  String?
   booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 

@@ -64,6 +64,7 @@ export async function GET(request: Request) {
         status: p.status,
         receivedAt: p.receivedAt,
         notes: p.notes,
+        receiptNo: p.receiptNo,
         student: p.student,
         booking: p.booking,
       })),
@@ -76,6 +77,7 @@ export async function GET(request: Request) {
         status: p.status,
         receivedAt: p.receivedAt,
         notes: p.notes,
+        receiptNo: p.receiptNo,
         student: p.student,
         enrollment: p.enrollment,
       })),
@@ -97,7 +99,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { action, id, paymentType, bookingId, studentId, amount, mode, notes } = body;
+    const { action, id, paymentType, bookingId, studentId, amount, mode, notes, receiptNo } = body;
 
     if (action === 'create') {
       if (!bookingId || !studentId || !amount || !mode) {
@@ -115,6 +117,7 @@ export async function POST(request: Request) {
           mode,
           status: 'completed',
           notes: notes || null,
+          receiptNo: receiptNo || null,
         },
         include: {
           student: { select: { id: true, name: true, phone: true } },

@@ -1,6 +1,7 @@
 import { requireStudent } from "@/lib/student-auth"
 import Link from "next/link"
-import { BookOpen, MapPin, AlertCircle, Calendar, GraduationCap, ChevronRight, Search } from "lucide-react"
+import { BookOpen, MapPin, AlertCircle, Calendar, GraduationCap, ChevronRight, Search, Clock } from "lucide-react"
+import { formatCurrency } from "@/lib/helpers"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -11,7 +12,9 @@ export default async function DashboardPage() {
   const activeBookings = student.bookings || []
 
   const pendingEnrollments = allEnrollments.filter(e => e.status === "pending_payment" || (e.totalFee - e.paidAmount > 0))
-  const pendingBookings = activeBookings.filter(b => b.status === "pending_payment" || (b.totalAmount - b.paidAmount > 0))
+  const pendingBookings = activeBookings.filter(b => (b.totalAmount - b.paidAmount > 0))
+  
+  const pendingCabinCheckout = activeBookings.find(b => b.status === "pending_payment" && b.paidAmount === 0 && b.cabinId)
 
   const totalPendingEnrollment = pendingEnrollments.reduce((acc, curr) => acc + (curr.totalFee - curr.paidAmount), 0)
   const totalPendingBooking = pendingBookings.reduce((acc, curr) => acc + (curr.totalAmount - curr.paidAmount), 0)
@@ -33,12 +36,28 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {pendingCabinCheckout && (
+        <Alert className="bg-indigo-50 border-indigo-200">
+          <Clock className="h-4 w-4 text-indigo-600" />
+          <AlertTitle className="text-indigo-800 font-bold">Pending Checkout in Progress</AlertTitle>
+          <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+            <span className="text-indigo-700">You have an uncompleted cabin booking. The cabin is being held for you temporarily.</span>
+            <Link 
+              href="/dashboard/cabins" 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors text-center shrink-0"
+            >
+              View Checkout
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {hasPendingDues && (
         <Alert variant="destructive" className="bg-red-50 border-red-200">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Pending Dues Alert</AlertTitle>
           <AlertDescription className="flex items-center justify-between">
-            <span>You have pending dues of <span className="font-bold">₹{totalPending / 100}</span>.</span>
+            <span>You have pending dues of <span className="font-bold">{formatCurrency(totalPending)}</span>.</span>
             <Link href="/dashboard/history" className="font-medium underline underline-offset-2 hover:text-red-800 transition-colors">
               Pay Now
             </Link>

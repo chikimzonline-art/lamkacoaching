@@ -40,8 +40,11 @@ interface SettingsData {
   business_name: string;
   operating_hours_start: string;
   operating_hours_end: string;
-  hourly_rate: string;
-  monthly_rate: string;
+  cabin_registration_fee: string;
+  cabin_reserved_rate: string;
+  cabin_morning_shift_rate: string;
+  cabin_day_shift_rate: string;
+  cabin_night_shift_rate: string;
   business_phone: string;
   business_email: string;
   business_address: string;
@@ -66,8 +69,11 @@ const defaultSettings: SettingsData = {
   business_name: 'Lamka Coaching Center',
   operating_hours_start: '07:00',
   operating_hours_end: '22:00',
-  hourly_rate: '1000',
-  monthly_rate: '3000',
+  cabin_registration_fee: '500',
+  cabin_reserved_rate: '1100',
+  cabin_morning_shift_rate: '500',
+  cabin_day_shift_rate: '800',
+  cabin_night_shift_rate: '800',
   business_phone: '',
   business_email: '',
   business_address: '',
@@ -92,8 +98,11 @@ function useSettingsState() {
           business_name: json.settings.business_name || defaultSettings.business_name,
           operating_hours_start: json.settings.operating_hours_start || defaultSettings.operating_hours_start,
           operating_hours_end: json.settings.operating_hours_end || defaultSettings.operating_hours_end,
-          hourly_rate: json.settings.hourly_rate || defaultSettings.hourly_rate,
-          monthly_rate: json.settings.monthly_rate || defaultSettings.monthly_rate,
+          cabin_registration_fee: json.settings.cabin_registration_fee || defaultSettings.cabin_registration_fee,
+          cabin_reserved_rate: json.settings.cabin_reserved_rate || defaultSettings.cabin_reserved_rate,
+          cabin_morning_shift_rate: json.settings.cabin_morning_shift_rate || defaultSettings.cabin_morning_shift_rate,
+          cabin_day_shift_rate: json.settings.cabin_day_shift_rate || defaultSettings.cabin_day_shift_rate,
+          cabin_night_shift_rate: json.settings.cabin_night_shift_rate || defaultSettings.cabin_night_shift_rate,
           business_phone: json.settings.business_phone || defaultSettings.business_phone,
           business_email: json.settings.business_email || defaultSettings.business_email,
           business_address: json.settings.business_address || defaultSettings.business_address,
@@ -400,28 +409,61 @@ export default function SettingsViewWrapper() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="cabin_registration_fee">Cabin Registration Fee (₹)</Label>
+            <Input
+              id="cabin_registration_fee"
+              type="number"
+              value={settings.cabin_registration_fee}
+              onChange={(e) => setSettings({ ...settings, cabin_registration_fee: e.target.value })}
+              min={0}
+            />
+            <p className="text-xs text-gray-400">One-time registration fee for cabin bookings.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="hourly_rate">Hourly Booking Fee (₹/month)</Label>
+              <Label htmlFor="cabin_reserved_rate">Reserved Cabin Fee (₹/month)</Label>
               <Input
-                id="hourly_rate"
+                id="cabin_reserved_rate"
                 type="number"
-                value={settings.hourly_rate}
-                onChange={(e) => setSettings({ ...settings, hourly_rate: e.target.value })}
-                min={1}
+                value={settings.cabin_reserved_rate}
+                onChange={(e) => setSettings({ ...settings, cabin_reserved_rate: e.target.value })}
+                min={0}
               />
-              <p className="text-xs text-gray-400">Monthly fee for hourly booking (5 hrs/day, 1 month duration)</p>
+              <p className="text-xs text-gray-400">24/7 access.</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="monthly_rate">Full-Day Monthly Rate (₹)</Label>
+              <Label htmlFor="cabin_morning_shift_rate">Morning Shift Fee (₹/month)</Label>
               <Input
-                id="monthly_rate"
+                id="cabin_morning_shift_rate"
                 type="number"
-                value={settings.monthly_rate}
-                onChange={(e) => setSettings({ ...settings, monthly_rate: e.target.value })}
-                min={1}
+                value={settings.cabin_morning_shift_rate}
+                onChange={(e) => setSettings({ ...settings, cabin_morning_shift_rate: e.target.value })}
+                min={0}
               />
-              <p className="text-xs text-gray-400">Rate per month for exclusive (full-day) bookings</p>
+              <p className="text-xs text-gray-400">5:00 AM - 10:00 AM.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cabin_day_shift_rate">Day Shift Fee (₹/month)</Label>
+              <Input
+                id="cabin_day_shift_rate"
+                type="number"
+                value={settings.cabin_day_shift_rate}
+                onChange={(e) => setSettings({ ...settings, cabin_day_shift_rate: e.target.value })}
+                min={0}
+              />
+              <p className="text-xs text-gray-400">10:00 AM - 5:00 PM (7 hours).</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cabin_night_shift_rate">Night Shift Fee (₹/month)</Label>
+              <Input
+                id="cabin_night_shift_rate"
+                type="number"
+                value={settings.cabin_night_shift_rate}
+                onChange={(e) => setSettings({ ...settings, cabin_night_shift_rate: e.target.value })}
+                min={0}
+              />
+              <p className="text-xs text-gray-400">5:00 PM - 12:00 AM (7 hours).</p>
             </div>
           </div>
         </CardContent>

@@ -33,7 +33,7 @@ export async function GET(request: Request) {
           select: { id: true, name: true, department: { select: { id: true, name: true } } },
         },
         payments: {
-          select: { id: true, amount: true, mode: true, receivedAt: true, notes: true },
+          select: { id: true, amount: true, mode: true, receivedAt: true, notes: true, receiptNo: true },
           orderBy: { receivedAt: 'desc' },
         },
       },
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, id, studentId, courseId, startDate, endDate, totalFee, paidAmount, notes, status,
             // Payment at enrollment
-            payNow, payAmount, payMode } = body;
+            payNow, payAmount, payMode, payReceiptNo, receiptNo } = body;
 
     if (action === 'create') {
       if (!studentId || !courseId || !totalFee || !body.batchId) {
@@ -107,6 +107,7 @@ export async function POST(request: Request) {
             mode: payMode || 'cash',
             status: 'completed',
             notes: 'Payment at enrollment',
+            receiptNo: payReceiptNo || null,
           },
         });
       }
@@ -139,6 +140,7 @@ export async function POST(request: Request) {
           mode: payMode,
           status: 'completed',
           notes: notes || null,
+          receiptNo: receiptNo || null,
         },
       });
 

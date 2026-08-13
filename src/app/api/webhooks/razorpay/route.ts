@@ -88,9 +88,14 @@ export async function POST(req: Request) {
       } 
       // Handle Cabin Booking Payment
       else if (type === 'cabin') {
-        // Find existing booking
+        // Find existing booking (could be pending_payment or expired)
         const booking = await db.booking.findFirst({
-          where: { studentId: studentId, cabinId: itemId, status: 'active' },
+          where: { 
+            studentId: studentId, 
+            cabinId: itemId, 
+            status: { in: ['pending_payment', 'expired', 'active'] }
+          },
+          orderBy: { createdAt: 'desc' }
         });
 
         if (booking) {
@@ -103,7 +108,30 @@ export async function POST(req: Request) {
              return NextResponse.json({ success: true, message: 'Payment already processed' });
           }
 
-          await db.$transaction([
+          let newStatus = 'active';
+
+          // If it was expired, we must check if the cabin was taken by someone else in the meantime
+          if (booking.status === 'expired') {
+            const now = new Date();
+            // Check for any active or pending_payment bookings for this cabin right now
+            const competingBooking = await db.booking.findFirst({
+              where: {
+                cabinId: itemId,
+                status: { in: ['active', 'pending_payment'] },
+                id: { not: booking.id }
+              }
+            });
+
+            if (competingBooking) {
+              // The cabin was taken! We must flag this payment for a refund.
+              newStatus = 'requires_refund';
+            }
+          } else if (booking.status === 'active') {
+             // Already active, just processing another payment?
+             newStatus = 'active';
+          }
+
+          const transactionOps: any[] = [
             db.payment.create({
               data: {
                 bookingId: booking.id,
@@ -116,9 +144,66 @@ export async function POST(req: Request) {
             }),
             db.booking.update({
               where: { id: booking.id },
-              data: { paidAmount: { increment: amountPaid } }
+              data: { 
+                paidAmount: { increment: amountPaid },
+                status: newStatus
+              }
             })
-          ]);
+          ];
+
+          if (newStatus === 'active') {
+            transactionOps.push(
+              db.cabin.update({
+                where: { id: itemId },
+                data: { isOccupied: true }
+              })
+            );
+          }
+
+          await db.$transaction(transactionOps);
+        }
+      }
+      // Handle Student Cabin Renewal Payment
+      else if (type === 'cabin_renewal') {
+        const { bookingId } = notes;
+        
+        const booking = await db.booking.findUnique({
+          where: { id: bookingId }
+        });
+
+        if (booking && booking.status === 'active') {
+          // Check for idempotency
+          const existingPayment = await db.payment.findFirst({
+            where: { notes: { contains: paymentEntity.id } }
+          });
+
+          if (!existingPayment) {
+            const currentEnd = booking.endDate ? new Date(booking.endDate) : new Date(booking.startDate);
+            const newEnd = new Date(currentEnd);
+            newEnd.setMonth(newEnd.getMonth() + 1);
+            newEnd.setHours(23, 59, 59, 999);
+
+            await db.$transaction([
+              db.payment.create({
+                data: {
+                  bookingId: booking.id,
+                  studentId: studentId,
+                  amount: amountPaid,
+                  mode: 'razorpay',
+                  notes: `Razorpay Renewal ID: ${paymentEntity.id}`,
+                  status: 'completed',
+                }
+              }),
+              db.booking.update({
+                where: { id: booking.id },
+                data: {
+                  paidAmount: { increment: amountPaid },
+                  totalAmount: { increment: amountPaid },
+                  endDate: newEnd
+                }
+              })
+            ]);
+          }
         }
       }
     }

@@ -29,6 +29,58 @@ interface SupportTicket {
   student: Student;
 }
 
+interface TicketCardProps {
+  ticket: SupportTicket;
+  onDelete: (id: string) => void;
+  onReply: (ticket: SupportTicket) => void;
+}
+
+const TicketCard = ({ ticket, onDelete, onReply }: TicketCardProps) => (
+  <Card className="mb-4 border-none shadow-sm overflow-hidden">
+    <CardHeader className={`pb-3 ${ticket.status === 'open' ? 'bg-amber-50/50' : 'bg-slate-50/50'}`}>
+      <div className="flex justify-between items-start gap-4">
+        <div>
+          <CardTitle className="text-lg">{ticket.subject}</CardTitle>
+          <CardDescription className="text-xs mt-1">
+            From: <span className="font-medium text-slate-700">{ticket.student.name}</span> ({ticket.student.phone})
+            <span className="mx-2">•</span>
+            {new Date(ticket.createdAt).toLocaleString()}
+          </CardDescription>
+        </div>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+           <Badge variant={ticket.status === 'open' ? 'secondary' : 'outline'} className={ticket.status === 'open' ? 'bg-amber-100 text-amber-800' : ''}>
+            {ticket.status === 'open' ? 'Open' : 'Resolved'}
+          </Badge>
+        </div>
+      </div>
+    </CardHeader>
+    <CardContent className="pt-4 pb-4 space-y-4">
+      <div>
+        <p className="text-sm font-semibold text-slate-900 mb-1">Issue Description:</p>
+        <p className="text-sm text-slate-700 whitespace-pre-wrap">{ticket.message}</p>
+      </div>
+      
+      {ticket.adminReply && (
+        <div className="bg-slate-50 border-l-2 border-indigo-500 p-3 rounded-r-md">
+          <p className="text-xs font-semibold text-indigo-700 mb-1">Your Reply:</p>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{ticket.adminReply}</p>
+        </div>
+      )}
+
+      <div className="flex items-center justify-end gap-2 pt-2 border-t">
+        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(ticket.id)}>
+          <Trash2 className="h-4 w-4 mr-2" /> Delete
+        </Button>
+        {ticket.status === 'open' && (
+          <Button size="sm" onClick={() => onReply(ticket)}>
+            <Reply className="h-4 w-4 mr-2" /> Reply & Resolve
+          </Button>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+);
+
 export default function SupportView() {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,51 +160,6 @@ export default function SupportView() {
   const openTickets = tickets.filter(t => t.status === 'open');
   const resolvedTickets = tickets.filter(t => t.status === 'resolved');
 
-  const TicketCard = ({ ticket }: { ticket: SupportTicket }) => (
-    <Card className="mb-4 border-none shadow-sm overflow-hidden">
-      <CardHeader className={`pb-3 ${ticket.status === 'open' ? 'bg-amber-50/50' : 'bg-slate-50/50'}`}>
-        <div className="flex justify-between items-start gap-4">
-          <div>
-            <CardTitle className="text-lg">{ticket.subject}</CardTitle>
-            <CardDescription className="text-xs mt-1">
-              From: <span className="font-medium text-slate-700">{ticket.student.name}</span> ({ticket.student.phone})
-              <span className="mx-2">•</span>
-              {new Date(ticket.createdAt).toLocaleString()}
-            </CardDescription>
-          </div>
-          <div className="flex flex-col items-end gap-2 shrink-0">
-             <Badge variant={ticket.status === 'open' ? 'secondary' : 'outline'} className={ticket.status === 'open' ? 'bg-amber-100 text-amber-800' : ''}>
-              {ticket.status === 'open' ? 'Open' : 'Resolved'}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-4 pb-4 space-y-4">
-        <div>
-          <p className="text-sm font-semibold text-slate-900 mb-1">Issue Description:</p>
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">{ticket.message}</p>
-        </div>
-        
-        {ticket.adminReply && (
-          <div className="bg-slate-50 border-l-2 border-indigo-500 p-3 rounded-r-md">
-            <p className="text-xs font-semibold text-indigo-700 mb-1">Your Reply:</p>
-            <p className="text-sm text-slate-700 whitespace-pre-wrap">{ticket.adminReply}</p>
-          </div>
-        )}
-
-        <div className="flex items-center justify-end gap-2 pt-2 border-t">
-          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(ticket.id)}>
-            <Trash2 className="h-4 w-4 mr-2" /> Delete
-          </Button>
-          {ticket.status === 'open' && (
-            <Button size="sm" onClick={() => openReplyDialog(ticket)}>
-              <Reply className="h-4 w-4 mr-2" /> Reply & Resolve
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <div className="space-y-6">
@@ -186,7 +193,7 @@ export default function SupportView() {
               {isLoading ? (
                 <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
               ) : openTickets.length > 0 ? (
-                openTickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} />)
+                openTickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} onDelete={handleDelete} onReply={openReplyDialog} />)
               ) : (
                 <div className="text-center py-12 text-slate-500">
                   <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-emerald-500 opacity-50" />
@@ -199,7 +206,7 @@ export default function SupportView() {
                {isLoading ? (
                 <div className="py-12 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
               ) : resolvedTickets.length > 0 ? (
-                resolvedTickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} />)
+                resolvedTickets.map(ticket => <TicketCard key={ticket.id} ticket={ticket} onDelete={handleDelete} onReply={openReplyDialog} />)
               ) : (
                 <div className="text-center py-12 text-slate-500">
                   <p>No resolved tickets yet.</p>

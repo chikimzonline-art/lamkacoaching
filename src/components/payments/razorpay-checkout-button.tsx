@@ -156,14 +156,10 @@ export function RazorpayCheckoutButton({
           email: studentEmail || '',
           contact: studentPhone,
         },
-        onSuccess: (response) => {
+        onSuccess: (response: any) => {
           setOpen(false);
           toast.success('Payment successful!');
-          router.refresh();
-          // Redirect to courses dashboard if it was a new enrollment
-          if (isNewEnrollment) {
-            router.push('/dashboard/courses');
-          }
+          router.push(`/dashboard/success?type=${type}&id=${itemId}&payment_id=${response.razorpay_payment_id}`);
         },
         onFailure: (error) => {
           console.error('Payment failed', error);

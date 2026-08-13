@@ -135,7 +135,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2">
       <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
-      <p className="text-sm font-bold text-cyan-700">{formatCurrency(payload[0].value * 100)}</p>
+      <p className="text-sm font-bold text-cyan-700">{formatCurrency(payload[0].value)}</p>
     </div>
   );
 }
@@ -191,10 +191,10 @@ export default function ReportsView() {
           p.type,
           `"${p.details}"`,
           p.mode,
-          `"${p.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`,
+          `"${(p.amount / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`,
         ]),
         [],
-        [`Total Revenue`, `"₹${data.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`],
+        [`Total Revenue`, `"₹${(data.totalRevenue / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`],
         [`Total Payments`, data.paymentCount.toString()],
       ];
     } else {
@@ -203,15 +203,15 @@ export default function ReportsView() {
         [`Generated on, ${new Date().toLocaleString('en-IN')}`],
         [],
         [`Period`, `Revenue (₹)`],
-        ...data.labels.map((label, i) => [label, `"${data.revenue[i].toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`]),
+        ...data.labels.map((label, i) => [label, `"${(data.revenue[i] / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`]),
         [],
-        [`Total Revenue`, `"₹${data.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`],
+        [`Total Revenue`, `"₹${(data.totalRevenue / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`],
         [`Total Payments`, data.paymentCount.toString()],
-        [`Average per Payment`, `"₹${data.paymentCount > 0 ? (data.totalRevenue / data.paymentCount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}"`],
+        [`Average per Payment`, `"₹${data.paymentCount > 0 ? (data.totalRevenue / 100 / data.paymentCount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}"`],
         [],
         [`Top Students`],
         [`Name`, `Total Paid (₹)`],
-        ...data.topStudents.map((s) => [`"${s.name}"`, `"${s.totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`]),
+        ...data.topStudents.map((s) => [`"${s.name}"`, `"${(s.totalPaid / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}"`]),
       ];
     }
 
@@ -302,7 +302,7 @@ export default function ReportsView() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Total Revenue"
-          value={formatCurrency(data.totalRevenue * 100)}
+          value={formatCurrency(data.totalRevenue)}
           icon={<Banknote className="h-5 w-5 text-cyan-600" />}
           color="bg-cyan-50"
         />
@@ -314,7 +314,7 @@ export default function ReportsView() {
         />
         <StatCard
           title="Avg per Payment"
-          value={formatCurrency(avgPerPayment * 100)}
+          value={formatCurrency(avgPerPayment)}
           icon={<TrendingUp className="h-5 w-5 text-cyan-600" />}
           color="bg-cyan-50"
         />
@@ -354,7 +354,7 @@ export default function ReportsView() {
                       tick={{ fontSize: 11, fill: '#6b7280' }}
                       axisLine={{ stroke: '#e5e7eb' }}
                       tickLine={false}
-                      tickFormatter={(value: number) => `₹${value.toLocaleString('en-IN')}`}
+                      tickFormatter={(value: number) => `₹${(value / 100).toLocaleString('en-IN')}`}
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff7ed' }} />
                     <Bar
@@ -441,7 +441,7 @@ export default function ReportsView() {
                         </td>
                         <td className="py-3 text-right">
                           <span className="text-sm font-semibold text-cyan-700">
-                            {formatCurrency(payment.amount * 100)}
+                            {formatCurrency(payment.amount)}
                           </span>
                         </td>
                       </tr>
@@ -513,7 +513,7 @@ export default function ReportsView() {
                         </td>
                         <td className="py-3 text-right">
                           <span className="text-sm font-semibold text-cyan-700">
-                            {formatCurrency(student.totalPaid * 100)}
+                            {formatCurrency(student.totalPaid)}
                           </span>
                         </td>
                       </tr>

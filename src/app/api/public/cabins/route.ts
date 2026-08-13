@@ -9,7 +9,7 @@ export async function GET() {
       orderBy: [{ floor: 'asc' }, { cabinNum: 'asc' }],
       include: {
         bookings: {
-          where: { status: 'active' },
+          where: { status: { in: ['active', 'pending_payment'] } },
           select: {
             id: true,
             type: true,

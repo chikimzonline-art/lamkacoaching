@@ -426,3 +426,33 @@
   pointer-events: none;
   border-radius: inherit;
 }
+
+/* ─────────────────────────────────────────────
+   Print Styles for Receipts
+   ───────────────────────────────────────────── */
+
+@media print {
+  /* Hide sidebar and header */
+  nav, header, aside, .sidebar {
+    display: none !important;
+  }
+  
+  /* Make main content take full width */
+  main, .dashboard-main, .student-dashboard-layout {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Hide print buttons inside the receipt */
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure backgrounds and colors print properly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

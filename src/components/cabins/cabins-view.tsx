@@ -22,9 +22,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, ChevronDown } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatTime } from '@/lib/helpers';
+import { formatTime, formatCurrency } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 
 interface CabinBooking {
@@ -47,75 +60,32 @@ interface Cabin {
   bookings: CabinBooking[];
 }
 
-type CabinDisplayState = 'available' | 'exclusive' | 'hourly' | 'timeslot-full' | 'inactive';
+type CabinDisplayState = 'available' | 'reserved' | 'partially_booked' | 'fully_booked' | 'inactive';
 type FilterType = 'all' | CabinDisplayState;
 
-// Parse "HH:MM" to minutes from midnight
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
-}
-
-// Merge overlapping time intervals and return array of [start, end] in minutes
-function mergeTimeSlots(bookings: { startTime: string; endTime: string }[]): { start: number; end: number }[] {
-  if (bookings.length === 0) return [];
-  const slots = bookings
-    .map((b) => ({ start: timeToMinutes(b.startTime), end: timeToMinutes(b.endTime) }))
-    .sort((a, b) => a.start - b.start);
-
-  const merged: { start: number; end: number }[] = [slots[0]];
-  for (let i = 1; i < slots.length; i++) {
-    const last = merged[merged.length - 1];
-    if (slots[i].start <= last.end) {
-      last.end = Math.max(last.end, slots[i].end);
-    } else {
-      merged.push(slots[i]);
-    }
-  }
-  return merged;
-}
-
-// Check if the merged hourly bookings fully cover the operating hours
-function isTimeslotFullyCovered(
-  hourlyBookings: { startTime: string; endTime: string }[],
-  opStart: string,
-  opEnd: string
-): boolean {
-  if (hourlyBookings.length === 0) return false;
-  const opStartMin = timeToMinutes(opStart);
-  const opEndMin = timeToMinutes(opEnd);
-  const merged = mergeTimeSlots(hourlyBookings);
-
-  if (merged.length === 0) return false;
-  return merged[0].start <= opStartMin && merged[merged.length - 1].end >= opEndMin;
-}
-
 function getCabinDisplayState(
-  cabin: Cabin,
-  opStart: string,
-  opEnd: string
+  cabin: Cabin
 ): CabinDisplayState {
   if (cabin.status === 'inactive' || cabin.status === 'maintenance') return 'inactive';
-  const exclusiveBooking = cabin.bookings.find((b) => b.type === 'exclusive' && b.status === 'active');
-  if (exclusiveBooking) return 'exclusive';
+  const reservedBooking = cabin.bookings.find((b) => (b.type === 'reserved' || b.type === 'exclusive' || b.type === 'monthly') && b.status === 'active');
+  if (reservedBooking) return 'reserved';
 
-  const hourlyBookings = cabin.bookings.filter((b) => b.type === 'hourly' && b.status === 'active');
-  if (hourlyBookings.length === 0) return 'available';
-
-  if (isTimeslotFullyCovered(hourlyBookings, opStart, opEnd)) return 'timeslot-full';
-
-  return 'hourly';
+  const shifts = new Set(cabin.bookings.filter((b) => b.status === 'active' && ['morning_shift', 'day_shift', 'night_shift', 'hourly'].includes(b.type)).map(b => b.type));
+  
+  if (shifts.size === 0) return 'available';
+  if (shifts.size >= 3) return 'fully_booked'; // Assuming morning, day, night are the 3 main shifts
+  return 'partially_booked';
 }
 
 function getDisplayStyles(state: CabinDisplayState) {
   switch (state) {
     case 'available':
       return 'border-emerald-300 bg-emerald-50/50 hover:border-emerald-400';
-    case 'exclusive':
+    case 'reserved':
       return 'border-red-300 bg-red-50/50 hover:border-red-400';
-    case 'hourly':
+    case 'partially_booked':
       return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
-    case 'timeslot-full':
+    case 'fully_booked':
       return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
     case 'inactive':
       return 'border-gray-300 bg-gray-50 hover:border-gray-400 opacity-70';
@@ -128,11 +98,11 @@ function getStatusBadge(state: CabinDisplayState) {
   switch (state) {
     case 'available':
       return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">Available</Badge>;
-    case 'exclusive':
-      return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">Exclusive</Badge>;
-    case 'hourly':
-      return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Hourly</Badge>;
-    case 'timeslot-full':
+    case 'reserved':
+      return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">Reserved</Badge>;
+    case 'partially_booked':
+      return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Partially Booked</Badge>;
+    case 'fully_booked':
       return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Fully Booked</Badge>;
     case 'inactive':
       return <Badge className="bg-gray-100 text-gray-800 border-gray-200 text-xs">Inactive</Badge>;
@@ -169,6 +139,40 @@ export default function CabinsView() {
   const [editFloor, setEditFloor] = useState('');
   const [editCabinNum, setEditCabinNum] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  
+  // Quick Book state
+  const [bookDialogOpen, setBookDialogOpen] = useState(false);
+  const [bookStudentId, setBookStudentId] = useState('');
+  const [bookStudentSearch, setBookStudentSearch] = useState('');
+  const [bookStudentOptions, setBookStudentOptions] = useState<{id:string; name:string; phone:string}[]>([]);
+  const [studentSearchOpen, setStudentSearchOpen] = useState(false);
+  const [showNewStudentForm, setShowNewStudentForm] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentPhone, setNewStudentPhone] = useState('');
+  const [creatingStudent, setCreatingStudent] = useState(false);
+
+  const [bookType, setBookType] = useState('morning_shift');
+  const [bookStartDate, setBookStartDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [bookEndDate, setBookEndDate] = useState(() => {
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    return nextMonth.toISOString().split('T')[0];
+  });
+  const [bookTotalAmount, setBookTotalAmount] = useState('');
+  
+  const [bookPayNow, setBookPayNow] = useState(false);
+  const [bookPayAmount, setBookPayAmount] = useState('');
+  
+  const [rates, setRates] = useState({
+    morning: 500,
+    day: 800,
+    night: 800,
+    reserved: 1100,
+    registration: 500,
+  });
 
   // Operating hours from settings
   const [opStart, setOpStart] = useState('07:00');
@@ -181,6 +185,13 @@ export default function CabinsView() {
       if (json.settings) {
         setOpStart(json.settings.operating_hours_start || '07:00');
         setOpEnd(json.settings.operating_hours_end || '22:00');
+        setRates({
+          morning: Number(json.settings.cabin_morning_shift_rate) || 500,
+          day: Number(json.settings.cabin_day_shift_rate) || 800,
+          night: Number(json.settings.cabin_night_shift_rate) || 800,
+          reserved: Number(json.settings.cabin_reserved_rate) || 1100,
+          registration: Number(json.settings.cabin_registration_fee) || 500,
+        });
       }
     } catch {
       // use defaults
@@ -208,6 +219,136 @@ export default function CabinsView() {
       if (!bulkFloor) setBulkFloor(String(lowestFloor));
     }
   }, [floors, addFloor, bulkFloor]);
+
+  // Fetch student options for Quick Book
+  const fetchStudentOptions = useCallback(async (search: string) => {
+    if (search.length < 2) return;
+    try {
+      const res = await fetch(`/api/students?search=${encodeURIComponent(search)}`);
+      const json = await res.json();
+      if (json.students) setBookStudentOptions(json.students);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (bookDialogOpen && bookStudentSearch) {
+      const timeout = setTimeout(() => {
+        fetchStudentOptions(bookStudentSearch);
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [bookDialogOpen, bookStudentSearch, fetchStudentOptions]);
+
+  // Auto-calculate amount when type changes
+  useEffect(() => {
+    if (bookType === 'reserved') setBookTotalAmount(String(rates.reserved));
+    else if (bookType === 'morning_shift') setBookTotalAmount(String(rates.morning));
+    else if (bookType === 'day_shift') setBookTotalAmount(String(rates.day));
+    else if (bookType === 'night_shift') setBookTotalAmount(String(rates.night));
+  }, [bookType, rates]);
+
+  const handleCreateInlineStudent = async () => {
+    if (!newStudentName || !newStudentPhone) {
+      toast.error('Please enter name and phone');
+      return null;
+    }
+    setCreatingStudent(true);
+    try {
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newStudentName, phone: newStudentPhone }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to create student');
+        return null;
+      }
+      toast.success('Student created successfully');
+      setBookStudentOptions([json.student]);
+      return json.student.id;
+    } catch {
+      toast.error('Failed to create student');
+      return null;
+    } finally {
+      setCreatingStudent(false);
+    }
+  };
+
+  const handleQuickBook = async () => {
+    let finalStudentId = bookStudentId;
+
+    if (showNewStudentForm) {
+      const newId = await handleCreateInlineStudent();
+      if (!newId) return;
+      finalStudentId = newId;
+    }
+
+    if (!selectedCabin || !finalStudentId || !bookType || !bookStartDate) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    // Calculate total amount
+    const baseAmount = Number(bookTotalAmount);
+    if (isNaN(baseAmount) || baseAmount <= 0) {
+      toast.error('Please enter a valid monthly fee amount');
+      return;
+    }
+    
+    // Add registration fee if a new student is being created
+    const finalTotalAmount = baseAmount + (showNewStudentForm ? rates.registration : 0);
+
+    setSubmitting(true);
+    try {
+      const body: Record<string, unknown> = {
+        action: 'create',
+        studentId: finalStudentId,
+        cabinId: selectedCabin.id,
+        type: bookType,
+        startDate: bookStartDate,
+        endDate: bookType !== 'reserved' ? bookEndDate : null,
+        totalAmount: finalTotalAmount,
+      };
+
+      if (bookPayNow && bookPayAmount) {
+        body.payNow = true;
+        body.payAmount = Number(bookPayAmount);
+        body.payMode = 'cash'; // default for quick book
+      }
+
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to create booking');
+        return;
+      }
+
+      toast.success('Booking created successfully');
+      setBookDialogOpen(false);
+      setEditDialogOpen(false);
+      setBookStudentId('');
+      setBookStudentSearch('');
+      setShowNewStudentForm(false);
+      setNewStudentName('');
+      setNewStudentPhone('');
+      setBookPayNow(false);
+      setBookPayAmount('');
+      setBookTotalAmount('');
+      fetchCabins();
+    } catch {
+      toast.error('Failed to create booking');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -360,16 +501,16 @@ export default function CabinsView() {
     }
   };
 
-  // Calculate cabin display states using operating hours
+  // Calculate cabin display states
   const cabinStates = cabins.map((c) => ({
     cabin: c,
-    state: getCabinDisplayState(c, opStart, opEnd),
+    state: getCabinDisplayState(c),
   }));
 
   const availableCount = cabinStates.filter((c) => c.state === 'available').length;
-  const exclusiveCount = cabinStates.filter((c) => c.state === 'exclusive').length;
-  const hourlyCount = cabinStates.filter((c) => c.state === 'hourly').length;
-  const timeslotFullCount = cabinStates.filter((c) => c.state === 'timeslot-full').length;
+  const reservedCount = cabinStates.filter((c) => c.state === 'reserved').length;
+  const partiallyBookedCount = cabinStates.filter((c) => c.state === 'partially_booked').length;
+  const fullyBookedCount = cabinStates.filter((c) => c.state === 'fully_booked').length;
   const inactiveCount = cabinStates.filter((c) => c.state === 'inactive').length;
 
   // Filter cabins by floor and status
@@ -389,8 +530,8 @@ export default function CabinsView() {
       label: formatFloorLabel(f),
       total: floorCabins.length,
       available: floorCabins.filter((c) => c.state === 'available').length,
-      occupied: floorCabins.filter((c) => c.state === 'exclusive').length,
-      hourly: floorCabins.filter((c) => c.state === 'hourly' || c.state === 'timeslot-full').length,
+      occupied: floorCabins.filter((c) => c.state === 'reserved').length,
+      hourly: floorCabins.filter((c) => c.state === 'partially_booked' || c.state === 'fully_booked').length,
       inactive: floorCabins.filter((c) => c.state === 'inactive').length,
     };
   });
@@ -418,9 +559,9 @@ export default function CabinsView() {
   const filterBadges: { key: FilterType; label: string; count: number; color: string; activeColor: string }[] = [
     { key: 'all', label: 'All', count: cabins.length, color: 'border-cyan-200 text-cyan-600 bg-cyan-50', activeColor: 'border-cyan-500 text-cyan-900 bg-cyan-200' },
     { key: 'available', label: 'Available', count: availableCount, color: 'border-emerald-200 text-emerald-700 bg-emerald-50', activeColor: 'border-emerald-500 text-emerald-900 bg-emerald-200' },
-    { key: 'exclusive', label: 'Exclusive', count: exclusiveCount, color: 'border-red-200 text-red-700 bg-red-50', activeColor: 'border-red-500 text-red-900 bg-red-200' },
-    { key: 'hourly', label: 'Hourly', count: hourlyCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' },
-    ...(timeslotFullCount > 0 ? [{ key: 'timeslot-full' as FilterType, label: 'Fully Booked', count: timeslotFullCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' }] : []),
+    { key: 'reserved', label: 'Reserved', count: reservedCount, color: 'border-red-200 text-red-700 bg-red-50', activeColor: 'border-red-500 text-red-900 bg-red-200' },
+    { key: 'partially_booked', label: 'Partially Booked', count: partiallyBookedCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' },
+    ...(fullyBookedCount > 0 ? [{ key: 'fully_booked' as FilterType, label: 'Fully Booked', count: fullyBookedCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' }] : []),
     ...(inactiveCount > 0 ? [{ key: 'inactive' as FilterType, label: 'Inactive', count: inactiveCount, color: 'border-gray-200 text-gray-500 bg-gray-50', activeColor: 'border-gray-400 text-gray-700 bg-gray-200' }] : []),
   ];
 
@@ -507,11 +648,11 @@ export default function CabinsView() {
               </div>
               <div className="rounded-xl border border-red-200 bg-red-50/50 p-3 text-center">
                 <p className="text-2xl font-bold text-red-700">{fs.occupied}</p>
-                <p className="text-xs text-red-600 font-medium">Exclusive</p>
+                <p className="text-xs text-red-600 font-medium">Reserved</p>
               </div>
               <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 text-center">
                 <p className="text-2xl font-bold text-sky-700">{fs.hourly}</p>
-                <p className="text-xs text-sky-600 font-medium">Hourly</p>
+                <p className="text-xs text-sky-600 font-medium">Shift Booked</p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
                 <p className="text-2xl font-bold text-gray-500">{fs.inactive}</p>
@@ -834,6 +975,15 @@ export default function CabinsView() {
               </Button>
             )}
             <div className="flex gap-2 sm:ml-auto">
+              {selectedCabin && (getCabinDisplayState(selectedCabin) === 'available' || getCabinDisplayState(selectedCabin) === 'partially_booked') && (
+                <Button
+                  onClick={() => setBookDialogOpen(true)}
+                  className="bg-sky-500 hover:bg-sky-600 text-white mr-auto sm:mr-4"
+                >
+                  <CalendarPlus className="h-4 w-4 mr-1.5" />
+                  Book Shift
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                 Cancel
               </Button>
@@ -845,6 +995,224 @@ export default function CabinsView() {
                 {submitting ? 'Saving...' : 'Save'}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Book Dialog */}
+      <Dialog open={bookDialogOpen} onOpenChange={setBookDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5 text-sky-500" />
+              Book Cabin #{selectedCabin?.cabinNum}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">Student Details</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowNewStudentForm(!showNewStudentForm);
+                  setBookStudentId('');
+                  setBookStudentSearch('');
+                }}
+                className="h-8 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
+              >
+                {showNewStudentForm ? 'Search Existing' : (
+                  <><UserPlus className="h-4 w-4 mr-1.5" /> Create New</>
+                )}
+              </Button>
+            </div>
+            
+            {showNewStudentForm ? (
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="Full Name"
+                    value={newStudentName}
+                    onChange={(e) => setNewStudentName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone Number</Label>
+                  <Input
+                    placeholder="Phone"
+                    value={newStudentPhone}
+                    onChange={(e) => setNewStudentPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <Label>Search Student (by Name or Phone)</Label>
+                <Popover open={studentSearchOpen} onOpenChange={setStudentSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={studentSearchOpen}
+                      className="w-full justify-between bg-white"
+                    >
+                      {bookStudentId
+                        ? bookStudentOptions.find((s) => s.id === bookStudentId)?.name || 'Select student...'
+                        : 'Select student...'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0 flex" align="start">
+                    <Command className="w-full">
+                      <CommandInput 
+                        placeholder="Type to search..." 
+                        value={bookStudentSearch}
+                        onValueChange={setBookStudentSearch}
+                      />
+                      <CommandList>
+                        {bookStudentOptions.length === 0 ? (
+                          <CommandEmpty>
+                            {bookStudentSearch.length >= 2 
+                              ? 'No students found.' 
+                              : 'Type at least 2 characters to search.'}
+                          </CommandEmpty>
+                        ) : (
+                          <CommandGroup>
+                            {bookStudentOptions.map((s) => (
+                              <CommandItem
+                                key={s.id}
+                                value={`${s.name} ${s.phone} ${s.id}`}
+                                onSelect={() => {
+                                  setBookStudentId(s.id);
+                                  setStudentSearchOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    bookStudentId === s.id ? "opacity-100 text-cyan-600" : "opacity-0"
+                                  )}
+                                />
+                                {s.name} ({s.phone})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Shift</Label>
+                <Select value={bookType} onValueChange={setBookType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      // Disable occupied shifts
+                      const occupied = new Set(selectedCabin?.bookings.filter(b => b.status === 'active').map(b => b.type));
+                      const isReserved = occupied.has('reserved') || occupied.has('exclusive') || occupied.has('monthly');
+                      return (
+                        <>
+                          <SelectItem value="morning_shift" disabled={isReserved || occupied.has('morning_shift')}>Morning Shift (5AM - 10AM)</SelectItem>
+                          <SelectItem value="day_shift" disabled={isReserved || occupied.has('day_shift')}>Day Shift (10AM - 5PM)</SelectItem>
+                          <SelectItem value="night_shift" disabled={isReserved || occupied.has('night_shift')}>Night Shift (5PM - 12AM)</SelectItem>
+                          <SelectItem value="reserved" disabled={occupied.size > 0}>Reserved (24/7)</SelectItem>
+                        </>
+                      );
+                    })()}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Monthly Fee (₹)</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 500"
+                  value={bookTotalAmount}
+                  onChange={(e) => setBookTotalAmount(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={bookStartDate}
+                  onChange={(e) => setBookStartDate(e.target.value)}
+                />
+              </div>
+              {bookType !== 'reserved' && (
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <Input
+                    type="date"
+                    value={bookEndDate}
+                    onChange={(e) => setBookEndDate(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Fee Breakdown */}
+            <div className="bg-cyan-50 p-3 rounded-lg border border-cyan-100 space-y-2">
+              <div className="flex justify-between text-sm text-cyan-800">
+                <span>Monthly Fee (Editable)</span>
+                <span>{formatCurrency((Number(bookTotalAmount) || 0) * 100)}</span>
+              </div>
+              {showNewStudentForm && (
+                <div className="flex justify-between text-sm text-cyan-800">
+                  <span>Registration Fee (One-time)</span>
+                  <span>{formatCurrency(rates.registration * 100)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-cyan-900 pt-2 border-t border-cyan-200">
+                <span>Total Amount Due</span>
+                <span>{formatCurrency(((Number(bookTotalAmount) || 0) + (showNewStudentForm ? rates.registration : 0)) * 100)}</span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bookPayNow}
+                  onChange={(e) => setBookPayNow(e.target.checked)}
+                  className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
+                />
+                Record Payment Now (Cash)
+              </Label>
+            </div>
+            {bookPayNow && (
+              <div className="space-y-2">
+                <Label>Payment Amount (₹)</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 500"
+                  value={bookPayAmount}
+                  onChange={(e) => setBookPayAmount(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBookDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleQuickBook}
+              disabled={submitting || (!showNewStudentForm && !bookStudentId) || (showNewStudentForm && (!newStudentName || !newStudentPhone))}
+              className="bg-sky-500 hover:bg-sky-600 text-white"
+            >
+              {submitting ? 'Booking...' : 'Confirm Booking'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -917,9 +1285,8 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick }: {
   onClick: () => void;
 }) {
   const styles = getDisplayStyles(state);
-  const exclusiveBooking = cabin.bookings.find((b) => b.type === 'exclusive' && b.status === 'active');
-  const hourlyBooking = cabin.bookings.find((b) => b.type === 'hourly' && b.status === 'active');
-  const hourlyBookings = cabin.bookings.filter((b) => b.type === 'hourly' && b.status === 'active');
+  const reservedBooking = cabin.bookings.find((b) => (b.type === 'reserved' || b.type === 'exclusive' || b.type === 'monthly') && b.status === 'active');
+  const activeShifts = cabin.bookings.filter((b) => b.status === 'active' && ['morning_shift', 'day_shift', 'night_shift', 'hourly'].includes(b.type));
 
   return (
     <Card
@@ -933,6 +1300,15 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick }: {
               <DoorOpen className="h-4 w-4 text-cyan-600" />
             </div>
             <span className="font-bold text-gray-900 text-lg">#{cabin.cabinNum}</span>
+            {cabin.bookings.some(b => {
+              if (b.status !== 'active' || !b.endDate) return false;
+              const daysLeft = (new Date(b.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
+              return daysLeft >= 0 && daysLeft <= 3;
+            }) && (
+              <div className="flex items-center justify-center h-5 w-5 bg-yellow-100 rounded-full" title="Booking expires in ≤ 3 days">
+                <AlertTriangle className="h-3 w-3 text-yellow-600" />
+              </div>
+            )}
           </div>
           {getStatusBadge(state)}
         </div>
@@ -941,26 +1317,22 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick }: {
           <Building2 className="h-3 w-3" />
           {formatFloorLabel(cabin.floor)}
         </p>
-        {state === 'exclusive' && exclusiveBooking && (
+        {state === 'reserved' && reservedBooking && (
           <div className="mt-2 text-xs">
-            <p className="font-medium text-red-800 truncate">{exclusiveBooking.student.name}</p>
-            <p className="text-gray-500 truncate">{exclusiveBooking.student.phone}</p>
+            <p className="font-medium text-red-800 truncate">{reservedBooking.student.name}</p>
+            <p className="text-gray-500 truncate">{reservedBooking.student.phone}</p>
           </div>
         )}
-        {state === 'hourly' && hourlyBooking && (
-          <div className="mt-2 text-xs">
-            <p className="font-medium text-sky-800 truncate">{hourlyBooking.student.name}</p>
-            <p className="text-gray-500">
-              {formatTime(hourlyBooking.startTime || '')} - {formatTime(hourlyBooking.endTime || '')}
-            </p>
-          </div>
-        )}
-        {state === 'timeslot-full' && hourlyBookings.length > 0 && (
-          <div className="mt-2 text-xs space-y-0.5">
-            <p className="font-medium text-sky-800">{hourlyBookings.length} booking{hourlyBookings.length > 1 ? 's' : ''}</p>
-            <p className="text-gray-500">
-              {formatTime(opStart)} - {formatTime(opEnd)} covered
-            </p>
+        {(state === 'partially_booked' || state === 'fully_booked') && activeShifts.length > 0 && (
+          <div className="mt-2 text-xs space-y-1.5">
+            <p className="font-medium text-sky-800">{activeShifts.length} shift{activeShifts.length > 1 ? 's' : ''} booked</p>
+            <div className="flex flex-wrap gap-1">
+              {activeShifts.map((s, idx) => (
+                <span key={idx} className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded capitalize text-[10px]">
+                  {s.type.replace('_', ' ')}
+                </span>
+              ))}
+            </div>
           </div>
         )}
         {state === 'inactive' && (

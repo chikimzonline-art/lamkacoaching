@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ViewType = 'dashboard' | 'students' | 'payments' | 'reports' | 'settings' | 'academics' | 'facilities' | 'communications' | 'website';
+export type ViewType = 'dashboard' | 'students' | 'payments' | 'reports' | 'settings' | 'academics' | 'facilities' | 'communications' | 'website' | 'bookings';
 
 interface AppState {
   activeView: ViewType;

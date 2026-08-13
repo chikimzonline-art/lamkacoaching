@@ -55,6 +55,7 @@ interface Payment {
   status: string;
   receivedAt: string;
   notes?: string | null;
+  receiptNo?: string | null;
   student: {
     id: string;
     name: string;
@@ -189,6 +190,7 @@ export default function PaymentsView() {
   const [payAmount, setPayAmount] = useState('');
   const [payMode, setPayMode] = useState('cash');
   const [payNotes, setPayNotes] = useState('');
+  const [payReceiptNo, setPayReceiptNo] = useState('');
   const [saving, setSaving] = useState(false);
   const [fetchingStudents, setFetchingStudents] = useState(false);
   const [fetchingBookings, setFetchingBookings] = useState(false);
@@ -364,6 +366,7 @@ export default function PaymentsView() {
     setPayAmount('');
     setPayMode('cash');
     setPayNotes('');
+    setPayReceiptNo('');
     setStudentBookings([]);
     setRecordDialogOpen(true);
     fetchStudentsList();
@@ -393,6 +396,7 @@ export default function PaymentsView() {
           amount: numAmount,
           mode: payMode,
           notes: payNotes || undefined,
+          receiptNo: payReceiptNo || undefined,
         }),
       });
 
@@ -448,7 +452,7 @@ export default function PaymentsView() {
           : formatDate(payment.receivedAt);
 
       setReceiptData({
-        receiptNo: payment.id.slice(-8).toUpperCase(),
+        receiptNo: payment.receiptNo || payment.id.slice(-8).toUpperCase(),
         studentName: payment.student.name,
         studentPhone: payment.student.phone,
         paymentType: 'booking',
@@ -463,7 +467,7 @@ export default function PaymentsView() {
       });
     } else if (payment.enrollment) {
       setReceiptData({
-        receiptNo: payment.id.slice(-8).toUpperCase(),
+        receiptNo: payment.receiptNo || payment.id.slice(-8).toUpperCase(),
         studentName: payment.student.name,
         studentPhone: payment.student.phone,
         paymentType: 'enrollment',
@@ -1097,6 +1101,17 @@ export default function PaymentsView() {
                   UPI
                 </Button>
               </div>
+            </div>
+
+            {/* Receipt No */}
+            <div className="space-y-2">
+              <Label htmlFor="record-receipt">Receipt/Invoice No <span className="text-gray-400 font-normal">(optional)</span></Label>
+              <Input
+                id="record-receipt"
+                placeholder="e.g. RCPT-1234"
+                value={payReceiptNo}
+                onChange={(e) => setPayReceiptNo(e.target.value)}
+              />
             </div>
 
             {/* Notes */}

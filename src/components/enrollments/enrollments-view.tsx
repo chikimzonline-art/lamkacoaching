@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils';
 interface Department { id: string; name: string }
 interface Course { id: string; name: string; departmentId: string; duration: string | null; totalFee: number; department: { name: string } }
 interface StudentOption { id: string; name: string; phone: string }
-interface EnrollmentPayment { id: string; amount: number; mode: string; receivedAt: string; notes: string | null }
+interface EnrollmentPayment { id: string; amount: number; mode: string; receivedAt: string; notes: string | null; receiptNo: string | null }
 
 interface Enrollment {
   id: string;
@@ -83,6 +83,7 @@ export default function EnrollmentsView() {
   const [wizardPayNow, setWizardPayNow] = useState(false);
   const [wizardPayAmount, setWizardPayAmount] = useState('');
   const [wizardPayMode, setWizardPayMode] = useState<'cash' | 'upi'>('cash');
+  const [wizardPayReceiptNo, setWizardPayReceiptNo] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Inline student creation
@@ -103,6 +104,7 @@ export default function EnrollmentsView() {
   const [payAmount, setPayAmount] = useState('');
   const [payMode, setPayMode] = useState<'cash' | 'upi'>('cash');
   const [payNotes, setPayNotes] = useState('');
+  const [payReceiptNo, setPayReceiptNo] = useState('');
   const [paySubmitting, setPaySubmitting] = useState(false);
 
   const fetchEnrollments = useCallback(async () => {
@@ -180,6 +182,7 @@ export default function EnrollmentsView() {
     setWizardPayNow(false);
     setWizardPayAmount('');
     setWizardPayMode('cash');
+    setWizardPayReceiptNo('');
     setShowNewStudentForm(false);
     setNewStudentName('');
     setNewStudentPhone('');
@@ -239,6 +242,7 @@ export default function EnrollmentsView() {
         body.payNow = true;
         body.payAmount = Number(wizardPayAmount);
         body.payMode = wizardPayMode;
+        body.payReceiptNo = wizardPayReceiptNo || undefined;
       }
 
       const res = await fetch('/api/enrollments', {
@@ -270,6 +274,7 @@ export default function EnrollmentsView() {
     setPayAmount(String((enrollment.totalFee - enrollment.paidAmount) / 100));
     setPayMode('cash');
     setPayNotes('');
+    setPayReceiptNo('');
     setPayDialogOpen(true);
   };
 
@@ -289,6 +294,7 @@ export default function EnrollmentsView() {
           payAmount: Number(payAmount),
           payMode,
           notes: payNotes || undefined,
+          receiptNo: payReceiptNo || undefined,
         }),
       });
       const json = await res.json();
@@ -531,6 +537,10 @@ export default function EnrollmentsView() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Receipt/Invoice No <span className="text-gray-400 font-normal">(optional)</span></Label>
+              <Input placeholder="e.g. RCPT-1234" value={payReceiptNo} onChange={(e) => setPayReceiptNo(e.target.value)} />
+            </div>
+            <div className="space-y-2">
               <Label>Notes</Label>
               <Textarea value={payNotes} onChange={(e) => setPayNotes(e.target.value)} rows={2} />
             </div>
@@ -719,7 +729,7 @@ export default function EnrollmentsView() {
                     <Label className="text-sm font-medium">Record payment now?</Label>
                     <Button type="button" size="sm" variant={wizardPayNow ? 'default' : 'outline'}
                       className={wizardPayNow ? 'bg-green-600 hover:bg-green-700' : ''}
-                      onClick={() => { setWizardPayNow(!wizardPayNow); if (wizardPayNow) setWizardPayAmount(''); }}>
+                      onClick={() => { setWizardPayNow(!wizardPayNow); if (wizardPayNow) { setWizardPayAmount(''); setWizardPayReceiptNo(''); } }}>
                       {wizardPayNow ? 'Yes' : 'No'}
                     </Button>
                   </div>
@@ -740,6 +750,10 @@ export default function EnrollmentsView() {
                             className={wizardPayMode === 'upi' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
                             onClick={() => setWizardPayMode('upi')}>UPI</Button>
                         </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Receipt/Invoice No <span className="text-gray-400 font-normal">(optional)</span></Label>
+                        <Input placeholder="e.g. RCPT-1234" value={wizardPayReceiptNo} onChange={(e) => setWizardPayReceiptNo(e.target.value)} />
                       </div>
                       {wizardPayAmount && Number(wizardPayAmount) > 0 && (
                         <p className="text-xs text-gray-500">

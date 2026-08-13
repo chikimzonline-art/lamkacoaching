@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import PublicLayout from '@/components/public/public-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -55,6 +56,7 @@ function formatCurrency(paise: number): string {
 }
 
 export default function CoursesPage() {
+  const { data: session } = useSession();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDept, setActiveDept] = useState<string>('all');
@@ -451,7 +453,7 @@ export default function CoursesPage() {
                           "mt-4 pt-3 border-t border-gray-50 dark:border-gray-700",
                           viewMode === 'list' ? "mt-0 pt-0 border-t-0 border-l-0 ml-4 shrink-0" : ""
                         )}>
-                          <Link href={`/register?courseId=${course.id}`}>
+                          <Link href={session ? "/dashboard/courses" : "/login?callbackUrl=/dashboard/courses"}>
                             <Button
                               size="sm"
                               className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium whitespace-nowrap"
@@ -690,7 +692,7 @@ export default function CoursesPage() {
 
                 {/* Actions */}
                 <div className="space-y-3 pt-2">
-                  <Link href={`/register?courseId=${selectedCourse.id}`} className="block">
+                  <Link href={session ? "/dashboard/courses" : "/login?callbackUrl=/dashboard/courses"} className="block">
                     <Button
                       className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-base h-12 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
                     >

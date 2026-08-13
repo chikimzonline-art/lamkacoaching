@@ -32,7 +32,7 @@ export async function enrollInCourse(courseId: string, batchId: string) {
     throw new Error("Please select a batch to enroll in.")
   }
 
-  await db.enrollment.create({
+  const newEnrollment = await db.enrollment.create({
     data: {
       studentId: student.id,
       courseId: course.id,
@@ -46,6 +46,7 @@ export async function enrollInCourse(courseId: string, batchId: string) {
   })
 
   revalidatePath("/dashboard/courses")
+  return { success: true, enrollmentId: newEnrollment.id }
 }
 
 export async function joinWaitlist(courseId: string) {

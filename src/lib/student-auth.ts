@@ -16,11 +16,11 @@ export async function requireStudent() {
     where: { id: userId },
     include: {
       enrollments: {
-        where: { status: "active" },
+        where: { status: { in: ["active", "pending_payment"] } },
         include: { course: true }
       },
       bookings: {
-        where: { status: "active" },
+        where: { status: { in: ["active", "pending_payment"] } },
         include: { cabin: true }
       },
       payments: {

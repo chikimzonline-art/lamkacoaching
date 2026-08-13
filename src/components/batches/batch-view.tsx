@@ -107,6 +107,145 @@ function formatCurrency(amount: number): string {
   return '₹' + amount.toLocaleString('en-IN');
 }
 
+interface BatchFormProps {
+  form: BatchFormData;
+  setForm: React.Dispatch<React.SetStateAction<BatchFormData>>;
+  courses: { id: string; name: string; durationValue: number | null; durationUnit: string | null }[];
+  submitting: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  submitLabel: string;
+}
+
+const BatchForm = ({ form, setForm, courses, submitting, onSubmit, submitLabel }: BatchFormProps) => (
+  <form onSubmit={onSubmit} className="space-y-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="courseId">Course *</Label>
+        <Select value={form.courseId} onValueChange={(v) => setForm({ ...form, courseId: v })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select course" />
+          </SelectTrigger>
+          <SelectContent>
+            {courses.map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="batchName">Batch Name *</Label>
+        <Input
+          id="batchName"
+          value={form.batchName}
+          onChange={(e) => setForm({ ...form, batchName: e.target.value })}
+          placeholder="e.g., Batch 001 - Evening"
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="startDate">Start Date *</Label>
+        <Input
+          id="startDate"
+          type="date"
+          value={form.startDate}
+          onChange={(e) => {
+            const newStart = e.target.value;
+            let newEnd = form.endDate;
+            if (newStart && form.courseId) {
+              const c = courses.find(x => x.id === form.courseId);
+              if (c && c.durationValue && c.durationUnit) {
+                const d = new Date(newStart);
+                if (!isNaN(d.getTime())) {
+                  if (c.durationUnit === 'days') d.setDate(d.getDate() + c.durationValue);
+                  else if (c.durationUnit === 'months') d.setMonth(d.getMonth() + c.durationValue);
+                  else if (c.durationUnit === 'years') d.setFullYear(d.getFullYear() + c.durationValue);
+                  newEnd = d.toISOString().split('T')[0];
+                }
+              }
+            }
+            setForm({ ...form, startDate: newStart, endDate: newEnd });
+          }}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="endDate">End Date</Label>
+        <Input
+          id="endDate"
+          type="date"
+          value={form.endDate}
+          onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="timing">Timing *</Label>
+        <Input
+          id="timing"
+          value={form.timing}
+          onChange={(e) => setForm({ ...form, timing: e.target.value })}
+          placeholder="e.g., Morning: 7:00 AM – 10:00 AM"
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="seats">Seats</Label>
+        <Input
+          id="seats"
+          type="number"
+          min={0}
+          value={form.seats}
+          onChange={(e) => setForm({ ...form, seats: Number(e.target.value) })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="status">Status</Label>
+        <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="sortOrder">Sort Order</Label>
+        <Input
+          id="sortOrder"
+          type="number"
+          min={0}
+          value={form.sortOrder}
+          onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Optional description"
+          rows={2}
+        />
+      </div>
+    </div>
+    <Button type="submit" disabled={submitting} className="bg-cyan-600 hover:bg-cyan-700 text-white">
+      {submitting ? (
+        <>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          Saving...
+        </>
+      ) : (
+        submitLabel
+      )}
+    </Button>
+  </form>
+);
+
 export default function BatchView() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courses, setCourses] = useState<{id: string; name: string; durationValue: number | null; durationUnit: string | null}[]>([]);
@@ -240,136 +379,6 @@ export default function BatchView() {
     setDeleteDialogOpen(true);
   };
 
-  const BatchForm = ({ onSubmit, submitLabel }: { onSubmit: (e: React.FormEvent) => void; submitLabel: string }) => (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="courseId">Course *</Label>
-          <Select value={form.courseId} onValueChange={(v) => setForm({ ...form, courseId: v })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select course" />
-            </SelectTrigger>
-            <SelectContent>
-              {courses.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="batchName">Batch Name *</Label>
-          <Input
-            id="batchName"
-            value={form.batchName}
-            onChange={(e) => setForm({ ...form, batchName: e.target.value })}
-            placeholder="e.g., Batch 001 - Evening"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="startDate">Start Date *</Label>
-          <Input
-            id="startDate"
-            type="date"
-            value={form.startDate}
-            onChange={(e) => {
-              const newStart = e.target.value;
-              let newEnd = form.endDate;
-              if (newStart && form.courseId) {
-                const c = courses.find(x => x.id === form.courseId);
-                if (c && c.durationValue && c.durationUnit) {
-                  const d = new Date(newStart);
-                  if (!isNaN(d.getTime())) {
-                    if (c.durationUnit === 'days') d.setDate(d.getDate() + c.durationValue);
-                    else if (c.durationUnit === 'months') d.setMonth(d.getMonth() + c.durationValue);
-                    else if (c.durationUnit === 'years') d.setFullYear(d.getFullYear() + c.durationValue);
-                    newEnd = d.toISOString().split('T')[0];
-                  }
-                }
-              }
-              setForm({ ...form, startDate: newStart, endDate: newEnd });
-            }}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="endDate">End Date</Label>
-          <Input
-            id="endDate"
-            type="date"
-            value={form.endDate}
-            onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="timing">Timing *</Label>
-          <Input
-            id="timing"
-            value={form.timing}
-            onChange={(e) => setForm({ ...form, timing: e.target.value })}
-            placeholder="e.g., Morning: 7:00 AM – 10:00 AM"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="seats">Seats</Label>
-          <Input
-            id="seats"
-            type="number"
-            min={0}
-            value={form.seats}
-            onChange={(e) => setForm({ ...form, seats: Number(e.target.value) })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
-          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="sortOrder">Sort Order</Label>
-          <Input
-            id="sortOrder"
-            type="number"
-            min={0}
-            value={form.sortOrder}
-            onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Optional description"
-            rows={2}
-          />
-        </div>
-      </div>
-      <Button type="submit" disabled={submitting} className="bg-cyan-600 hover:bg-cyan-700 text-white">
-        {submitting ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          submitLabel
-        )}
-      </Button>
-    </form>
-  );
-
   return (
     <div className="space-y-6">
       <Tabs defaultValue="all">
@@ -470,7 +479,7 @@ export default function BatchView() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <BatchForm onSubmit={handleCreate} submitLabel="Create Batch" />
+              <BatchForm form={form} setForm={setForm} courses={courses} submitting={submitting} onSubmit={handleCreate} submitLabel="Create Batch" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -482,7 +491,7 @@ export default function BatchView() {
           <DialogHeader>
             <DialogTitle>Edit Batch</DialogTitle>
           </DialogHeader>
-          <BatchForm onSubmit={handleEdit} submitLabel="Update Batch" />
+          <BatchForm form={form} setForm={setForm} courses={courses} submitting={submitting} onSubmit={handleEdit} submitLabel="Update Batch" />
         </DialogContent>
       </Dialog>
 
