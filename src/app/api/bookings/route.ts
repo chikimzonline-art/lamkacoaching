@@ -32,14 +32,14 @@ export async function GET(request: Request) {
       nextDay.setDate(nextDay.getDate() + 1);
 
       where.OR = [
-        // Hourly bookings on this date
+        // Hourly/Shift bookings on this date
         {
-          type: 'hourly',
+          type: { in: ['hourly', 'morning_shift', 'day_shift', 'night_shift'] },
           startDate: { gte: filterDate, lt: nextDay },
         },
-        // Exclusive bookings that span this date
+        // Exclusive/Monthly bookings that span this date
         {
-          type: 'exclusive',
+          type: { in: ['exclusive', 'reserved', 'monthly'] },
           startDate: { lte: nextDay },
           OR: [
             { endDate: null },

@@ -383,6 +383,11 @@ export default function BookingsView() {
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="hourly">Hourly</SelectItem>
               <SelectItem value="exclusive">Exclusive</SelectItem>
+              <SelectItem value="reserved">Reserved</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="morning_shift">Morning Shift</SelectItem>
+              <SelectItem value="day_shift">Day Shift</SelectItem>
+              <SelectItem value="night_shift">Night Shift</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>

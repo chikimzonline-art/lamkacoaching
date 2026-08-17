@@ -522,7 +522,7 @@ export default function DashboardView() {
                   <LineChart data={revenueTrendData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:opacity-20" />
                     <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${(v / 100).toLocaleString('en-IN')}`} />
+                    <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatCurrency(v)} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'white',
@@ -531,7 +531,7 @@ export default function DashboardView() {
                         fontSize: '13px',
                         boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
                       }}
-                      formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, 'Revenue']}
+                      formatter={(value: number) => [formatCurrency(value), 'Revenue']}
                     />
                     <Line
                       type="monotone"

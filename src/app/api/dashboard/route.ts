@@ -33,7 +33,7 @@ export async function GET() {
       db.cabin.count({ where: { status: 'active' } }),
       db.booking.findMany({
         where: {
-          type: 'exclusive',
+          type: { in: ['exclusive', 'reserved', 'monthly'] },
           status: 'active',
           startDate: { lte: tomorrow },
           OR: [{ endDate: { gte: today } }, { endDate: null }],
@@ -42,7 +42,6 @@ export async function GET() {
       }),
       db.booking.findMany({
         where: {
-          type: 'hourly',
           status: 'active',
           startDate: { gte: today, lt: tomorrow },
         },
@@ -65,7 +64,7 @@ export async function GET() {
       }),
       db.booking.findMany({
         where: {
-          type: 'exclusive',
+          type: { in: ['exclusive', 'reserved', 'monthly'] },
           status: 'active',
           endDate: { gte: today, lte: sevenDaysLater },
         },

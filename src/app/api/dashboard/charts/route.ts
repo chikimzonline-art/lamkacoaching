@@ -6,7 +6,7 @@ export async function GET() {
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    const [enrollments, departments, payments] = await db.$transaction([
+    const [enrollments, departments, enrollmentPayments, cabinPayments] = await db.$transaction([
       db.enrollment.findMany({
         where: { createdAt: { gte: sixMonthsAgo } },
         select: { createdAt: true },
@@ -21,6 +21,10 @@ export async function GET() {
         },
       }),
       db.enrollmentPayment.findMany({
+        where: { receivedAt: { gte: sixMonthsAgo } },
+        select: { amount: true, receivedAt: true },
+      }),
+      db.payment.findMany({
         where: { receivedAt: { gte: sixMonthsAgo } },
         select: { amount: true, receivedAt: true },
       }),
@@ -50,12 +54,18 @@ export async function GET() {
     for (let i = 5; i >= 0; i--) {
       const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      const total = payments
+      
+      const enrollmentTotal = enrollmentPayments
         .filter((p) => p.receivedAt >= month && p.receivedAt <= monthEnd)
         .reduce((sum, p) => sum + p.amount, 0);
+        
+      const cabinTotal = cabinPayments
+        .filter((p) => p.receivedAt >= month && p.receivedAt <= monthEnd)
+        .reduce((sum, p) => sum + p.amount, 0);
+        
       revenueTrend.push({
         month: month.toLocaleDateString('en-IN', { month: 'short' }),
-        revenue: total, // return paise directly
+        revenue: enrollmentTotal + cabinTotal, // return paise directly
       });
     }
 
