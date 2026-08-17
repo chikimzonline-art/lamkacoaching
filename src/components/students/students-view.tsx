@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useDebouncedSearch } from '@/lib/hooks/use-debounced-search';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,9 +84,45 @@ function formatCurrency(amount: number): string {
 }
 
 export default function StudentsView() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const fetchFn = useCallback(async (q: string, signal: AbortSignal) => {
+    const params = new URLSearchParams();
+    if (q) params.set('search', q);
+    params.set('bookings', 'true');
+    params.set('take', '20');
+    params.set('skip', '0');
+    const res = await fetch(`/api/students?${params.toString()}`, { signal });
+    if (!res.ok) throw new Error('Failed to fetch students');
+    return res.json();
+  }, []);
+
+  const {
+    query: search,
+    setQuery: setSearch,
+    results,
+    setResults,
+    loading,
+    execute: fetchStudents
+  } = useDebouncedSearch<{ students: Student[]; hasMore: boolean }>(fetchFn, 300, 2);
+
+  const students = results?.students || [];
+  const hasMore = results?.hasMore || false;
+
+  const loadMore = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      params.set('bookings', 'true');
+      params.set('take', '20');
+      params.set('skip', students.length.toString());
+      const res = await fetch(`/api/students?${params.toString()}`);
+      const data = await res.json();
+      if (data.students) {
+        setResults(prev => prev ? { students: [...prev.students, ...data.students], hasMore: data.hasMore } : data);
+      }
+    } catch {
+      toast.error('Failed to load more students');
+    }
+  };
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [form, setForm] = useState<StudentFormData>(emptyForm);
@@ -98,29 +135,7 @@ export default function StudentsView() {
   const [quickPayOpen, setQuickPayOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fetchStudents = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      params.set('bookings', 'true');
-      const res = await fetch(`/api/students?${params.toString()}`);
-      const data = await res.json();
-      if (data.students) {
-        setStudents(data.students);
-      }
-    } catch {
-      toast.error('Failed to fetch students');
-    } finally {
-      setLoading(false);
-    }
-  }, [search]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchStudents();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [fetchStudents]);
 
   const openAddDialog = () => {
     setEditingStudent(null);
@@ -542,6 +557,15 @@ export default function StudentsView() {
               ))}
             </TableBody>
           </Table>
+        </div>
+      )}
+
+      {/* Load More Button */}
+      {!loading && hasMore && (
+        <div className="flex justify-center mt-4 pt-4">
+          <Button variant="outline" onClick={loadMore}>
+            Load More
+          </Button>
         </div>
       )}
 

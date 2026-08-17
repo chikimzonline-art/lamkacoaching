@@ -78,13 +78,16 @@ export async function POST(request: Request) {
         select: { cabinNum: true },
       });
       let startNum = lastCabinOnFloor ? lastCabinOnFloor.cabinNum + 1 : 1;
-      const cabins = [];
-      for (let i = 0; i < num; i++) {
-        const cabin = await db.cabin.create({
-          data: { floor: cabinFloor, cabinNum: startNum + i, status: 'active' },
-        });
-        cabins.push(cabin);
-      }
+      const dataToInsert = Array.from({ length: num }).map((_, i) => ({
+        floor: cabinFloor,
+        cabinNum: startNum + i,
+        status: 'active',
+      }));
+      await db.cabin.createMany({ data: dataToInsert });
+      
+      const cabins = await db.cabin.findMany({
+        where: { floor: cabinFloor, cabinNum: { gte: startNum, lt: startNum + num } }
+      });
       return NextResponse.json({ cabins, count: num, floor: cabinFloor });
 
     } else if (action === 'update') {

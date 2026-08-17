@@ -28,7 +28,10 @@ export async function GET() {
       (dept) => dept.courses.length > 0
     );
 
-    return NextResponse.json({ departments: filteredDepartments });
+    return NextResponse.json(
+      { departments: filteredDepartments },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+    );
   } catch (error) {
     console.error('Error fetching public courses:', error);
     return NextResponse.json(

@@ -57,8 +57,11 @@ export async function POST(request: Request) {
     }
 
     // Get pricing
-    const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
-    const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
+    const settings = await db.setting.findMany({
+      where: { key: { in: ['hourly_rate', 'monthly_rate'] } }
+    });
+    const hourlyRateSetting = settings.find(s => s.key === 'hourly_rate');
+    const monthlyRateSetting = settings.find(s => s.key === 'monthly_rate');
     const hourlyMonthlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 1000;
     const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) : 3000;
 

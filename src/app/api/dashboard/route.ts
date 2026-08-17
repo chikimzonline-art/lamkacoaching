@@ -23,19 +23,13 @@ export async function GET() {
       totalCabins,
       exclusiveBookings,
       todayHourlyBookings,
-      activeBookingsCount,
+      activeBookingStats,
       totalStudents,
       todayRevenueAgg,
       todayEnrollmentRevenueAgg,
-      totalPendingAgg,
       expiringSoon,
-      recentPayments,
-      totalEnrollments,
-      enrollmentFeesAgg,
-      recentEnrollmentPayments,
-      pendingBookingRequests,
-      pendingBookingCount,
-    ] = await Promise.all([
+      enrollmentStats,
+    ] = await db.$transaction([
       db.cabin.count({ where: { status: 'active' } }),
       db.booking.findMany({
         where: {
@@ -55,7 +49,11 @@ export async function GET() {
         include: { cabin: true, student: { select: { name: true, phone: true } } },
         orderBy: { startTime: 'asc' },
       }),
-      db.booking.count({ where: { status: 'active' } }),
+      db.booking.aggregate({
+        where: { status: 'active' },
+        _count: { _all: true },
+        _sum: { totalAmount: true, paidAmount: true },
+      }),
       db.student.count(),
       db.payment.aggregate({
         where: { receivedAt: { gte: today, lt: tomorrow }, status: 'completed' },
@@ -64,10 +62,6 @@ export async function GET() {
       db.enrollmentPayment.aggregate({
         where: { receivedAt: { gte: today, lt: tomorrow }, status: 'completed' },
         _sum: { amount: true },
-      }),
-      db.booking.aggregate({
-        where: { status: 'active' },
-        _sum: { totalAmount: true, paidAmount: true },
       }),
       db.booking.findMany({
         where: {
@@ -81,47 +75,21 @@ export async function GET() {
         },
         orderBy: { endDate: 'asc' },
       }),
-      db.payment.findMany({
-        where: { status: 'completed' },
-        orderBy: { receivedAt: 'desc' },
-        take: 10,
-        include: {
-          student: { select: { name: true } },
-          booking: { select: { type: true, cabin: { select: { cabinNum: true } } } },
-        },
-      }),
-      db.enrollment.count({ where: { status: 'active' } }),
       db.enrollment.aggregate({
         where: { status: 'active' },
+        _count: { _all: true },
         _sum: { totalFee: true, paidAmount: true },
       }),
-      db.enrollmentPayment.findMany({
-        where: { status: 'completed' },
-        orderBy: { receivedAt: 'desc' },
-        take: 5,
-        include: {
-          student: { select: { name: true, phone: true } },
-          enrollment: { select: { course: { select: { name: true, department: { select: { name: true } } } } } },
-        },
-      }),
-      db.booking.findMany({
-        where: { status: 'pending' },
-        include: {
-          student: { select: { name: true, phone: true } },
-          cabin: { select: { cabinNum: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-      }),
-      db.booking.count({ where: { status: 'pending' } }),
     ]);
 
     const todayRevenue = todayRevenueAgg._sum.amount ?? 0;
     const todayEnrollmentRevenue = todayEnrollmentRevenueAgg._sum.amount ?? 0;
-    const totalPending = (totalPendingAgg._sum.totalAmount ?? 0) - (totalPendingAgg._sum.paidAmount ?? 0);
+    const totalPending = (activeBookingStats._sum.totalAmount ?? 0) - (activeBookingStats._sum.paidAmount ?? 0);
     const occupiedCabins = exclusiveBookings.length;
     const availableCabins = totalCabins - occupiedCabins;
-    const enrollmentOutstanding = (enrollmentFeesAgg._sum.totalFee ?? 0) - (enrollmentFeesAgg._sum.paidAmount ?? 0);
+    const enrollmentOutstanding = (enrollmentStats._sum.totalFee ?? 0) - (enrollmentStats._sum.paidAmount ?? 0);
+    const activeBookingsCount = activeBookingStats._count._all;
+    const totalEnrollments = enrollmentStats._count._all;
 
     return NextResponse.json(
       {
@@ -141,10 +109,6 @@ export async function GET() {
         todayBookings: todayHourlyBookings,
         exclusiveBookings,
         expiringSoon,
-        recentPayments,
-        recentEnrollmentPayments,
-        pendingBookingRequests,
-        pendingBookingCount,
       },
       { headers: { 'Cache-Control': 'private, max-age=15' } }
     );

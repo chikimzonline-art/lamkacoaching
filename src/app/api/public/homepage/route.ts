@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    const [impactStats, achievementCards, successStories, testimonials, cabinCount] = await Promise.all([
+    const [impactStats, achievementCards, successStories, testimonials, cabinCount] = await db.$transaction([
       db.impactStat.findMany({
         where: { active: true },
         orderBy: { sortOrder: 'asc' },
@@ -23,13 +23,16 @@ export async function GET() {
       db.cabin.count({ where: { status: 'active' } }),
     ]);
 
-    return NextResponse.json({
-      impactStats,
-      achievementCards,
-      successStories,
-      testimonials,
-      cabinCount,
-    });
+    return NextResponse.json(
+      {
+        impactStats,
+        achievementCards,
+        successStories,
+        testimonials,
+        cabinCount,
+      },
+      { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } }
+    );
   } catch (error) {
     console.error('Error fetching homepage data:', error);
     return NextResponse.json(

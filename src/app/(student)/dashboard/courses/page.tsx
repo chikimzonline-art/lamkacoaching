@@ -1,5 +1,6 @@
 import { requireStudent } from "@/lib/student-auth"
 import { db } from "@/lib/db"
+import { unstable_cache } from "next/cache"
 import Link from "next/link"
 import { Search, Sparkles, Calendar } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,19 +10,27 @@ export default async function ExploreCoursesPage() {
   const { student } = await requireStudent()
 
   // Fetch active/waitlist/coming_soon courses with their departments, batches, and waitlists
-  const courses = await db.course.findMany({
-    where: { status: { not: "inactive" } },
-    include: { 
-      department: true,
-      batches: {
-        where: { active: true, status: { in: ['enrolling', 'almost_full'] } },
-        orderBy: { startDate: 'asc' }
-      },
-      waitlists: {
-        where: { studentId: student.id }
-      }
-    }
-  })
+  const getCachedCourses = unstable_cache(
+    async (studentId: string) => {
+      return await db.course.findMany({
+        where: { status: { not: "inactive" } },
+        include: { 
+          department: true,
+          batches: {
+            where: { active: true, status: { in: ['enrolling', 'almost_full'] } },
+            orderBy: { startDate: 'asc' }
+          },
+          waitlists: {
+            where: { studentId }
+          }
+        }
+      })
+    },
+    [`courses-list-${student.id}`],
+    { revalidate: 300, tags: ['courses'] }
+  )
+  
+  const courses = await getCachedCourses(student.id)
   
   // Filter out courses the student is already enrolled in
   const enrolledCourseIds = student.enrollments.map(e => e.courseId)

@@ -24,35 +24,36 @@ export async function GET(request: Request) {
       where.course = { departmentId };
     }
 
-    const enrollments = await db.enrollment.findMany({
-      where: Object.keys(where).length > 0 ? where : undefined,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        student: { select: { id: true, name: true, phone: true } },
-        course: {
-          select: { id: true, name: true, department: { select: { id: true, name: true } } },
+    // Fetch list and aggregated stats in one roundtrip
+    const [enrollments, statsData] = await db.$transaction([
+      db.enrollment.findMany({
+        where: Object.keys(where).length > 0 ? where : undefined,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          student: { select: { id: true, name: true, phone: true } },
+          course: {
+            select: { id: true, name: true, department: { select: { id: true, name: true } } },
+          },
+          payments: {
+            select: { id: true, amount: true, mode: true, receivedAt: true, notes: true, receiptNo: true },
+            orderBy: { receivedAt: 'desc' },
+          },
         },
-        payments: {
-          select: { id: true, amount: true, mode: true, receivedAt: true, notes: true, receiptNo: true },
-          orderBy: { receivedAt: 'desc' },
-        },
-      },
-    });
-
-    // Also get enrollment stats
-    const totalActive = await db.enrollment.count({ where: { status: 'active' } });
-    const totalFees = await db.enrollment.aggregate({
-      where: { status: 'active' },
-      _sum: { totalFee: true, paidAmount: true },
-    });
+      }),
+      db.enrollment.aggregate({
+        where: { status: 'active' },
+        _count: { _all: true },
+        _sum: { totalFee: true, paidAmount: true },
+      })
+    ]);
 
     return NextResponse.json({
       enrollments,
       stats: {
-        totalActive,
-        totalFees: totalFees._sum.totalFee || 0,
-        totalPaid: totalFees._sum.paidAmount || 0,
-        totalOutstanding: (totalFees._sum.totalFee || 0) - (totalFees._sum.paidAmount || 0),
+        totalActive: statsData._count._all,
+        totalFees: statsData._sum.totalFee || 0,
+        totalPaid: statsData._sum.paidAmount || 0,
+        totalOutstanding: (statsData._sum.totalFee || 0) - (statsData._sum.paidAmount || 0),
       },
     });
   } catch (error) {

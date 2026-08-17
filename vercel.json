@@ -1,0 +1,4 @@
+{
+  "//": "Set this to the same region as your Turso primary database (e.g., 'bom1' for Mumbai or 'sin1' for Singapore) to minimize network latency.",
+  "regions": ["bom1"]
+}

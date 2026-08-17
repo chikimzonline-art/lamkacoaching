@@ -18,8 +18,12 @@ export async function GET(request: Request) {
     if (studentId) where.studentId = studentId;
     if (bookingId) where.bookingId = bookingId;
 
-    // Fetch booking payments
-    const bookingPayments = await db.payment.findMany({
+    // Fetch both types of payments in one roundtrip
+    const enrollmentWhere: Record<string, unknown> = {};
+    if (studentId) enrollmentWhere.studentId = studentId;
+
+    const [bookingPayments, enrollmentPayments] = await db.$transaction([
+      db.payment.findMany({
       where: Object.keys(where).length > 0 ? where : undefined,
       orderBy: { receivedAt: 'desc' },
       include: {
@@ -32,14 +36,10 @@ export async function GET(request: Request) {
             cabin: { select: { cabinNum: true } },
           },
         },
-      },
-    });
+      }
+      }),
 
-    // Fetch enrollment payments
-    const enrollmentWhere: Record<string, unknown> = {};
-    if (studentId) enrollmentWhere.studentId = studentId;
-
-    const enrollmentPayments = await db.enrollmentPayment.findMany({
+      db.enrollmentPayment.findMany({
       where: Object.keys(enrollmentWhere).length > 0 ? enrollmentWhere : undefined,
       orderBy: { receivedAt: 'desc' },
       include: {
@@ -51,7 +51,8 @@ export async function GET(request: Request) {
           },
         },
       },
-    });
+      }),
+    ]);
 
     // Normalize into unified format
     const payments = [

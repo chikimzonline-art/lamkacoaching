@@ -1,5 +1,6 @@
 import { requireStudent } from "@/lib/student-auth"
 import { db } from "@/lib/db"
+import { unstable_cache } from "next/cache"
 import DashboardCabinsClient from "./client"
 
 function formatFloorLabel(floor: number): string {
@@ -11,25 +12,66 @@ function formatFloorLabel(floor: number): string {
 export default async function ExploreCabinsPage() {
   const { student } = await requireStudent()
 
-  // Fetch all active cabins
-  const cabins = await db.cabin.findMany({
-    where: { status: "active" },
-    orderBy: [{ floor: "asc" }, { cabinNum: "asc" }],
-    include: {
-      bookings: {
-        where: { status: { in: ['active', 'pending_payment'] } },
-        select: {
-          id: true,
-          type: true,
-          startDate: true,
-          endDate: true,
-          startTime: true,
-          endTime: true,
-          studentId: true,
+  const getCachedCabins = unstable_cache(
+    async () => {
+      return await db.cabin.findMany({
+        where: { status: "active" },
+        orderBy: [{ floor: "asc" }, { cabinNum: "asc" }],
+        include: {
+          bookings: {
+            where: { status: { in: ['active', 'pending_payment'] } },
+            select: {
+              id: true,
+              type: true,
+              startDate: true,
+              endDate: true,
+              startTime: true,
+              endTime: true,
+              studentId: true,
+            },
+          },
         },
-      },
+      })
     },
-  })
+    ['active-cabins'],
+    { revalidate: 60, tags: ['cabins'] }
+  )
+
+  const getCachedSettings = unstable_cache(
+    async () => {
+      return await db.setting.findMany({
+        where: {
+          key: {
+            in: [
+              'cabin_registration_fee',
+              'cabin_reserved_rate',
+              'cabin_morning_shift_rate',
+              'cabin_day_shift_rate',
+              'cabin_night_shift_rate',
+            ],
+          },
+        },
+      })
+    },
+    ['cabin-settings'],
+    { revalidate: 3600, tags: ['settings'] }
+  )
+
+  // Execute queries
+  const [
+    cabins, 
+    settings, 
+    pastCabinBookingsCount
+  ] = await Promise.all([
+    getCachedCabins(),
+    getCachedSettings(),
+    db.booking.count({
+      where: {
+        studentId: student.id,
+        cabinId: { not: '' }
+      }
+    })
+  ]);
 
   // Filter out cabins the student has already booked
   const bookedCabinIds = student.bookings.filter(b => b.status !== "completed" && b.status !== "cancelled").map(b => b.cabinId)
@@ -109,19 +151,6 @@ export default async function ExploreCabinsPage() {
   }));
 
   // Get pricing from settings
-  const settings = await db.setting.findMany({
-    where: {
-      key: {
-        in: [
-          'cabin_registration_fee',
-          'cabin_reserved_rate',
-          'cabin_morning_shift_rate',
-          'cabin_day_shift_rate',
-          'cabin_night_shift_rate',
-        ],
-      },
-    },
-  });
 
   const getSetting = (key: string, def: number) => {
     const s = settings.find((s) => s.key === key);
@@ -137,12 +166,6 @@ export default async function ExploreCabinsPage() {
   };
 
   // Check if first booking
-  const pastCabinBookingsCount = await db.booking.count({
-    where: {
-      studentId: student.id,
-      cabinId: { not: '' }
-    }
-  });
 
   const isFirstBooking = pastCabinBookingsCount === 0;
 
@@ -151,7 +174,7 @@ export default async function ExploreCabinsPage() {
   let pendingCheckout: any = null;
 
   if (rawPendingCheckout) {
-    const pCabin = await db.cabin.findUnique({ where: { id: rawPendingCheckout.cabinId } });
+    const pCabin = cabins.find(c => c.id === rawPendingCheckout.cabinId);
     if (pCabin) {
       pendingCheckout = {
         id: rawPendingCheckout.id,

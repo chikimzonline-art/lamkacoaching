@@ -23,6 +23,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
   Table,
   TableBody,
   TableCell,
@@ -41,6 +54,7 @@ import {
   Loader2,
   Filter,
   Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentReceipt from './payment-receipt';
@@ -183,6 +197,7 @@ export default function PaymentsView() {
 
   // Record payment dialog
   const [recordDialogOpen, setRecordDialogOpen] = useState(false);
+  const [studentSearchOpen, setStudentSearchOpen] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [studentBookings, setStudentBookings] = useState<StudentBooking[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -987,26 +1002,57 @@ export default function PaymentsView() {
                   Loading students...
                 </div>
               ) : (
-                <Select
-                  value={selectedStudentId}
-                  onValueChange={(v) => {
-                    setSelectedStudentId(v);
-                    setSelectedBookingId('');
-                    setPayAmount('');
-                    fetchStudentBookings(v);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a student" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {students.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} ({s.phone})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={studentSearchOpen} onOpenChange={setStudentSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={studentSearchOpen}
+                      className="w-full justify-between bg-white font-normal"
+                    >
+                      {selectedStudentId
+                        ? (() => {
+                            const s = students.find((st) => st.id === selectedStudentId);
+                            return s ? `${s.name} (${s.phone})` : 'Select a student';
+                          })()
+                        : 'Select a student'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command className="w-full">
+                      <CommandInput placeholder="Search student..." />
+                      <CommandList>
+                        <CommandEmpty>No student found.</CommandEmpty>
+                        <CommandGroup>
+                          {students.map((s) => (
+                            <CommandItem
+                              key={s.id}
+                              value={`${s.name} ${s.phone} ${s.id}`}
+                              onSelect={() => {
+                                setSelectedStudentId(s.id);
+                                setSelectedBookingId('');
+                                setPayAmount('');
+                                fetchStudentBookings(s.id);
+                                setStudentSearchOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  selectedStudentId === s.id
+                                    ? 'opacity-100 text-cyan-600'
+                                    : 'opacity-0'
+                                )}
+                              />
+                              {s.name} ({s.phone})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               )}
             </div>
 

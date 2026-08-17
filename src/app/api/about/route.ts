@@ -10,19 +10,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const teamMembers = await db.teamMember.findMany({
-      orderBy: { sortOrder: 'asc' },
-    });
-
-    const milestones = await db.aboutMilestone.findMany({
-      orderBy: { sortOrder: 'asc' },
-    });
-
-    const galleryItems = await db.campusGalleryItem.findMany({
-      orderBy: { sortOrder: 'asc' },
-    });
-
-    // Fetch about-related settings
     const aboutKeys = [
       'about_story',
       'about_story_extra',
@@ -31,9 +18,22 @@ export async function GET() {
       'about_vision',
     ];
 
-    const settings = await db.setting.findMany({
-      where: { key: { in: aboutKeys } },
-    });
+    const [teamMembers, milestones, galleryItems, settings] = await db.$transaction([
+      db.teamMember.findMany({
+        orderBy: { sortOrder: 'asc' },
+      }),
+      db.aboutMilestone.findMany({
+        orderBy: { sortOrder: 'asc' },
+      }),
+      db.campusGalleryItem.findMany({
+        orderBy: { sortOrder: 'asc' },
+      }),
+      db.setting.findMany({
+        where: { key: { in: aboutKeys } },
+      }),
+    ]);
+
+
 
     const settingsMap: Record<string, string> = {};
     settings.forEach((s) => {
@@ -69,15 +69,14 @@ export async function POST(request: Request) {
     // Handle settings update
     if (type === 'settings') {
       const settings = data as Record<string, string>;
-      const results = [];
-      for (const [key, value] of Object.entries(settings)) {
-        const result = await db.setting.upsert({
+      const upserts = Object.entries(settings).map(([key, value]) =>
+        db.setting.upsert({
           where: { key },
           update: { value: String(value) },
           create: { key, value: String(value) },
-        });
-        results.push(result);
-      }
+        })
+      );
+      const results = await db.$transaction(upserts);
       return NextResponse.json({ success: true, settings: results });
     }
 

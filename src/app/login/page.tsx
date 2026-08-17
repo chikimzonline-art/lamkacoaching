@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 
 export default async function UnifiedAuthPage() {
   // Fetch logo setting from DB
-  let logoUrl = null;
+  let logoUrl: string | null = null;
   try {
     const setting = await db.setting.findUnique({
       where: { key: 'logo_url' }

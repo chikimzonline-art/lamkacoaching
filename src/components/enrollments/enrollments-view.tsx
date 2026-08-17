@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useDebouncedSearch } from '@/lib/hooks/use-debounced-search';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,7 +74,7 @@ export default function EnrollmentsView() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState<StepType>('student');
   const [wizardStudentId, setWizardStudentId] = useState('');
-  const [wizardStudentSearch, setWizardStudentSearch] = useState('');
+
   const [wizardCourseId, setWizardCourseId] = useState('');
   const [wizardDeptId, setWizardDeptId] = useState('');
   const [wizardStartDate, setWizardStartDate] = useState<Date>(new Date());
@@ -93,7 +94,6 @@ export default function EnrollmentsView() {
   const [creatingStudent, setCreatingStudent] = useState(false);
 
   // Options
-  const [studentOptions, setStudentOptions] = useState<StudentOption[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
 
@@ -142,20 +142,25 @@ export default function EnrollmentsView() {
     } catch { /* ignore */ }
   }, [wizardDeptId]);
 
-  const fetchStudentOptions = useCallback(async (search: string) => {
-    try {
-      const res = await fetch(`/api/students?search=${encodeURIComponent(search)}`);
-      const json = await res.json();
-      if (json.students) setStudentOptions(json.students);
-    } catch { /* ignore */ }
-  }, []);
+  const fetchStudentOptionsFn = useCallback(async (query: string, signal: AbortSignal) => {
+    if (!wizardOpen || step !== 'student') return { students: [] };
+    const res = await fetch(`/api/students?search=${encodeURIComponent(query)}`, { signal });
+    if (!res.ok) throw new Error('Failed to fetch students');
+    return res.json();
+  }, [wizardOpen, step]);
+
+  const { 
+    query: wizardStudentSearch, 
+    setQuery: setWizardStudentSearch, 
+    results: studentSearchRes, 
+    setResults: setStudentSearchRes,
+    loading: studentSearchLoading
+  } = useDebouncedSearch<{ students: StudentOption[] }>(fetchStudentOptionsFn, 300, 2);
+
+  const studentOptions = studentSearchRes?.students || [];
 
   useEffect(() => { fetchEnrollments(); }, [fetchEnrollments]);
   useEffect(() => { fetchDepartments(); }, []);
-
-  useEffect(() => {
-    if (wizardOpen && step === 'student') fetchStudentOptions(wizardStudentSearch);
-  }, [wizardOpen, step, wizardStudentSearch, fetchStudentOptions]);
 
   useEffect(() => {
     if (wizardOpen && step === 'course') fetchCourses();
@@ -173,6 +178,7 @@ export default function EnrollmentsView() {
     setStep('student');
     setWizardStudentId('');
     setWizardStudentSearch('');
+    setStudentSearchRes(null);
     setWizardCourseId('');
     setWizardDeptId('');
     setWizardStartDate(new Date());
@@ -209,7 +215,7 @@ export default function EnrollmentsView() {
       if (!res.ok) { toast.error(json.error || 'Failed to create student'); return; }
       toast.success(`Student "${json.student.name}" created!`);
       setWizardStudentId(json.student.id);
-      setStudentOptions((prev) => [...prev, { id: json.student.id, name: json.student.name, phone: json.student.phone }]);
+      setStudentSearchRes((prev) => prev ? { students: [...prev.students, json.student] } : { students: [json.student] });
       setShowNewStudentForm(false);
       setNewStudentName('');
       setNewStudentPhone('');
@@ -595,7 +601,9 @@ export default function EnrollmentsView() {
                   <UserPlus className="h-4 w-4 mr-2" /> Create New Student
                 </Button>
                 <div className="max-h-60 overflow-y-auto space-y-1 border rounded-lg p-2">
-                  {studentOptions.length === 0 ? (
+                  {studentSearchLoading ? (
+                    <div className="text-center py-4"><Loader2 className="h-5 w-5 animate-spin mx-auto text-cyan-500" /></div>
+                  ) : studentOptions.length === 0 ? (
                     <div className="text-center py-4"><p className="text-sm text-gray-400">No students found</p></div>
                   ) : studentOptions.map((s) => (
                     <button key={s.id} onClick={() => setWizardStudentId(s.id)}

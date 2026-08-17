@@ -410,7 +410,7 @@ const faqFallback = [
    FAQ Accordion Section
    ───────────────────────────────────────────── */
 function FAQSection() {
-  const [faqs, setFaqs] = useState(faqFallback);
+  const [faqs, setFaqs] = useState<Array<{ id?: string; question: string; answer: string }>>(faqFallback);
   const [faqLoading, setFaqLoading] = useState(true);
 
   useEffect(() => {

@@ -53,7 +53,7 @@ export default async function CabinBookingPage() {
                     <div className="mt-4 border-t pt-4">
                       <form action={async () => {
                         "use server"
-                        await bookCabin(cabin.id, 1) // Default to 1 month for now
+                        await bookCabin(cabin.id, 'reserved', new Date().toISOString().split('T')[0])
                       }}>
                         <button
                           type="submit"

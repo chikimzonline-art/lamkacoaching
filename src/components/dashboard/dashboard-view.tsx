@@ -223,10 +223,14 @@ export default function DashboardView() {
 
   const fetchDashboard = useCallback(async () => {
     try {
-      const res = await fetch('/api/dashboard');
-      const json = await res.json();
-      if (json.stats) {
-        setData(json);
+      const [resStats, resRecent] = await Promise.all([
+        fetch('/api/dashboard'),
+        fetch('/api/dashboard/recent')
+      ]);
+      const jsonStats = await resStats.json();
+      const jsonRecent = await resRecent.json();
+      if (jsonStats.stats) {
+        setData({ ...jsonStats, ...jsonRecent });
       }
     } catch (err) {
       console.error('Failed to fetch dashboard:', err);

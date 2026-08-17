@@ -75,23 +75,29 @@ export async function GET() {
     }));
 
     // Get pricing from settings
-    const hourlyRateSetting = await db.setting.findUnique({ where: { key: 'hourly_rate' } });
-    const monthlyRateSetting = await db.setting.findUnique({ where: { key: 'monthly_rate' } });
+    const settings = await db.setting.findMany({
+      where: { key: { in: ['hourly_rate', 'monthly_rate'] } }
+    });
+    const hourlyRateSetting = settings.find(s => s.key === 'hourly_rate');
+    const monthlyRateSetting = settings.find(s => s.key === 'monthly_rate');
 
     const hourlyMonthlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 1000;
     const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) : 3000;
 
-    return NextResponse.json({
-      cabins: cabinsWithAvailability,
-      cabinsByFloor,
-      floors,
-      pricing: {
-        hourlyMonthlyRate,
-        monthlyRate,
+    return NextResponse.json(
+      {
+        cabins: cabinsWithAvailability,
+        cabinsByFloor,
+        floors,
+        pricing: {
+          hourlyMonthlyRate,
+          monthlyRate,
+        },
+        totalCabins: cabins.length,
+        availableCabins: cabinsWithAvailability.filter((c) => !c.isOccupied).length,
       },
-      totalCabins: cabins.length,
-      availableCabins: cabinsWithAvailability.filter((c) => !c.isOccupied).length,
-    });
+      { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } }
+    );
   } catch (error) {
     console.error('Error fetching public cabins:', error);
     return NextResponse.json(

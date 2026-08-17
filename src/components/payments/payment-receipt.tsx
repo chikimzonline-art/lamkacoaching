@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Printer, X } from 'lucide-react';
 
-interface ReceiptData {
+export interface ReceiptData {
   receiptNo: string;
   studentName: string;
   studentPhone: string;

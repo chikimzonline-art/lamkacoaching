@@ -15,7 +15,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, exam, quote, result, initials, color, sortOrder, active } = body;
+    const { name, exam, quote, result, initials, color, gradient, sortOrder, active } = body;
 
     const successStory = await db.successStory.update({
       where: { id },
@@ -25,7 +25,7 @@ export async function PUT(
         ...(quote !== undefined && { quote }),
         ...(result !== undefined && { result }),
         ...(initials !== undefined && { initials }),
-        ...(color !== undefined && { color }),
+        ...((gradient !== undefined || color !== undefined) && { gradient: gradient || color }),
         ...(sortOrder !== undefined && { sortOrder }),
         ...(active !== undefined && { active }),
       },

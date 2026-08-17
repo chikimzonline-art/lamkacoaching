@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, exam, quote, result, initials, color, sortOrder, active } = body;
+    const { name, exam, quote, result, initials, color, gradient, sortOrder, active } = body;
 
     if (!name || !exam || !quote) {
       return NextResponse.json(
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         quote,
         result: result ?? '',
         initials: initials ?? name.slice(0, 2).toUpperCase(),
-        color: color ?? 'from-cyan-500 to-sky-500',
+        gradient: gradient || color || 'from-cyan-500 to-sky-500',
         sortOrder: sortOrder ?? 0,
         active: active ?? true,
       },

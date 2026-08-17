@@ -33,15 +33,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { settings } = body; // { key: value, ... }
 
-    const results = [];
-    for (const [key, value] of Object.entries(settings)) {
-      const result = await db.setting.upsert({
+    const upserts = Object.entries(settings).map(([key, value]) =>
+      db.setting.upsert({
         where: { key },
         update: { value: String(value) },
         create: { key, value: String(value) },
-      });
-      results.push(result);
-    }
+      })
+    );
+    const results = await db.$transaction(upserts);
 
     return NextResponse.json({ settings: results });
   } catch (error) {

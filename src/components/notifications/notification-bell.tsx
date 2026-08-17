@@ -36,6 +36,7 @@ export function NotificationBell() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 60000); // refresh every minute
     return () => clearInterval(interval);

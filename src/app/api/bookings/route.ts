@@ -102,7 +102,7 @@ export async function POST(request: Request) {
 
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
-      let end = null;
+      let end: Date;
       if (endDate) {
         end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
@@ -176,7 +176,7 @@ export async function POST(request: Request) {
       });
 
       // Create payment record if payNow is enabled
-      let payment = null;
+      let payment: any = null;
       if (payNow && bookingPaidAmount > 0) {
         payment = await db.payment.create({
           data: {

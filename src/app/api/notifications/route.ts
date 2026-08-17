@@ -7,15 +7,16 @@ export async function GET() {
   try {
     const { student } = await requireStudent();
 
-    const notifications = await db.studentNotification.findMany({
-      where: { studentId: student.id },
-      orderBy: { createdAt: 'desc' },
-      take: 20 // limit to last 20
-    });
-
-    const unreadCount = await db.studentNotification.count({
-      where: { studentId: student.id, read: false }
-    });
+    const [notifications, unreadCount] = await db.$transaction([
+      db.studentNotification.findMany({
+        where: { studentId: student.id },
+        orderBy: { createdAt: 'desc' },
+        take: 20 // limit to last 20
+      }),
+      db.studentNotification.count({
+        where: { studentId: student.id, read: false }
+      })
+    ]);
 
     return NextResponse.json({ notifications, unreadCount });
   } catch (error) {

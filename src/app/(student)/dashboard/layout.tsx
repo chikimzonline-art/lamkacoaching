@@ -1,6 +1,7 @@
 'use client';
 
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { Suspense } from "react";
 
 import Link from "next/link"
 import { SiteLogo } from "@/components/ui/site-logo"
@@ -115,7 +116,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
         <main className="flex-1 overflow-auto bg-slate-50/50 p-4 md:p-6 lg:p-8">
           <div className="mx-auto max-w-5xl">
-            {children}
+            <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading content...</div>}>
+              {children}
+            </Suspense>
           </div>
         </main>
       </SidebarInset>

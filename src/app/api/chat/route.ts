@@ -117,55 +117,54 @@ export async function POST(request: NextRequest) {
     // Reverse to get chronological order
     const orderedMessages = recentMessages.reverse();
 
-    // Fetch live settings (contact, rates)
-    const settings = await db.setting.findMany({
-      where: {
-        key: {
-          in: [
-            'business_name',
-            'business_phone',
-            'business_email',
-            'business_address',
-            'business_description',
-            'hourly_rate',
-            'monthly_rate',
-          ],
+    // Fetch all context data in one roundtrip
+    const [settings, depts, activeBatches, cabins] = await db.$transaction([
+      db.setting.findMany({
+        where: {
+          key: {
+            in: [
+              'business_name',
+              'business_phone',
+              'business_email',
+              'business_address',
+              'business_description',
+              'hourly_rate',
+              'monthly_rate',
+            ],
+          },
         },
-      },
-    });
+      }),
+      db.department.findMany({
+        where: { status: 'active' },
+        include: {
+          courses: {
+            where: { status: 'active' },
+            orderBy: { name: 'asc' },
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      db.batch.findMany({
+        where: { active: true },
+        orderBy: { sortOrder: 'asc' },
+      }),
+      db.cabin.findMany({
+        where: { status: 'active' },
+        include: {
+          bookings: {
+            where: { status: 'active' },
+          },
+        },
+        orderBy: [{ floor: 'asc' }, { cabinNum: 'asc' }],
+      })
+    ]);
+
     settingsMap = settings.reduce((acc, s) => {
       acc[s.key] = s.value;
       return acc;
     }, {} as Record<string, string>);
-
-    // Fetch active courses with departments
-    departments = await db.department.findMany({
-      where: { status: 'active' },
-      include: {
-        courses: {
-          where: { status: 'active' },
-          orderBy: { name: 'asc' },
-        },
-      },
-      orderBy: { name: 'asc' },
-    });
-
-    // Fetch active upcoming batches
-    batches = await db.batch.findMany({
-      where: { active: true },
-      orderBy: { sortOrder: 'asc' },
-    });
-
-    // Fetch active cabins with bookings for availability
-    const cabins = await db.cabin.findMany({
-      where: { status: 'active' },
-      include: {
-        bookings: {
-          where: { status: 'active' },
-        },
-      },
-      orderBy: [{ floor: 'asc' }, { cabinNum: 'asc' }],
-    });
+    departments = depts;
+    batches = activeBatches;
 
     const now = new Date();
     const todayStart = new Date(now);

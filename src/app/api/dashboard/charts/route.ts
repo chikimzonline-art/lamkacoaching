@@ -6,7 +6,7 @@ export async function GET() {
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    const [enrollments, departments, payments] = await Promise.all([
+    const [enrollments, departments, payments] = await db.$transaction([
       db.enrollment.findMany({
         where: { createdAt: { gte: sixMonthsAgo } },
         select: { createdAt: true },

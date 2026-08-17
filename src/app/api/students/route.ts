@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 
-// GET /api/students - List all students with search
+// GET /api/students - List students with FTS5 search + grouped balances (no N+1)
+// Query params:
+//   search    - FTS5 MATCH term (name/email) OR substring on phone/username
+//   bookings  - "true" to include active bookings with cabin info
+//   take      - page size (default 20, max 100)
+//   skip      - offset for pagination / load-more
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser();
@@ -12,63 +18,127 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
+    const search = (searchParams.get('search') || '').trim();
     const includeBookings = searchParams.get('bookings') === 'true';
 
-    const students = await db.student.findMany({
-      where: search ? {
-        OR: [
-          { name: { contains: search } },
-          { username: { contains: search } },
-          { phone: { contains: search } },
-          { email: { contains: search } },
-        ],
-      } : undefined,
-      orderBy: { createdAt: 'desc' },
-      include: includeBookings ? {
-        bookings: {
-          where: { status: 'active' },
-          include: {
-            cabin: { select: { id: true, cabinNum: true } },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-      } : undefined,
-    });
+    const take = Math.min(Math.max(parseInt(searchParams.get('take') || '20', 10) || 20, 1), 100);
+    const skip = Math.max(parseInt(searchParams.get('skip') || '0', 10) || 0, 0);
 
-    // Get balance due for each student (both bookings and enrollments)
-    const studentsWithBalance = await Promise.all(students.map(async (student) => {
-      const bookings = await db.booking.findMany({
-        where: { studentId: student.id, status: 'active' },
-        select: { totalAmount: true, paidAmount: true },
+    // --- Search via FTS5 (name/email) + LIKE substring (phone/username) ---
+    // FTS5 is tokenized — great for names/emails. Phone/username stay on LIKE
+    // because users type arbitrary substrings (e.g. "9876" inside "9876543210").
+    let students: any[];
+
+    if (search) {
+      // Sanitize the FTS5 term: wrap each whitespace-separated token as a
+      // prefix query (token*). Escape double quotes for the FTS5 string.
+      const ftsTerm = search
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((tok) => `"${tok.replace(/"/g, '""')}"*`)
+        .join(' ');
+
+      const phonePattern = `%${search}%`;
+
+      // UNION of FTS5 matches (name/email) and LIKE matches (phone/username).
+      // ORDER BY createdAt desc to preserve previous behaviour; LIMIT/OFFSET
+      // apply on the unioned set.
+      students = await db.$queryRaw<any[]>(
+        Prisma.sql`
+          SELECT * FROM Student
+          WHERE rowid IN (
+            SELECT rowid FROM Student_fts WHERE Student_fts MATCH ${ftsTerm}
+          )
+          UNION
+          SELECT * FROM Student
+          WHERE phone LIKE ${phonePattern} OR username LIKE ${phonePattern}
+          ORDER BY createdAt DESC
+          LIMIT ${take} OFFSET ${skip}
+        `
+      );
+    } else {
+      students = await db.student.findMany({
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+        include: includeBookings
+          ? {
+              bookings: {
+                where: { status: 'active' },
+                include: { cabin: { select: { id: true, cabinNum: true } } },
+                orderBy: { createdAt: 'desc' },
+              },
+            }
+          : undefined,
       });
-      const enrollments = await db.enrollment.findMany({
-        where: { studentId: student.id, status: 'active' },
-        select: { totalFee: true, paidAmount: true },
+    }
+
+    // --- Balances via 2 grouped aggregates (replaces 2N N+1 queries) ---
+    const studentIds = students.map((s) => s.id);
+    let bookingAgg: any[] = [];
+    let enrollmentAgg: any[] = [];
+
+    if (studentIds.length > 0) {
+      // Batch both aggregates in a single HTTP round-trip via $transaction.
+      [bookingAgg, enrollmentAgg] = await db.$transaction([
+        db.booking.groupBy({
+          by: ['studentId'],
+          where: { studentId: { in: studentIds }, status: 'active' },
+          _sum: { totalAmount: true, paidAmount: true },
+          _count: { _all: true },
+        }),
+        db.enrollment.groupBy({
+          by: ['studentId'],
+          where: { studentId: { in: studentIds }, status: 'active' },
+          _sum: { totalFee: true, paidAmount: true },
+          _count: { _all: true },
+        }),
+      ]);
+    }
+
+    const bookingMap = new Map<string, { due: number; paid: number; total: number; count: number }>();
+    for (const b of bookingAgg) {
+      const total = b._sum.totalAmount ?? 0;
+      const paid = b._sum.paidAmount ?? 0;
+      bookingMap.set(b.studentId, {
+        total,
+        paid,
+        due: total - paid,
+        count: b._count._all,
       });
+    }
 
-      const bookingDue = bookings.reduce((sum, b) => sum + (b.totalAmount - b.paidAmount), 0);
-      const bookingPaid = bookings.reduce((sum, b) => sum + b.paidAmount, 0);
-      const bookingTotal = bookings.reduce((sum, b) => sum + b.totalAmount, 0);
+    const enrollmentMap = new Map<string, { due: number; paid: number; total: number; count: number }>();
+    for (const e of enrollmentAgg) {
+      const total = e._sum.totalFee ?? 0;
+      const paid = e._sum.paidAmount ?? 0;
+      enrollmentMap.set(e.studentId, {
+        total,
+        paid,
+        due: total - paid,
+        count: e._count._all,
+      });
+    }
 
-      const enrollmentDue = enrollments.reduce((sum, e) => sum + (e.totalFee - e.paidAmount), 0);
-      const enrollmentPaid = enrollments.reduce((sum, e) => sum + e.paidAmount, 0);
-      const enrollmentTotal = enrollments.reduce((sum, e) => sum + e.totalFee, 0);
-
-      const { password, ...studentData } = student;
-
+    const studentsWithBalance = students.map((student) => {
+      const b = bookingMap.get(student.id) ?? { due: 0, paid: 0, total: 0, count: 0 };
+      const e = enrollmentMap.get(student.id) ?? { due: 0, paid: 0, total: 0, count: 0 };
+      const { password, ...studentData } = student as any;
       return {
         ...studentData,
         hasLoginAccess: !!password,
-        totalDue: bookingDue + enrollmentDue,
-        totalPaid: bookingPaid + enrollmentPaid,
-        totalAmount: bookingTotal + enrollmentTotal,
-        activeBookingCount: bookings.length,
-        activeEnrollmentCount: enrollments.length,
+        totalDue: b.due + e.due,
+        totalPaid: b.paid + e.paid,
+        totalAmount: b.total + e.total,
+        activeBookingCount: b.count,
+        activeEnrollmentCount: e.count,
       };
-    }));
+    });
 
-    return NextResponse.json({ students: studentsWithBalance });
+    return NextResponse.json({
+      students: studentsWithBalance,
+      hasMore: students.length === take,
+    });
   } catch (error) {
     console.error('Error fetching students:', error);
     return NextResponse.json({ error: 'Failed to fetch students' }, { status: 500 });
@@ -102,7 +172,7 @@ export async function POST(request: Request) {
         }
       }
 
-      let hashedPassword = null;
+      let hashedPassword: string | null = null;
       if (password) {
         hashedPassword = await bcrypt.hash(password, 10);
       }

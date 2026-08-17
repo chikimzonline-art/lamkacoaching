@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       ? { email: { contains: search, mode: 'insensitive' as const } }
       : {};
 
-    const [subscribers, total] = await Promise.all([
+    const [subscribers, total, activeCount] = await db.$transaction([
       db.newsletterSubscriber.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -21,11 +21,8 @@ export async function GET(req: NextRequest) {
         take: limit,
       }),
       db.newsletterSubscriber.count({ where }),
+      db.newsletterSubscriber.count({ where: { active: true } }),
     ]);
-
-    const activeCount = await db.newsletterSubscriber.count({
-      where: { active: true },
-    });
 
     return NextResponse.json({
       subscribers,

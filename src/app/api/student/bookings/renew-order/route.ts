@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const existing = await db.booking.findUnique({
       where: { id: bookingId },
       include: {
-        student: { select: { id: true, userId: true } },
+        student: { select: { id: true, name: true, phone: true } },
       },
     });
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
     
-    if (existing.student.userId !== user.id && user.role !== 'admin') {
+    if (existing.studentId !== user.id && user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized to renew this booking' }, { status: 403 });
     }
 

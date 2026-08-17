@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useDebouncedSearch } from '@/lib/hooks/use-debounced-search';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -143,8 +144,6 @@ export default function CabinsView() {
   // Quick Book state
   const [bookDialogOpen, setBookDialogOpen] = useState(false);
   const [bookStudentId, setBookStudentId] = useState('');
-  const [bookStudentSearch, setBookStudentSearch] = useState('');
-  const [bookStudentOptions, setBookStudentOptions] = useState<{id:string; name:string; phone:string}[]>([]);
   const [studentSearchOpen, setStudentSearchOpen] = useState(false);
   const [showNewStudentForm, setShowNewStudentForm] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
@@ -220,26 +219,22 @@ export default function CabinsView() {
     }
   }, [floors, addFloor, bulkFloor]);
 
-  // Fetch student options for Quick Book
-  const fetchStudentOptions = useCallback(async (search: string) => {
-    if (search.length < 2) return;
-    try {
-      const res = await fetch(`/api/students?search=${encodeURIComponent(search)}`);
-      const json = await res.json();
-      if (json.students) setBookStudentOptions(json.students);
-    } catch {
-      // ignore
-    }
-  }, []);
+  const fetchStudentOptionsFn = useCallback(async (query: string, signal: AbortSignal) => {
+    if (!bookDialogOpen) return { students: [] };
+    const res = await fetch(`/api/students?search=${encodeURIComponent(query)}`, { signal });
+    if (!res.ok) throw new Error('Failed to fetch students');
+    return res.json();
+  }, [bookDialogOpen]);
 
-  useEffect(() => {
-    if (bookDialogOpen && bookStudentSearch) {
-      const timeout = setTimeout(() => {
-        fetchStudentOptions(bookStudentSearch);
-      }, 500);
-      return () => clearTimeout(timeout);
-    }
-  }, [bookDialogOpen, bookStudentSearch, fetchStudentOptions]);
+  const {
+    query: bookStudentSearch,
+    setQuery: setBookStudentSearch,
+    results: studentSearchRes,
+    setResults: setStudentSearchRes,
+    loading: studentSearchLoading
+  } = useDebouncedSearch<{ students: {id:string; name:string; phone:string}[] }>(fetchStudentOptionsFn, 300, 2);
+
+  const bookStudentOptions = studentSearchRes?.students || [];
 
   // Auto-calculate amount when type changes
   useEffect(() => {
@@ -267,7 +262,7 @@ export default function CabinsView() {
         return null;
       }
       toast.success('Student created successfully');
-      setBookStudentOptions([json.student]);
+      setStudentSearchRes({ students: [json.student] });
       return json.student.id;
     } catch {
       toast.error('Failed to create student');
@@ -1071,7 +1066,9 @@ export default function CabinsView() {
                         onValueChange={setBookStudentSearch}
                       />
                       <CommandList>
-                        {bookStudentOptions.length === 0 ? (
+                        {studentSearchLoading ? (
+                          <CommandEmpty>Searching...</CommandEmpty>
+                        ) : bookStudentOptions.length === 0 ? (
                           <CommandEmpty>
                             {bookStudentSearch.length >= 2 
                               ? 'No students found.' 

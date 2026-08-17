@@ -40,6 +40,10 @@ model Student {
   supportTickets     SupportTicket[]
   waitlists          CourseWaitlist[]
   notifications      StudentNotification[]
+
+  @@index([name])
+  @@index([email])
+  @@index([phone])
 }
 
 model Department {
@@ -88,6 +92,7 @@ model Enrollment {
 
   @@index([status])
   @@index([createdAt])
+  @@index([studentId])
 }
 
 model EnrollmentPayment {
@@ -128,6 +133,7 @@ model Booking {
 
   @@index([status, type, startDate])
   @@index([status, endDate])
+  @@index([studentId])
 }
 
 model Payment {

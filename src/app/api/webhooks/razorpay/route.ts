@@ -151,15 +151,6 @@ export async function POST(req: Request) {
             })
           ];
 
-          if (newStatus === 'active') {
-            transactionOps.push(
-              db.cabin.update({
-                where: { id: itemId },
-                data: { isOccupied: true }
-              })
-            );
-          }
-
           await db.$transaction(transactionOps);
         }
       }

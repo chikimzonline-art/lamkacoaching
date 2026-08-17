@@ -59,8 +59,9 @@ export async function GET(request: Request) {
 
     rangeStart.setHours(0, 0, 0, 0);
 
-    // Fetch all payments in the range (both booking and enrollment)
-    const payments = await db.payment.findMany({
+    // Fetch all payments in the range (both booking and enrollment) in one roundtrip
+    const [payments, enrollmentPayments] = await db.$transaction([
+      db.payment.findMany({
       where: {
         status: 'completed',
         receivedAt: {
@@ -77,9 +78,8 @@ export async function GET(request: Request) {
       orderBy: {
         receivedAt: 'asc',
       },
-    });
-
-    const enrollmentPayments = await db.enrollmentPayment.findMany({
+      }),
+      db.enrollmentPayment.findMany({
       where: {
         status: 'completed',
         receivedAt: {
@@ -96,7 +96,8 @@ export async function GET(request: Request) {
       orderBy: {
         receivedAt: 'asc',
       },
-    });
+      }),
+    ]);
 
     // Combine all payments into a unified list for grouping
     type UnifiedPayment = {

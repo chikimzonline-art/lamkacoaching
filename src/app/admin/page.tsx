@@ -212,6 +212,7 @@ function PageHeader() {
     facilities: 'Facilities Management',
     communications: 'Communications & Support',
     website: 'Website Content',
+    bookings: 'Cabin Bookings',
   };
 
   return (
@@ -271,6 +272,7 @@ function renderView(view: ViewType) {
     case 'facilities': return <FacilitiesContainer />;
     case 'communications': return <CommunicationsContainer />;
     case 'website': return <WebsiteContainer />;
+    case 'bookings': return <FacilitiesContainer />;
     default: return <DashboardView />;
   }
 }

@@ -162,7 +162,7 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
         },
         prefill: {
           name: data.student.name,
-          email: data.student.email,
+          email: data.student.email ?? undefined,
           contact: data.student.phone,
         },
         onSuccess: (response: any) => {
