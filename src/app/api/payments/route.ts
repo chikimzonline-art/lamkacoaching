@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 // GET /api/payments - List payments (both booking and enrollment)
 export async function GET(request: Request) {
@@ -109,36 +110,40 @@ export async function POST(request: Request) {
 
       const paymentAmount = Math.round(Number(amount) * 100); // convert to paise
 
-      // Create payment
-      const payment = await db.payment.create({
-        data: {
-          bookingId,
-          studentId,
-          amount: paymentAmount,
-          mode,
-          status: 'completed',
-          notes: notes || null,
-          receiptNo: receiptNo || null,
-        },
-        include: {
-          student: { select: { id: true, name: true, phone: true } },
-          booking: {
-            select: {
-              id: true,
-              type: true,
-              totalAmount: true,
-              paidAmount: true,
-              cabin: { select: { cabinNum: true } },
+      // Create payment and update booking paid amount atomically
+      const [payment] = await db.$transaction([
+        db.payment.create({
+          data: {
+            bookingId,
+            studentId,
+            amount: paymentAmount,
+            mode,
+            status: 'completed',
+            notes: notes || null,
+            receiptNo: receiptNo || null,
+          },
+          include: {
+            student: { select: { id: true, name: true, phone: true } },
+            booking: {
+              select: {
+                id: true,
+                type: true,
+                totalAmount: true,
+                paidAmount: true,
+                cabin: { select: { cabinNum: true } },
+              },
             },
           },
-        },
-      });
+        }),
+        db.booking.update({
+          where: { id: bookingId },
+          data: { paidAmount: { increment: paymentAmount } },
+        })
+      ]);
 
-      // Update booking paid amount
-      await db.booking.update({
-        where: { id: bookingId },
-        data: { paidAmount: { increment: paymentAmount } },
-      });
+      revalidatePath('/dashboard/history');
+      revalidatePath('/dashboard/my-learning');
+      revalidatePath('/dashboard/cabins');
 
       return NextResponse.json({ payment });
 
@@ -150,24 +155,36 @@ export async function POST(request: Request) {
       // Try booking payment first
       const bookingPayment = await db.payment.findUnique({ where: { id } });
       if (bookingPayment) {
-        // Update booking paid amount
-        await db.booking.update({
-          where: { id: bookingPayment.bookingId },
-          data: { paidAmount: { decrement: bookingPayment.amount } },
-        });
-        await db.payment.delete({ where: { id } });
+        await db.$transaction([
+          db.booking.update({
+            where: { id: bookingPayment.bookingId },
+            data: { paidAmount: { decrement: bookingPayment.amount } },
+          }),
+          db.payment.delete({ where: { id } })
+        ]);
+        
+        revalidatePath('/dashboard/history');
+        revalidatePath('/dashboard/my-learning');
+        revalidatePath('/dashboard/cabins');
+        
         return NextResponse.json({ success: true, type: 'booking' });
       }
 
       // Try enrollment payment
       const enrollmentPayment = await db.enrollmentPayment.findUnique({ where: { id } });
       if (enrollmentPayment) {
-        // Update enrollment paid amount
-        await db.enrollment.update({
-          where: { id: enrollmentPayment.enrollmentId },
-          data: { paidAmount: { decrement: enrollmentPayment.amount } },
-        });
-        await db.enrollmentPayment.delete({ where: { id } });
+        await db.$transaction([
+          db.enrollment.update({
+            where: { id: enrollmentPayment.enrollmentId },
+            data: { paidAmount: { decrement: enrollmentPayment.amount } },
+          }),
+          db.enrollmentPayment.delete({ where: { id } })
+        ]);
+        
+        revalidatePath('/dashboard/history');
+        revalidatePath('/dashboard/my-learning');
+        revalidatePath('/dashboard/courses');
+        
         return NextResponse.json({ success: true, type: 'enrollment' });
       }
 

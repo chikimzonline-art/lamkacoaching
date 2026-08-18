@@ -21,8 +21,8 @@ export async function GET() {
 
     const [
       totalCabins,
-      exclusiveBookings,
-      todayHourlyBookings,
+      reservedBookings,
+      todayShiftBookings,
       activeBookingStats,
       totalStudents,
       todayRevenueAgg,
@@ -33,7 +33,7 @@ export async function GET() {
       db.cabin.count({ where: { status: 'active' } }),
       db.booking.findMany({
         where: {
-          type: { in: ['exclusive', 'reserved', 'monthly'] },
+          type: { in: ['reserved', 'morning_shift', 'day_shift', 'night_shift'] },
           status: 'active',
           startDate: { lte: tomorrow },
           OR: [{ endDate: { gte: today } }, { endDate: null }],
@@ -64,7 +64,7 @@ export async function GET() {
       }),
       db.booking.findMany({
         where: {
-          type: { in: ['exclusive', 'reserved', 'monthly'] },
+          type: { in: ['reserved', 'morning_shift', 'day_shift', 'night_shift'] },
           status: 'active',
           endDate: { gte: today, lte: sevenDaysLater },
         },
@@ -84,7 +84,7 @@ export async function GET() {
     const todayRevenue = todayRevenueAgg._sum.amount ?? 0;
     const todayEnrollmentRevenue = todayEnrollmentRevenueAgg._sum.amount ?? 0;
     const totalPending = (activeBookingStats._sum.totalAmount ?? 0) - (activeBookingStats._sum.paidAmount ?? 0);
-    const occupiedCabins = exclusiveBookings.length;
+    const occupiedCabins = reservedBookings.length;
     const availableCabins = totalCabins - occupiedCabins;
     const enrollmentOutstanding = (enrollmentStats._sum.totalFee ?? 0) - (enrollmentStats._sum.paidAmount ?? 0);
     const activeBookingsCount = activeBookingStats._count._all;
@@ -103,10 +103,10 @@ export async function GET() {
           totalPending,
           totalEnrollments,
           enrollmentOutstanding,
-          todayHourlyCount: todayHourlyBookings.length,
+          todayShiftCount: todayShiftBookings.length,
         },
-        todayBookings: todayHourlyBookings,
-        exclusiveBookings,
+        todayBookings: todayShiftBookings,
+        reservedBookings,
         expiringSoon,
       },
       { headers: { 'Cache-Control': 'private, max-age=15' } }

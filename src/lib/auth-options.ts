@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { UserRole } from "./auth";
+import { env } from "@/env";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -101,5 +102,5 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET || "default_secret_for_development_only",
+  secret: env.NEXTAUTH_SECRET,
 };

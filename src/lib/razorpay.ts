@@ -1,3 +1,5 @@
+import { env } from "@/env";
+
 declare global {
   interface Window {
     Razorpay: any;
@@ -57,7 +59,7 @@ export const processPayment = async ({
   }
 
   const options = {
-    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use NEXT_PUBLIC_ for client side
+    key: env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use NEXT_PUBLIC_ for client side
     amount: amount.toString(), // amount in paise
     currency: 'INR',
     name: name,

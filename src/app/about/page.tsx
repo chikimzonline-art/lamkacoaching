@@ -397,7 +397,7 @@ export default function AboutPage() {
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Study Cabin Spaces</h3>
               <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
                 Dedicated quiet study spaces with comfortable seating, proper lighting, and flexible
-                timings. Available on hourly or monthly basis with affordable pricing.
+                timings. Available on shift or reserved basis with affordable pricing.
               </p>
               <Link
                 href="/cabins"

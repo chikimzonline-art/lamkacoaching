@@ -34,7 +34,7 @@ interface CabinInfo {
   isOccupied: boolean;
   isBookedByMe?: boolean;
   bookedShifts: string[];
-  hourlyBookingsToday: { startTime: string; endTime: string, type: string }[];
+  activeShiftsToday: { startTime: string; endTime: string, type: string }[];
   activeBookingsCount: number;
 }
 
@@ -127,7 +127,7 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
       // 1. Create the booking record (status: pending_payment)
       const res = await bookCabin(selectedCabin, bookingType, startDate);
       if (!res?.success || !res?.bookingId) {
-        throw new Error("Failed to reserve cabin");
+        throw new Error(res?.error || "Failed to reserve cabin");
       }
 
       // 2. Create Razorpay Order
@@ -597,11 +597,11 @@ function CabinListItem({ cabin, isSelected, showFloorLabel, onSelect }: {
           {cabin.isBookedByMe ? 'Your Booking' : cabin.isOccupied ? 'Occupied' : 'Available'}
         </Badge>
       </div>
-      {!cabin.isOccupied && cabin.hourlyBookingsToday.length > 0 && (
+      {!cabin.isOccupied && cabin.activeShiftsToday.length > 0 && (
         <div className="mt-2 pt-2 border-t border-green-100 dark:border-green-900/30">
           <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Booked shifts today:</p>
           <div className="flex flex-wrap gap-1">
-            {cabin.hourlyBookingsToday.map((h, i) => (
+            {cabin.activeShiftsToday.map((h, i) => (
               <span key={i} className="text-[10px] bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 px-1.5 py-0.5 rounded capitalize">
                 {h.type.replace('_', ' ')} ({h.startTime} - {h.endTime})
               </span>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAllActiveCabinsWithBookings } from '@/lib/db/queries/cabins';
 import { getAuthUser } from '@/lib/auth';
 
 // GET /api/cabins - List all cabins, grouped by floor
@@ -10,17 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const cabins = await db.cabin.findMany({
-      orderBy: [{ floor: 'asc' }, { cabinNum: 'asc' }],
-      include: {
-        bookings: {
-          where: { status: 'active' },
-          include: {
-            student: { select: { id: true, name: true, phone: true } },
-          },
-        },
-      },
-    });
+    const cabins = await getAllActiveCabinsWithBookings();
 
     // Get unique floor numbers
     const floors = [...new Set(cabins.map((c) => c.floor))].sort((a, b) => a - b);

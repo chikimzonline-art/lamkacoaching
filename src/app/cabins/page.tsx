@@ -31,7 +31,7 @@ interface CabinInfo {
   cabinNum: number;
   notes: string | null;
   isOccupied: boolean;
-  hourlyBookingsToday: { startTime: string; endTime: string }[];
+  activeShiftsToday: { type: string; startTime: string; endTime: string }[];
   activeBookingsCount: number;
 }
 
@@ -46,8 +46,10 @@ interface CabinData {
   cabinsByFloor: FloorGroup[];
   floors: number[];
   pricing: {
-    hourlyMonthlyRate: number;
-    monthlyRate: number;
+    reservedRate: number;
+    morningShiftRate: number;
+    dayShiftRate: number;
+    nightShiftRate: number;
   };
   totalCabins: number;
   availableCabins: number;
@@ -67,7 +69,7 @@ export default function CabinsPage() {
   const [data, setData] = useState<CabinData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCabin, setSelectedCabin] = useState<string | null>(null);
-  const [bookingType, setBookingType] = useState<'hourly' | 'monthly'>('monthly');
+  const [bookingType, setBookingType] = useState<'reserved' | 'morning_shift' | 'day_shift' | 'night_shift'>('reserved');
   const [activeFloor, setActiveFloor] = useState<number | 'all'>('all');
 
   const { data: session } = useSession();
@@ -90,10 +92,11 @@ export default function CabinsPage() {
 
   // Calculate estimated amount
   let estimatedAmount = 0;
-  if (data && bookingType === 'hourly') {
-    estimatedAmount = data.pricing.hourlyMonthlyRate * 100;
-  } else if (data && bookingType === 'monthly') {
-    estimatedAmount = data.pricing.monthlyRate * 100;
+  if (data) {
+    if (bookingType === 'reserved') estimatedAmount = data.pricing.reservedRate * 100;
+    else if (bookingType === 'morning_shift') estimatedAmount = data.pricing.morningShiftRate * 100;
+    else if (bookingType === 'day_shift') estimatedAmount = data.pricing.dayShiftRate * 100;
+    else if (bookingType === 'night_shift') estimatedAmount = data.pricing.nightShiftRate * 100;
   }
 
   return (
@@ -106,7 +109,7 @@ export default function CabinsPage() {
             <h1 className="text-3xl sm:text-4xl font-bold text-white">Study Cabin Booking</h1>
           </div>
           <p className="mt-2 text-lg max-w-xl mx-auto text-white/80">
-            Book a quiet, comfortable study space — hourly (5 hrs/day) or full-day monthly
+            Book a quiet, comfortable study space — full-day or shift-based
           </p>
           {data && (
             <div className="mt-4 flex items-center justify-center gap-4 text-sm text-white/60">
@@ -128,18 +131,27 @@ export default function CabinsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Pricing overview */}
           {data && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-              <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
-                <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Hourly Booking</h3>
-                <p className="text-3xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.hourlyMonthlyRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span></p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">5 hours/day &bull; 1 month duration</p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
               <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-6 text-center">
                 <CalendarDays className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Monthly Booking</h3>
-                <p className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">₹{data.pricing.monthlyRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span></p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Full-day access, best value for regular students</p>
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Full Day / Reserved</h3>
+                <p className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">₹{data.pricing.reservedRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Full-day access</p>
+              </div>
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
+                <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Morning Shift</h3>
+                <p className="text-2xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.morningShiftRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></p>
+              </div>
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
+                <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Day Shift</h3>
+                <p className="text-2xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.dayShiftRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></p>
+              </div>
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
+                <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Night Shift</h3>
+                <p className="text-2xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.nightShiftRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></p>
               </div>
             </div>
           )}
@@ -285,32 +297,58 @@ export default function CabinsPage() {
                   {/* Booking Type */}
                   <div className="mb-6">
                     <Label className="mb-2 block font-semibold text-gray-700 dark:text-gray-300">Booking Type</Label>
-                    <div className="flex rounded-xl bg-gray-100 dark:bg-gray-700 p-1 gap-1">
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 dark:bg-gray-700 p-1">
                       <button
                         type="button"
-                        onClick={() => setBookingType('monthly')}
+                        onClick={() => setBookingType('reserved')}
                         className={cn(
-                          'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
-                          bookingType === 'monthly'
-                            ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
+                          'flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition-all',
+                          bookingType === 'reserved'
+                            ? 'bg-white dark:bg-gray-600 text-emerald-700 dark:text-emerald-400 shadow-sm'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                         )}
                       >
-                        <CalendarDays className="h-4 w-4" />
-                        Monthly
+                        <CalendarDays className="h-4 w-4 mb-1" />
+                        Reserved (Full Day)
                       </button>
                       <button
                         type="button"
-                        onClick={() => setBookingType('hourly')}
+                        onClick={() => setBookingType('morning_shift')}
                         className={cn(
-                          'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
-                          bookingType === 'hourly'
+                          'flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition-all',
+                          bookingType === 'morning_shift'
                             ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                         )}
                       >
-                        <Clock className="h-4 w-4" />
-                        Hourly
+                        <Clock className="h-4 w-4 mb-1" />
+                        Morning
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBookingType('day_shift')}
+                        className={cn(
+                          'flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition-all',
+                          bookingType === 'day_shift'
+                            ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        )}
+                      >
+                        <Clock className="h-4 w-4 mb-1" />
+                        Day
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBookingType('night_shift')}
+                        className={cn(
+                          'flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold transition-all',
+                          bookingType === 'night_shift'
+                            ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        )}
+                      >
+                        <Clock className="h-4 w-4 mb-1" />
+                        Night
                       </button>
                     </div>
                   </div>
@@ -415,13 +453,13 @@ function CabinListItem({ cabin, isSelected, showFloorLabel, onSelect }: {
           {cabin.isOccupied ? 'Occupied' : 'Available'}
         </Badge>
       </div>
-      {!cabin.isOccupied && cabin.hourlyBookingsToday.length > 0 && (
+      {!cabin.isOccupied && cabin.activeShiftsToday.length > 0 && (
         <div className="mt-2 pt-2 border-t border-green-100 dark:border-green-900/30">
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Booked hours today:</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Active shifts:</p>
           <div className="flex flex-wrap gap-1">
-            {cabin.hourlyBookingsToday.map((h, i) => (
-              <span key={i} className="text-[10px] bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 px-1.5 py-0.5 rounded">
-                {h.startTime} - {h.endTime}
+            {cabin.activeShiftsToday.map((h, i) => (
+              <span key={i} className="text-[10px] bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 px-1.5 py-0.5 rounded capitalize">
+                {h.type.replace('_', ' ')} ({h.startTime} - {h.endTime})
               </span>
             ))}
           </div>

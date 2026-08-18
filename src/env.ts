@@ -1,0 +1,50 @@
+import { createEnv } from "@t3-oss/env-nextjs";
+import { z } from "zod";
+
+export const env = createEnv({
+  server: {
+    DATABASE_URL: z.string().min(1), // not enforcing URL because local sqlite uses file:
+    TURSO_DATABASE_URL: z.string().url(),
+    TURSO_AUTH_TOKEN: z.string().min(1),
+    GEMINI_API_KEY: z.string().min(1),
+    NEXTAUTH_URL: z.string().url().optional(),
+    NEXTAUTH_SECRET: z.string().min(1),
+    RAZORPAY_KEY_ID: z.string().min(1),
+    RAZORPAY_KEY_SECRET: z.string().min(1),
+    RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
+    IMAGEKIT_PUBLIC_KEY: z.string().min(1),
+    IMAGEKIT_PRIVATE_KEY: z.string().min(1),
+    IMAGEKIT_URL_ENDPOINT: z.string().url(),
+    QSTASH_URL: z.string().url(),
+    QSTASH_TOKEN: z.string().min(1),
+    QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
+    QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
+    UPSTASH_REDIS_REST_URL: z.string().url(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+  },
+  client: {
+    NEXT_PUBLIC_RAZORPAY_KEY_ID: z.string().min(1),
+  },
+  runtimeEnv: {
+    DATABASE_URL: process.env.DATABASE_URL,
+    TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
+    TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+    RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
+    IMAGEKIT_PUBLIC_KEY: process.env.IMAGEKIT_PUBLIC_KEY,
+    IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
+    IMAGEKIT_URL_ENDPOINT: process.env.IMAGEKIT_URL_ENDPOINT,
+    QSTASH_URL: process.env.QSTASH_URL,
+    QSTASH_TOKEN: process.env.QSTASH_TOKEN,
+    QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
+    QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+  },
+  emptyStringAsUndefined: true,
+});

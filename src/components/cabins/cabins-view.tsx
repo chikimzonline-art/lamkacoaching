@@ -68,10 +68,10 @@ function getCabinDisplayState(
   cabin: Cabin
 ): CabinDisplayState {
   if (cabin.status === 'inactive' || cabin.status === 'maintenance') return 'inactive';
-  const reservedBooking = cabin.bookings.find((b) => (b.type === 'reserved' || b.type === 'exclusive' || b.type === 'monthly') && b.status === 'active');
+  const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && b.status === 'active');
   if (reservedBooking) return 'reserved';
 
-  const shifts = new Set(cabin.bookings.filter((b) => b.status === 'active' && ['morning_shift', 'day_shift', 'night_shift', 'hourly'].includes(b.type)).map(b => b.type));
+  const shifts = new Set(cabin.bookings.filter((b) => b.status === 'active' && ['morning_shift', 'day_shift', 'night_shift'].includes(b.type)).map(b => b.type));
   
   if (shifts.size === 0) return 'available';
   if (shifts.size >= 3) return 'fully_booked'; // Assuming morning, day, night are the 3 main shifts
@@ -526,7 +526,7 @@ export default function CabinsView() {
       total: floorCabins.length,
       available: floorCabins.filter((c) => c.state === 'available').length,
       occupied: floorCabins.filter((c) => c.state === 'reserved').length,
-      hourly: floorCabins.filter((c) => c.state === 'partially_booked' || c.state === 'fully_booked').length,
+      shifts: floorCabins.filter((c) => c.state === 'partially_booked' || c.state === 'fully_booked').length,
       inactive: floorCabins.filter((c) => c.state === 'inactive').length,
     };
   });
@@ -633,7 +633,7 @@ export default function CabinsView() {
       {activeFloor !== 'all' && (() => {
         const fs = floorStats.find((f) => f.floor === activeFloor);
         if (!fs) return null;
-        const hasBookings = fs.occupied > 0 || fs.hourly > 0;
+        const hasBookings = fs.occupied > 0 || fs.shifts > 0;
         return (
           <div className="flex items-start gap-3">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1">
@@ -646,7 +646,7 @@ export default function CabinsView() {
                 <p className="text-xs text-red-600 font-medium">Reserved</p>
               </div>
               <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 text-center">
-                <p className="text-2xl font-bold text-sky-700">{fs.hourly}</p>
+                <p className="text-2xl font-bold text-sky-700">{fs.shifts}</p>
                 <p className="text-xs text-sky-600 font-medium">Shift Booked</p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
@@ -1114,7 +1114,7 @@ export default function CabinsView() {
                     {(() => {
                       // Disable occupied shifts
                       const occupied = new Set(selectedCabin?.bookings.filter(b => b.status === 'active').map(b => b.type));
-                      const isReserved = occupied.has('reserved') || occupied.has('exclusive') || occupied.has('monthly');
+                      const isReserved = occupied.has('reserved');
                       return (
                         <>
                           <SelectItem value="morning_shift" disabled={isReserved || occupied.has('morning_shift')}>Morning Shift (5AM - 10AM)</SelectItem>
@@ -1282,8 +1282,8 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick }: {
   onClick: () => void;
 }) {
   const styles = getDisplayStyles(state);
-  const reservedBooking = cabin.bookings.find((b) => (b.type === 'reserved' || b.type === 'exclusive' || b.type === 'monthly') && b.status === 'active');
-  const activeShifts = cabin.bookings.filter((b) => b.status === 'active' && ['morning_shift', 'day_shift', 'night_shift', 'hourly'].includes(b.type));
+  const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && b.status === 'active');
+  const activeShifts = cabin.bookings.filter((b) => b.status === 'active' && ['morning_shift', 'day_shift', 'night_shift'].includes(b.type));
 
   return (
     <Card

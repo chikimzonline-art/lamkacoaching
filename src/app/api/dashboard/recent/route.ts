@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getPendingBookings, getPendingBookingCount } from '@/lib/db/queries/bookings';
 import { getAuthUser } from '@/lib/auth';
 
 export async function GET() {
@@ -14,7 +15,7 @@ export async function GET() {
       recentEnrollmentPayments,
       pendingBookingRequests,
       pendingBookingCount,
-    ] = await db.$transaction([
+    ] = await Promise.all([
       db.payment.findMany({
         where: { status: 'completed' },
         orderBy: { receivedAt: 'desc' },
@@ -33,16 +34,8 @@ export async function GET() {
           enrollment: { select: { course: { select: { name: true, department: { select: { name: true } } } } } },
         },
       }),
-      db.booking.findMany({
-        where: { status: 'pending' },
-        include: {
-          student: { select: { name: true, phone: true } },
-          cabin: { select: { cabinNum: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-      }),
-      db.booking.count({ where: { status: 'pending' } }),
+      getPendingBookings(5),
+      getPendingBookingCount(),
     ]);
 
     return NextResponse.json(

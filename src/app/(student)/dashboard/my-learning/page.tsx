@@ -14,8 +14,6 @@ function getBookingTypeLabel(type: string): string {
     case 'day_shift': return 'Day Shift (10AM - 5PM)';
     case 'night_shift': return 'Night Shift (5PM - 12AM)';
     case 'reserved': return 'Exclusive Reserved';
-    case 'monthly': return 'Monthly Plan';
-    case 'hourly': return 'Hourly Booking';
     default: return type.replace('_', ' ');
   }
 }

@@ -11,7 +11,7 @@ export default async function ExploreCoursesPage() {
 
   // Fetch active/waitlist/coming_soon courses with their departments, batches, and waitlists
   const getCachedCourses = unstable_cache(
-    async (studentId: string) => {
+    async () => {
       return await db.course.findMany({
         where: { status: { not: "inactive" } },
         include: { 
@@ -19,18 +19,20 @@ export default async function ExploreCoursesPage() {
           batches: {
             where: { active: true, status: { in: ['enrolling', 'almost_full'] } },
             orderBy: { startDate: 'asc' }
-          },
-          waitlists: {
-            where: { studentId }
           }
         }
       })
     },
-    [`courses-list-${student.id}`],
+    ['active-courses'],
     { revalidate: 300, tags: ['courses'] }
   )
   
-  const courses = await getCachedCourses(student.id)
+  const courses = await getCachedCourses()
+  
+  const waitlistedCourseIds = await db.courseWaitlist.findMany({
+    where: { studentId: student.id },
+    select: { courseId: true }
+  }).then(list => list.map(item => item.courseId));
   
   // Filter out courses the student is already enrolled in
   const enrolledCourseIds = student.enrollments.map(e => e.courseId)
@@ -70,7 +72,7 @@ export default async function ExploreCoursesPage() {
           <TabsContent value="All" className="focus-visible:outline-none focus-visible:ring-0">
              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {availableCourses.map(course => (
-                <CourseCard key={course.id} course={course} student={student} />
+                <CourseCard key={course.id} course={course} student={student} isWaitlisted={waitlistedCourseIds.includes(course.id)} />
               ))}
             </div>
           </TabsContent>
@@ -82,7 +84,7 @@ export default async function ExploreCoursesPage() {
               <TabsContent key={dept} value={dept} className="focus-visible:outline-none focus-visible:ring-0">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {deptCourses.map(course => (
-                     <CourseCard key={course.id} course={course} student={student} />
+                     <CourseCard key={course.id} course={course} student={student} isWaitlisted={waitlistedCourseIds.includes(course.id)} />
                   ))}
                 </div>
               </TabsContent>

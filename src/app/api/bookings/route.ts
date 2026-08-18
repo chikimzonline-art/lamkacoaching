@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getOverlappingBookings } from '@/lib/db/queries/bookings';
 import { getAuthUser } from '@/lib/auth';
 
 // GET /api/bookings - List bookings with filters
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     if (cabinId) where.cabinId = cabinId;
     if (studentId) where.studentId = studentId;
 
-    // For date filtering of hourly bookings
+    // For date filtering of shift bookings
     if (date) {
       const filterDate = new Date(date);
       filterDate.setHours(0, 0, 0, 0);
@@ -32,14 +33,14 @@ export async function GET(request: Request) {
       nextDay.setDate(nextDay.getDate() + 1);
 
       where.OR = [
-        // Hourly/Shift bookings on this date
+        // Shift bookings on this date
         {
-          type: { in: ['hourly', 'morning_shift', 'day_shift', 'night_shift'] },
+          type: { in: ['morning_shift', 'day_shift', 'night_shift'] },
           startDate: { gte: filterDate, lt: nextDay },
         },
-        // Exclusive/Monthly bookings that span this date
+        // Reserved bookings that span this date
         {
-          type: { in: ['exclusive', 'reserved', 'monthly'] },
+          type: 'reserved',
           startDate: { lte: nextDay },
           OR: [
             { endDate: null },
@@ -113,20 +114,10 @@ export async function POST(request: Request) {
       }
 
       // Check for any active bookings on this cabin that overlap
-      const overlappingBookings = await db.booking.findMany({
-        where: {
-          cabinId,
-          status: 'active',
-          OR: [
-            { startDate: { lte: end }, endDate: { gte: start } },
-            { startDate: { lte: end }, endDate: null },
-          ],
-        },
-      });
+      const overlappingBookings = await getOverlappingBookings(cabinId, start, end);
 
-      // Check specific overlaps
       for (const existing of overlappingBookings) {
-        if (existing.type === 'reserved' || existing.type === 'exclusive' || existing.type === 'monthly') {
+        if (existing.type === 'reserved') {
           return NextResponse.json({
             error: 'Cabin has a conflicting active reserved booking in this period',
             conflicts: overlappingBookings,
@@ -267,9 +258,7 @@ export async function POST(request: Request) {
               'cabin_reserved_rate',
               'cabin_morning_shift_rate',
               'cabin_day_shift_rate',
-              'cabin_night_shift_rate',
-              'monthly_rate',
-              'hourly_rate'
+              'cabin_night_shift_rate'
             ],
           },
         },
@@ -280,7 +269,7 @@ export async function POST(request: Request) {
         return s ? parseInt(s.value, 10) : def;
       };
 
-      if (existing.type === 'reserved' || existing.type === 'exclusive' || existing.type === 'monthly') {
+      if (existing.type === 'reserved') {
         renewAmount = getSetting('cabin_reserved_rate', 1100) * 100;
       } else if (existing.type === 'morning_shift') {
         renewAmount = getSetting('cabin_morning_shift_rate', 500) * 100;
@@ -288,8 +277,6 @@ export async function POST(request: Request) {
         renewAmount = getSetting('cabin_day_shift_rate', 800) * 100;
       } else if (existing.type === 'night_shift') {
         renewAmount = getSetting('cabin_night_shift_rate', 800) * 100;
-      } else if (existing.type === 'hourly') {
-        renewAmount = getSetting('hourly_rate', 1000) * 100;
       } else {
         renewAmount = 1000 * 100; // fallback
       }
@@ -301,25 +288,15 @@ export async function POST(request: Request) {
       newEnd.setHours(23, 59, 59, 999);
 
       // COLLISION PROTECTION ON RENEWAL
-      const overlappingBookings = await db.booking.findMany({
-        where: {
-          cabinId: existing.cabinId,
-          status: 'active',
-          id: { not: id }, // ignore current booking
-          OR: [
-            { startDate: { lte: newEnd }, endDate: { gte: currentEnd } },
-            { startDate: { lte: newEnd }, endDate: null },
-          ],
-        },
-      });
+      const overlappingBookings = await getOverlappingBookings(existing.cabinId, currentEnd, newEnd, id);
 
       for (const overlap of overlappingBookings) {
-        if (overlap.type === 'reserved' || overlap.type === 'exclusive' || overlap.type === 'monthly') {
+        if (overlap.type === 'reserved') {
           return NextResponse.json({
             error: 'Cannot renew: A reserved booking exists for this cabin next month.',
           }, { status: 409 });
         }
-        if (existing.type === 'reserved' || existing.type === 'exclusive' || existing.type === 'monthly') {
+        if (existing.type === 'reserved') {
           return NextResponse.json({
             error: 'Cannot renew reserved cabin: Another shift booking exists next month.',
           }, { status: 409 });
