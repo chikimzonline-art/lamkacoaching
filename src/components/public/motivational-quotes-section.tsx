@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getDailyQuotes } from '@/app/actions/quotes';
 
-const quotes = [
+const defaultQuotes = [
   {
     text: 'Success is not final, failure is not fatal: it is the courage to continue that counts.',
     author: 'Winston Churchill',
@@ -40,10 +41,31 @@ const quotes = [
   },
 ];
 
-export default function MotivationalQuotesSection() {
+interface Quote {
+  text: string;
+  author: string;
+}
+
+interface MotivationalQuotesSectionProps {
+  quotes?: Quote[];
+}
+
+export default function MotivationalQuotesSection({ quotes = defaultQuotes }: MotivationalQuotesSectionProps = {}) {
+  const [activeQuotes, setActiveQuotes] = useState<Quote[]>(quotes);
   const [current, setCurrent] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const total = quotes.length;
+  const total = activeQuotes.length;
+
+  useEffect(() => {
+    async function fetchQuotes() {
+      const dynamicQuotes = await getDailyQuotes();
+      if (dynamicQuotes && dynamicQuotes.length > 0) {
+        setActiveQuotes(dynamicQuotes);
+        setCurrent(0);
+      }
+    }
+    fetchQuotes();
+  }, []);
 
   const startAutoPlay = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -67,7 +89,7 @@ export default function MotivationalQuotesSection() {
   const prev = () => goTo((current - 1 + total) % total);
   const next = () => goTo((current + 1) % total);
 
-  const q = quotes[current];
+  const q = activeQuotes[current];
 
   return (
     <section className="py-20 sm:py-28 bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
@@ -136,7 +158,7 @@ export default function MotivationalQuotesSection() {
 
         {/* Dot indicators */}
         <div className="flex items-center justify-center gap-2 mt-8">
-          {quotes.map((_, i) => (
+          {activeQuotes.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
