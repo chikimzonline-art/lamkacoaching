@@ -1,12 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
-import Razorpay from 'razorpay';
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+import { createRazorpayOrder } from '@/lib/razorpay-server';
+import { getOverlappingBookings } from '@/lib/db/queries/bookings';
 
 export async function POST(request: Request) {
   try {
@@ -52,8 +48,6 @@ export async function POST(request: Request) {
             'cabin_morning_shift_rate',
             'cabin_day_shift_rate',
             'cabin_night_shift_rate',
-            'monthly_rate',
-            'hourly_rate'
           ],
         },
       },
@@ -64,7 +58,7 @@ export async function POST(request: Request) {
       return s ? parseInt(s.value, 10) : def;
     };
 
-    if (existing.type === 'reserved' || existing.type === 'exclusive' || existing.type === 'monthly') {
+    if (existing.type === 'reserved') {
       renewAmount = getSetting('cabin_reserved_rate', 1100) * 100;
     } else if (existing.type === 'morning_shift') {
       renewAmount = getSetting('cabin_morning_shift_rate', 500) * 100;
@@ -72,10 +66,8 @@ export async function POST(request: Request) {
       renewAmount = getSetting('cabin_day_shift_rate', 800) * 100;
     } else if (existing.type === 'night_shift') {
       renewAmount = getSetting('cabin_night_shift_rate', 800) * 100;
-    } else if (existing.type === 'hourly') {
-      renewAmount = getSetting('hourly_rate', 1000) * 100;
     } else {
-      renewAmount = 1000 * 100; // fallback
+      return NextResponse.json({ error: 'Invalid booking type for renewal' }, { status: 400 });
     }
 
     // Calculate new end date (for collision check)
@@ -85,25 +77,15 @@ export async function POST(request: Request) {
     newEnd.setHours(23, 59, 59, 999);
 
     // COLLISION PROTECTION ON RENEWAL
-    const overlappingBookings = await db.booking.findMany({
-      where: {
-        cabinId: existing.cabinId,
-        status: { in: ['active', 'pending_payment'] },
-        id: { not: bookingId }, // ignore current booking
-        OR: [
-          { startDate: { lte: newEnd }, endDate: { gte: currentEnd } },
-          { startDate: { lte: newEnd }, endDate: null },
-        ],
-      },
-    });
+    const overlappingBookings = await getOverlappingBookings(existing.cabinId, currentEnd, newEnd, bookingId);
 
     for (const overlap of overlappingBookings) {
-      if (overlap.type === 'reserved' || overlap.type === 'exclusive' || overlap.type === 'monthly') {
+      if (overlap.type === 'reserved') {
         return NextResponse.json({
           error: 'Cannot renew: A reserved booking exists for this cabin next month.',
         }, { status: 409 });
       }
-      if (existing.type === 'reserved' || existing.type === 'exclusive' || existing.type === 'monthly') {
+      if (existing.type === 'reserved') {
         return NextResponse.json({
           error: 'Cannot renew reserved cabin: Another shift booking exists next month.',
         }, { status: 409 });
@@ -116,18 +98,14 @@ export async function POST(request: Request) {
     }
 
     // No collisions! Create Razorpay order
-    const options = {
-      amount: renewAmount,
-      currency: 'INR',
-      receipt: `rcpt_rnw_${Date.now()}`,
-      notes: {
-        type: 'cabin_renewal',
-        bookingId: existing.id,
-        studentId: existing.studentId,
-      },
+    const receipt = `rcpt_rnw_${Date.now()}`;
+    const notes = {
+      type: 'cabin_renewal',
+      bookingId: existing.id,
+      studentId: existing.studentId,
     };
 
-    const order = await razorpay.orders.create(options);
+    const order = await createRazorpayOrder(renewAmount, receipt, notes);
 
     return NextResponse.json({ 
       orderId: order.id, 

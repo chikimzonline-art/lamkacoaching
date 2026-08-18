@@ -1,14 +1,36 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { env } from "@/env";
 
-export default withAuth(
-  function middleware(req) {
+// Initialize Redis and Limiters
+const redis = new Redis({
+  url: env.UPSTASH_REDIS_REST_URL,
+  token: env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+const strictLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.fixedWindow(3, "1 m"),
+  ephemeralCache: new Map(),
+});
+
+const generalLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "10 s"),
+  ephemeralCache: new Map(),
+});
+
+// Original NextAuth Middleware
+const authProxy = withAuth(
+  function proxy(req) {
     const token = req.nextauth.token;
     const isAuthRoute = req.nextUrl.pathname.startsWith("/login");
     const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
     const isStudentRoute = req.nextUrl.pathname.startsWith("/dashboard");
 
-    // Redirect authenticated users away from login pages
     if (token && isAuthRoute) {
       if (token.role === "admin" || token.role === "staff") {
         return NextResponse.redirect(new URL("/admin", req.url));
@@ -18,21 +40,15 @@ export default withAuth(
       }
     }
 
-    // Protect student dashboard routes
     if (isStudentRoute) {
-      if (!token) {
-        return NextResponse.redirect(new URL("/login", req.url));
-      }
+      if (!token) return NextResponse.redirect(new URL("/login", req.url));
       if (token.role === "admin" || token.role === "staff") {
         return NextResponse.redirect(new URL("/admin", req.url));
       }
     }
 
-    // Protect admin routes
     if (isAdminRoute) {
-      if (!token) {
-        return NextResponse.redirect(new URL("/login", req.url));
-      }
+      if (!token) return NextResponse.redirect(new URL("/login", req.url));
       if (token.role === "student") {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
@@ -40,24 +56,46 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ req, token }) => {
-        // We handle authorization logic in the middleware function above,
-        // so we always return true here to let the middleware run.
-        return true;
-      },
+      authorized: () => true,
     },
   }
 );
 
+// Main Proxy Wrapper: Runs Rate Limiter FIRST, then auth
+export default async function proxy(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  const pathname = request.nextUrl.pathname;
+
+  // Rate Limiting Logic for API routes
+  if (
+    pathname.startsWith("/api/payments") ||
+    pathname.startsWith("/api/auth/callback/credentials")
+  ) {
+    const { success } = await strictLimiter.limit(`strict_${ip}`);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please wait a minute before making another payment or login attempt." },
+        { status: 429 }
+      );
+    }
+  } else if (pathname.startsWith("/api/")) {
+    const { success } = await generalLimiter.limit(`general_${ip}`);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down and try again in a moment." },
+        { status: 429 }
+      );
+    }
+  }
+
+  // If rate limit passes, hand over to NextAuth
+  // NextAuth expects NextRequestWithAuth, but passing request and event handles it correctly
+  return authProxy(request as any, {} as any);
+}
+
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    // Removed 'api' from the ignore list so the proxy intercepts API routes for rate limiting
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

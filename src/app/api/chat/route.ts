@@ -12,12 +12,14 @@ IMPORTANT RULES & GUIDELINES:
    - If a student asks about active/upcoming batch start dates, timings, or specific batch fees, tell them the standard course details, but strongly advise/suggest that they contact the coaching center directly (provide the phone number/email) or visit the office to confirm the latest/active batch schedules, available timings, and specific batch enrollment details. Avoid fabricating or giving unnecessary/confusing batch-specific details.
 
 2. **Study Cabin Availability**:
-   - A cabin has two types of bookings: "Exclusive" (monthly full-day booking) and "Hourly" (slotted bookings).
-   - If a cabin is exclusively booked ("Occupied (Exclusive Booked)"), it means the cabin is reserved for the whole day, and is STRICTLY UNAVAILABLE for both monthly and hourly bookings. You MUST state that it is fully occupied and not available for any bookings. Do NOT say it is available for hourly bookings.
-   - If a cabin is "Free for Monthly Booking", it means it can be booked monthly. If there are any "Booked hourly slots today" listed for it, those specific time slots are occupied and unavailable for other students today until their booking ends. It is only available for hourly bookings during slots that are NOT booked.
-   - Always be precise, factual, and clear about which slots/cabins are available or unavailable. Never output contradictory status information.`;
+   - A cabin has two types of bookings: "Reserved" (monthly full-day booking) and "Shifts" (Morning, Day, Night).
+   - If a cabin is "Occupied (Reserved)", it means the cabin is reserved for the whole day, and is STRICTLY UNAVAILABLE for both reserved and shift bookings. You MUST state that it is fully occupied and not available for any bookings. Do NOT say it is available for shift bookings.
+   - If a cabin is "Available for Reserved Booking", it means it can be booked for the full day. If there are any "Booked shifts today" listed for it, those specific shifts are occupied and unavailable for other students today until their booking ends. It is only available for shifts that are NOT booked.
+   - Always be precise, factual, and clear about which shifts/cabins are available or unavailable. Never output contradictory status information.`;
 
-const MAX_CONTEXT_MESSAGES = 18;function getFallbackChatResponse(
+const MAX_CONTEXT_MESSAGES = 18;
+
+function getFallbackChatResponse(
   settingsMap?: Record<string, string>,
   departments?: any[],
   batches?: any[],
@@ -57,17 +59,20 @@ const MAX_CONTEXT_MESSAGES = 18;function getFallbackChatResponse(
 
   if (cabinDetailsList && cabinDetailsList.length > 0) {
     resp += `🏢 **Study Cabins & Availability:**\n`;
-    resp += `- Monthly Rate: ₹${settingsMap?.['monthly_rate'] || '3000'} | Hourly Rate: ₹${settingsMap?.['hourly_rate'] || '1000'}/hr\n`;
+    resp += `- Reserved Rate: ₹${settingsMap?.['cabin_reserved_rate'] || '1100'}/month\n`;
+    resp += `- Morning Shift: ₹${settingsMap?.['cabin_morning_shift_rate'] || '500'}/month\n`;
+    resp += `- Day/Night Shift: ₹${settingsMap?.['cabin_day_shift_rate'] || '800'}/month\n`;
+    
     cabinDetailsList.forEach((c: any) => {
       const floorStr = c.floor === 1 ? '1st' : c.floor === 2 ? '2nd' : c.floor === 3 ? '3rd' : `${c.floor}th`;
       let statusStr = '';
-      if (c.isOccupiedExclusive) {
-        statusStr = 'Occupied (Exclusive Booked today)';
+      if (c.isOccupiedReserved) {
+        statusStr = 'Occupied (Reserved fully today)';
       } else {
-        const hourlyStatus = c.hourlySlotsBookedToday && c.hourlySlotsBookedToday.length > 0
-          ? `Booked hourly slots: ${c.hourlySlotsBookedToday.join(', ')}`
-          : 'No hourly slots booked today';
-        statusStr = `Available monthly | ${hourlyStatus}`;
+        const shiftStatus = c.shiftsBookedToday && c.shiftsBookedToday.length > 0
+          ? `Booked shifts: ${c.shiftsBookedToday.join(', ')}`
+          : 'No shifts booked today';
+        statusStr = `Available for Reserved | ${shiftStatus}`;
       }
       resp += `- Cabin ${c.cabinNum} (${floorStr} Floor): ${statusStr}\n`;
     });
@@ -128,8 +133,10 @@ export async function POST(request: NextRequest) {
               'business_email',
               'business_address',
               'business_description',
-              'hourly_rate',
-              'monthly_rate',
+              'cabin_reserved_rate',
+              'cabin_morning_shift_rate',
+              'cabin_day_shift_rate',
+              'cabin_night_shift_rate',
             ],
           },
         },
@@ -171,8 +178,8 @@ export async function POST(request: NextRequest) {
     todayStart.setHours(0, 0, 0, 0);
 
     cabinDetailsList = cabins.map((c) => {
-      const activeExclusive = c.bookings.find((b) => {
-        if (b.type !== 'exclusive') return false;
+      const activeReserved = c.bookings.find((b) => {
+        if (b.type !== 'reserved') return false;
         const startLimit = new Date(b.startDate);
         startLimit.setHours(0, 0, 0, 0);
         if (startLimit > now) return false;
@@ -181,8 +188,9 @@ export async function POST(request: NextRequest) {
         endLimit.setHours(23, 59, 59, 999);
         return endLimit >= now;
       });
-      const todayHourly = c.bookings.filter((b) => {
-        if (b.type !== 'hourly') return false;
+      
+      const todayShifts = c.bookings.filter((b) => {
+        if (!['morning_shift', 'day_shift', 'night_shift'].includes(b.type)) return false;
         const startLimit = new Date(b.startDate);
         startLimit.setHours(0, 0, 0, 0);
         if (startLimit > now) return false;
@@ -194,11 +202,12 @@ export async function POST(request: NextRequest) {
           return endLimit >= now;
         }
       });
+      
       return {
         cabinNum: c.cabinNum,
         floor: c.floor,
-        isOccupiedExclusive: !!activeExclusive,
-        hourlySlotsBookedToday: todayHourly.map((b) => `${b.startTime} to ${b.endTime}`),
+        isOccupiedReserved: !!activeReserved,
+        shiftsBookedToday: todayShifts.map((b) => b.type.replace('_', ' ')),
       };
     });
 
@@ -232,7 +241,7 @@ export async function POST(request: NextRequest) {
     }
 
     dynamicPromptInfo += `\n#### Study Cabin Facilities & Availability:\n`;
-    dynamicPromptInfo += `- **Pricing:** Monthly Exclusive Rate: ₹${settingsMap['monthly_rate'] || '3000'} | Hourly Slot Rate: ₹${settingsMap['hourly_rate'] || '1000'}/hour.\n`;
+    dynamicPromptInfo += `- **Pricing:** Monthly Reserved Rate: ₹${settingsMap['cabin_reserved_rate'] || '1100'} | Morning Shift: ₹${settingsMap['cabin_morning_shift_rate'] || '500'}/month | Day/Night Shift: ₹${settingsMap['cabin_day_shift_rate'] || '800'}/month.\n`;
     dynamicPromptInfo += `- **Available Cabins:**\n`;
     if (cabinDetailsList.length === 0) {
       dynamicPromptInfo += `- No study cabins are active currently.\n`;
@@ -240,13 +249,13 @@ export async function POST(request: NextRequest) {
       cabinDetailsList.forEach((c) => {
         const floorStr = c.floor === 1 ? '1st' : c.floor === 2 ? '2nd' : c.floor === 3 ? '3rd' : `${c.floor}th`;
         let statusStr = '';
-        if (c.isOccupiedExclusive) {
-          statusStr = 'Occupied (Exclusive Booked - strictly not available for any monthly or hourly bookings today)';
+        if (c.isOccupiedReserved) {
+          statusStr = 'Occupied (Reserved full day - strictly not available for any shifts or reserved bookings today)';
         } else {
-          const hourlyStatus = c.hourlySlotsBookedToday.length > 0
-            ? `Booked hourly slots today: ${c.hourlySlotsBookedToday.join(', ')}`
-            : 'No hourly slots booked today (Available for hourly bookings)';
-          statusStr = `Free for Monthly Booking | ${hourlyStatus}`;
+          const shiftStatus = c.shiftsBookedToday.length > 0
+            ? `Booked shifts today: ${c.shiftsBookedToday.join(', ')}`
+            : 'No shifts booked today (Available for all shifts)';
+          statusStr = `Free for Reserved Booking | ${shiftStatus}`;
         }
         dynamicPromptInfo += `- **Cabin ${c.cabinNum}** (${floorStr} Floor): ${statusStr}\n`;
       });

@@ -3,6 +3,7 @@
 import { requireStudent } from "@/lib/student-auth"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import * as Sentry from "@sentry/nextjs"
 
 export async function submitSupportTicket(formData: FormData) {
   const { student } = await requireStudent()
@@ -27,6 +28,7 @@ export async function submitSupportTicket(formData: FormData) {
     revalidatePath("/dashboard/support")
     return { success: true }
   } catch (error) {
+    Sentry.captureException(error);
     console.error("Failed to create support ticket:", error)
     return { error: "Failed to submit your request. Please try again later." }
   }

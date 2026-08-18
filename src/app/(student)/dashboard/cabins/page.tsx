@@ -27,7 +27,6 @@ export default async function ExploreCabinsPage() {
               endDate: true,
               startTime: true,
               endTime: true,
-              studentId: true,
             },
           },
         },
@@ -79,7 +78,7 @@ export default async function ExploreCabinsPage() {
   // Compute availability status for each cabin
   const now = new Date();
   const cabinsWithAvailability = cabins.map((cabin) => {
-    const isBookedByMe = cabin.bookings.some(b => b.studentId === student.id);
+    const isBookedByMe = bookedCabinIds.includes(cabin.id);
 
     // If the student already has an active booking for this cabin, mark it as occupied for them
     if (bookedCabinIds.includes(cabin.id)) {
@@ -91,13 +90,13 @@ export default async function ExploreCabinsPage() {
         isOccupied: true,
         isBookedByMe: true,
         bookedShifts: [],
-        hourlyBookingsToday: [],
+        activeShiftsToday: [],
         activeBookingsCount: cabin.bookings.length,
       }
     }
 
     const activeReserved = cabin.bookings.find((b) => {
-      if (b.type !== 'reserved' && b.type !== 'exclusive' && b.type !== 'monthly') return false;
+      if (b.type !== 'reserved') return false;
       const startLimit = new Date(b.startDate);
       startLimit.setHours(0, 0, 0, 0);
       if (startLimit > now) return false;
@@ -112,7 +111,7 @@ export default async function ExploreCabinsPage() {
     
     // Find active shift bookings for today or ongoing
     const activeShifts = cabin.bookings.filter((b) => {
-      if (!['morning_shift', 'day_shift', 'night_shift', 'hourly'].includes(b.type)) return false;
+      if (!['morning_shift', 'day_shift', 'night_shift'].includes(b.type)) return false;
       const startLimit = new Date(b.startDate);
       startLimit.setHours(0, 0, 0, 0);
       if (startLimit > now) return false;
@@ -133,7 +132,7 @@ export default async function ExploreCabinsPage() {
       isOccupied: !!activeReserved,
       isBookedByMe: isBookedByMe,
       bookedShifts: activeShifts.map(b => b.type),
-      hourlyBookingsToday: activeShifts.map((b) => ({
+      activeShiftsToday: activeShifts.map((b) => ({
         startTime: b.startTime || '',
         endTime: b.endTime || '',
         type: b.type,

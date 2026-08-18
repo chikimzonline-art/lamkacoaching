@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getOverlappingBookings } from '@/lib/db/queries/bookings';
 
 // POST /api/public/book-cabin - Public: student self-books a cabin
 export async function POST(request: Request) {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!bookingType || !['hourly', 'monthly'].includes(bookingType)) {
+    if (!bookingType || !['reserved', 'morning_shift', 'day_shift', 'night_shift'].includes(bookingType)) {
       return NextResponse.json(
         { error: 'Please select a valid booking type' },
         { status: 400 }
@@ -58,79 +59,62 @@ export async function POST(request: Request) {
 
     // Get pricing
     const settings = await db.setting.findMany({
-      where: { key: { in: ['hourly_rate', 'monthly_rate'] } }
+      where: { key: { in: ['cabin_reserved_rate', 'cabin_morning_shift_rate', 'cabin_day_shift_rate', 'cabin_night_shift_rate'] } }
     });
-    const hourlyRateSetting = settings.find(s => s.key === 'hourly_rate');
-    const monthlyRateSetting = settings.find(s => s.key === 'monthly_rate');
-    const hourlyMonthlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 1000;
-    const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) : 3000;
+    
+    const getSetting = (key: string, def: number) => {
+      const s = settings.find((s) => s.key === key);
+      return s ? parseInt(s.value, 10) : def;
+    };
 
     let totalAmount: number; // in paise
     let bookingStartDate: Date;
     let bookingEndDate: Date | null = null;
     let bookingStartTime: string | null = null;
     let bookingEndTime: string | null = null;
-    let dbBookingType: string;
+    
+    bookingStartDate = new Date(startDate);
+    bookingStartDate.setHours(0, 0, 0, 0);
+    bookingEndDate = new Date(bookingStartDate);
+    bookingEndDate.setMonth(bookingEndDate.getMonth() + 1);
+    bookingEndDate.setHours(23, 59, 59, 999);
 
-    if (bookingType === 'hourly') {
-      // Hourly booking: 5 hrs/day, 1 month duration, monthly fee
-      bookingStartDate = new Date(startDate);
-      bookingStartDate.setHours(0, 0, 0, 0);
-      bookingEndDate = new Date(bookingStartDate);
-      bookingEndDate.setMonth(bookingEndDate.getMonth() + 1);
-      bookingEndDate.setHours(23, 59, 59, 999);
-      dbBookingType = 'hourly';
-      bookingStartTime = '09:00'; // Default 5-hour window start
-      bookingEndTime = '14:00';   // Default 5-hour window end
-      totalAmount = hourlyMonthlyRate * 100; // Monthly fee in paise
-
-      // Check for conflicting hourly bookings (same cabin, overlapping period)
-      const overlappingBookings = await db.booking.findMany({
-        where: {
-          cabinId,
-          status: 'active',
-          type: 'hourly',
-          OR: [
-            { startDate: { lte: bookingEndDate }, endDate: { gte: bookingStartDate } },
-            { startDate: { lte: bookingEndDate }, endDate: null },
-          ],
-        },
-      });
-
-      if (overlappingBookings.length > 0) {
-        return NextResponse.json(
-          { error: 'This cabin already has an active hourly booking for the selected period. Please choose a different cabin or date.' },
-          { status: 409 }
-        );
-      }
-
+    if (bookingType === 'reserved') {
+      totalAmount = getSetting('cabin_reserved_rate', 1100) * 100;
+    } else if (bookingType === 'morning_shift') {
+      totalAmount = getSetting('cabin_morning_shift_rate', 500) * 100;
+      bookingStartTime = '06:00';
+      bookingEndTime = '12:00';
+    } else if (bookingType === 'day_shift') {
+      totalAmount = getSetting('cabin_day_shift_rate', 800) * 100;
+      bookingStartTime = '12:00';
+      bookingEndTime = '18:00';
+    } else if (bookingType === 'night_shift') {
+      totalAmount = getSetting('cabin_night_shift_rate', 800) * 100;
+      bookingStartTime = '18:00';
+      bookingEndTime = '23:59';
     } else {
-      // Monthly booking (exclusive/full-day)
-      bookingStartDate = new Date(startDate);
-      bookingStartDate.setHours(0, 0, 0, 0);
-      bookingEndDate = new Date(bookingStartDate);
-      bookingEndDate.setMonth(bookingEndDate.getMonth() + 1);
-      bookingEndDate.setHours(23, 59, 59, 999);
-      dbBookingType = 'exclusive';
-      totalAmount = monthlyRate * 100; // convert to paise
+      return NextResponse.json({ error: 'Invalid booking type' }, { status: 400 });
+    }
 
-      // Check for conflicting bookings
-      const overlappingBookings = await db.booking.findMany({
-        where: {
-          cabinId,
-          status: 'active',
-          OR: [
-            { startDate: { lte: bookingEndDate }, endDate: { gte: bookingStartDate } },
-            { startDate: { lte: bookingEndDate }, endDate: null },
-          ],
-        },
-      });
+    // Check for conflicting bookings
+    const overlappingBookings = await getOverlappingBookings(cabinId, bookingStartDate, bookingEndDate);
 
-      if (overlappingBookings.length > 0) {
-        return NextResponse.json(
-          { error: 'This cabin is already booked for the selected period. Please choose a different cabin or date.' },
-          { status: 409 }
-        );
+    for (const overlap of overlappingBookings) {
+      if (overlap.type === 'reserved') {
+        return NextResponse.json({
+          error: 'This cabin is already reserved for the selected period. Please choose a different cabin.',
+        }, { status: 409 });
+      }
+      if (bookingType === 'reserved') {
+        return NextResponse.json({
+          error: 'Cannot reserve cabin: A shift booking already exists for the selected period.',
+        }, { status: 409 });
+      }
+      if (overlap.type === bookingType) {
+        return NextResponse.json({
+          error: `The ${bookingType.replace('_', ' ')} is already booked for this cabin.`,
+        }, { status: 409 });
       }
     }
 
@@ -157,7 +141,7 @@ export async function POST(request: Request) {
       data: {
         studentId: student.id,
         cabinId,
-        type: dbBookingType,
+        type: bookingType,
         status: 'pending',
         startDate: bookingStartDate,
         endDate: bookingEndDate,

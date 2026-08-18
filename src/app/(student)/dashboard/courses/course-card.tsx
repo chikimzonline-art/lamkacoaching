@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 import { joinWaitlist } from './actions';
 
-export function CourseCard({ course, student }: { course: any, student: any }) {
+export function CourseCard({ course, student, isWaitlisted = false }: { course: any, student: any, isWaitlisted?: boolean }) {
   const [selectedBatch, setSelectedBatch] = useState<string>('');
   const [waitlisting, setWaitlisting] = useState(false);
-  const isWaitlisted = course.waitlists && course.waitlists.length > 0;
 
   const showWaitlist = course.status === 'coming_soon' || course.status === 'waitlist' || course.batches.length === 0;
 

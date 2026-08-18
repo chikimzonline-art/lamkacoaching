@@ -10,6 +10,7 @@ import { formatCurrency, formatDate } from '@/lib/helpers';
 import { ArrowLeft, Calendar, DoorOpen, IndianRupee, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { RazorpayCheckoutButton } from '@/components/payments/razorpay-checkout-button';
+import { env } from '@/env';
 
 function getBookingTypeLabel(type: string): string {
   switch (type) {
@@ -17,8 +18,6 @@ function getBookingTypeLabel(type: string): string {
     case 'day_shift': return 'Day Shift (10AM - 5PM)';
     case 'night_shift': return 'Night Shift (5PM - 12AM)';
     case 'reserved': return 'Exclusive Reserved';
-    case 'monthly': return 'Monthly Plan';
-    case 'hourly': return 'Hourly Booking';
     default: return type.replace('_', ' ');
   }
 }
@@ -69,7 +68,7 @@ export default function ManageBookingClient({ booking, student }: { booking: any
       }
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.amount, // in paise
         currency: 'INR',
         name: 'Lamka Coaching Center',

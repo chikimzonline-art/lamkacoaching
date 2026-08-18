@@ -35,7 +35,7 @@ interface DashboardStats {
   totalPending: number;
   totalEnrollments: number;
   enrollmentOutstanding: number;
-  todayHourlyCount: number;
+  todayShiftCount: number;
 }
 
 interface Booking {
@@ -87,7 +87,7 @@ interface PendingBooking {
 interface DashboardData {
   stats: DashboardStats;
   todayBookings: Booking[];
-  exclusiveBookings: Booking[];
+  reservedBookings: Booking[];
   expiringSoon: Booking[];
   recentPayments: Payment[];
   recentEnrollmentPayments: EnrollmentPayment[];
@@ -296,7 +296,7 @@ export default function DashboardView() {
     );
   }
 
-  const { stats, todayBookings, exclusiveBookings, expiringSoon, recentPayments, recentEnrollmentPayments, pendingBookingRequests, pendingBookingCount } = data;
+  const { stats, todayBookings, reservedBookings, expiringSoon, recentPayments, recentEnrollmentPayments, pendingBookingRequests, pendingBookingCount } = data;
 
   // Use real chart data or fallback
   const monthlyEnrollmentsData = chartData?.monthlyEnrollments || fallbackChartData.monthlyEnrollments;
@@ -341,7 +341,7 @@ export default function DashboardView() {
                     <p className="text-sm font-medium text-amber-900 truncate">{b.student.name}</p>
                     <p className="text-xs text-amber-700">
                       Cabin #{b.cabin.cabinNum} &bull; {b.type} &bull;{' '}
-                      {b.type === 'hourly'
+                      {!['reserved'].includes(b.type)
                         ? `${formatTime(b.startTime || '')} - ${formatTime(b.endTime || '')}`
                         : `${formatDate(b.startDate)}`}
                     </p>
@@ -370,7 +370,7 @@ export default function DashboardView() {
           value={String(stats.activeBookingsCount)}
           icon={<Calendar className="h-5 w-5 text-cyan-600" />}
           color="bg-cyan-50"
-          subtitle={`${stats.todayHourlyCount} hourly today`}
+          subtitle={`${stats.todayShiftCount} shifts today`}
         />
         <StatCard
           title="Course Enrollments"
@@ -550,13 +550,13 @@ export default function DashboardView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Today's Hourly Bookings */}
+        {/* Today's Shift Bookings */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Clock className="h-4 w-4 text-cyan-600" />
-                Today&apos;s Bookings
+                Today&apos;s Shift Bookings
               </CardTitle>
               <Badge variant="outline" className="text-xs border-cyan-200 text-cyan-700 bg-cyan-50">
                 {todayBookings.length}
@@ -595,25 +595,25 @@ export default function DashboardView() {
           </CardContent>
         </Card>
 
-        {/* Exclusive Reservations */}
+        {/* Reserved Bookings */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Users className="h-4 w-4 text-cyan-600" />
-                Exclusive Reservations
+                Reserved Bookings
               </CardTitle>
               <Badge variant="outline" className="text-xs border-cyan-200 text-cyan-700 bg-cyan-50">
-                {exclusiveBookings.length}
+                {reservedBookings.length}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            {exclusiveBookings.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4">No exclusive reservations</p>
+            {reservedBookings.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">No reserved bookings</p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {exclusiveBookings.map((b) => (
+                {reservedBookings.map((b) => (
                   <div
                     key={b.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-red-50/50 hover:bg-red-100/60 transition-colors border border-red-100"

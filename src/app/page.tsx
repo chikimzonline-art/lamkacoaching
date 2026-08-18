@@ -382,7 +382,7 @@ const faqFallback = [
   },
   {
     question: 'How can I book a study cabin?',
-    answer: 'You can book a study cabin directly through our website by visiting the Cabins page. Cabins are available on both hourly and monthly basis. Simply select your preferred cabin, choose the time slot, and complete the booking. You can also visit our center for walk-in bookings.',
+    answer: 'You can book a study cabin directly through our website by visiting the Cabins page. Cabins are available on shift or reserved basis. Simply select your preferred cabin, choose the shift, and complete the booking. You can also visit our center for walk-in bookings.',
   },
   {
     question: 'What are the class timings and batch schedules?',
@@ -922,10 +922,10 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Study Cabin Spaces</h3>
               <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-                Dedicated quiet study spaces with comfortable seating, proper lighting, and flexible timings. Available on hourly or monthly basis with affordable pricing.
+                Dedicated quiet study spaces with comfortable seating, proper lighting, and flexible timings. Available on shift or reserved basis with affordable pricing.
               </p>
               <div className="flex flex-wrap gap-1.5 mb-5">
-                {['Hourly', 'Monthly', 'AC Rooms', 'Wi-Fi', 'Flexible'].map((tag) => (
+                {['Shift', 'Reserved', 'AC Rooms', 'Wi-Fi', 'Flexible'].map((tag) => (
                   <span key={tag} className="px-2 py-0.5 bg-green-100 text-green-700 rounded-md text-xs font-medium">{tag}</span>
                 ))}
               </div>

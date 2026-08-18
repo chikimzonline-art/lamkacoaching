@@ -1,32 +1,17 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAllActiveCabinsWithBookings } from '@/lib/db/queries/cabins';
 
 // GET /api/public/cabins - Public: list available cabins grouped by floor
 export async function GET() {
   try {
-    const cabins = await db.cabin.findMany({
-      where: { status: 'active' },
-      orderBy: [{ floor: 'asc' }, { cabinNum: 'asc' }],
-      include: {
-        bookings: {
-          where: { status: { in: ['active', 'pending_payment'] } },
-          select: {
-            id: true,
-            type: true,
-            startDate: true,
-            endDate: true,
-            startTime: true,
-            endTime: true,
-          },
-        },
-      },
-    });
+    const cabins = await getAllActiveCabinsWithBookings();
 
     // Compute availability status for each cabin
     const now = new Date();
     const cabinsWithAvailability = cabins.map((cabin) => {
-      const activeExclusive = cabin.bookings.find((b) => {
-        if (b.type !== 'exclusive') return false;
+      const activeReserved = cabin.bookings.find((b) => {
+        if (b.type !== 'reserved') return false;
         const startLimit = new Date(b.startDate);
         startLimit.setHours(0, 0, 0, 0);
         if (startLimit > now) return false;
@@ -38,8 +23,9 @@ export async function GET() {
 
       const todayStart = new Date(now);
       todayStart.setHours(0, 0, 0, 0);
-      const todayHourlyBookings = cabin.bookings.filter((b) => {
-        if (b.type !== 'hourly') return false;
+      
+      const activeShifts = cabin.bookings.filter((b) => {
+        if (!['morning_shift', 'day_shift', 'night_shift'].includes(b.type)) return false;
         const startLimit = new Date(b.startDate);
         startLimit.setHours(0, 0, 0, 0);
         if (startLimit > now) return false;
@@ -57,8 +43,9 @@ export async function GET() {
         floor: cabin.floor,
         cabinNum: cabin.cabinNum,
         notes: cabin.notes,
-        isOccupied: !!activeExclusive,
-        hourlyBookingsToday: todayHourlyBookings.map((b) => ({
+        isOccupied: !!activeReserved,
+        activeShiftsToday: activeShifts.map((b) => ({
+          type: b.type,
           startTime: b.startTime,
           endTime: b.endTime,
         })),
@@ -76,13 +63,13 @@ export async function GET() {
 
     // Get pricing from settings
     const settings = await db.setting.findMany({
-      where: { key: { in: ['hourly_rate', 'monthly_rate'] } }
+      where: { key: { in: ['cabin_reserved_rate', 'cabin_morning_shift_rate', 'cabin_day_shift_rate', 'cabin_night_shift_rate'] } }
     });
-    const hourlyRateSetting = settings.find(s => s.key === 'hourly_rate');
-    const monthlyRateSetting = settings.find(s => s.key === 'monthly_rate');
-
-    const hourlyMonthlyRate = hourlyRateSetting ? parseInt(hourlyRateSetting.value, 10) : 1000;
-    const monthlyRate = monthlyRateSetting ? parseInt(monthlyRateSetting.value, 10) : 3000;
+    
+    const getSetting = (key: string, def: number) => {
+      const s = settings.find((s) => s.key === key);
+      return s ? parseInt(s.value, 10) : def;
+    };
 
     return NextResponse.json(
       {
@@ -90,8 +77,10 @@ export async function GET() {
         cabinsByFloor,
         floors,
         pricing: {
-          hourlyMonthlyRate,
-          monthlyRate,
+          reservedRate: getSetting('cabin_reserved_rate', 1100),
+          morningShiftRate: getSetting('cabin_morning_shift_rate', 500),
+          dayShiftRate: getSetting('cabin_day_shift_rate', 800),
+          nightShiftRate: getSetting('cabin_night_shift_rate', 800),
         },
         totalCabins: cabins.length,
         availableCabins: cabinsWithAvailability.filter((c) => !c.isOccupied).length,

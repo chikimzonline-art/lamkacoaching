@@ -2,6 +2,8 @@
  * Helper to call Google Gemini API (gemini-2.5-flash) using standard fetch.
  * Fully compatible with serverless, edge, and standard Next.js runtimes.
  */
+import { env } from "@/env";
+
 export async function callGeminiAPI(payload: {
   contents: { role: 'user' | 'model'; parts: { text: string }[] }[];
   systemInstruction?: { parts: { text: string }[] };
@@ -11,10 +13,7 @@ export async function callGeminiAPI(payload: {
     temperature?: number;
   };
 }) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY environment variable is not defined.');
-  }
+  const apiKey = env.GEMINI_API_KEY;
 
   // Define candidate models in preference order
   const modelsToTry = [

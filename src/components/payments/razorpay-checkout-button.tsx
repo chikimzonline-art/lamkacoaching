@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { processPayment } from '@/lib/razorpay';
 import { enrollInCourse } from '@/app/(student)/dashboard/courses/actions';
+import { revalidateDashboard } from '@/app/(student)/dashboard/actions';
 import { Loader2, GraduationCap, Banknote, CreditCard, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -108,13 +109,12 @@ export function RazorpayCheckoutButton({
           setLoading(false);
           return;
         }
-        try {
-          await enrollInCourse(itemId, batchId || '');
-        } catch (error: any) {
-          // If already enrolled, the action throws. We can ignore it if we just want to proceed to pay,
+        const res = await enrollInCourse(itemId, batchId || '');
+        if (!res?.success) {
+          // If already enrolled, the action returns an error. We can ignore it if we just want to proceed to pay,
           // but if it fails for another reason, we should stop.
-          if (!error.message?.includes('Already enrolled')) {
-             throw error;
+          if (!res?.error?.includes('Already enrolled')) {
+             throw new Error(res?.error || "Enrollment failed.");
           }
         }
       }
@@ -156,9 +156,14 @@ export function RazorpayCheckoutButton({
           email: studentEmail || '',
           contact: studentPhone,
         },
-        onSuccess: (response: any) => {
+        onSuccess: async (response: any) => {
           setOpen(false);
           toast.success('Payment successful!');
+          try {
+            await revalidateDashboard();
+          } catch (e) {
+            console.error('Failed to revalidate dashboard', e);
+          }
           router.push(`/dashboard/success?type=${type}&id=${itemId}&payment_id=${response.razorpay_payment_id}`);
         },
         onFailure: (error) => {

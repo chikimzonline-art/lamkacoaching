@@ -254,11 +254,11 @@ export default function BookingsView() {
   };
 
   const handleRenewBooking = async (booking: Booking) => {
-    let rate = rates.reserved;
+    let rate = 0;
     if (booking.type === 'morning_shift') rate = rates.morning;
-    if (booking.type === 'day_shift' || booking.type === 'hourly') rate = rates.day;
+    if (booking.type === 'day_shift') rate = rates.day;
     if (booking.type === 'night_shift') rate = rates.night;
-    if (booking.type === 'monthly' || booking.type === 'exclusive') rate = rates.reserved;
+    if (booking.type === 'reserved') rate = rates.reserved;
     
     const typeLabel = booking.type.replace('_', ' ');
     if (!confirm(`Renew ${typeLabel} booking for ${booking.student.name} (Cabin #${booking.cabin.cabinNum}) by 1 month?\n\nAdditional cost: ${formatCurrency(rate * 100)}`)) return;
@@ -281,9 +281,7 @@ export default function BookingsView() {
   };
 
   const openReceipt = (booking: Booking, payment: { amount: number; mode: string; receivedAt: string }) => {
-    const period = booking.type === 'hourly'
-      ? `${formatDate(booking.startDate)}${booking.endDate ? ` - ${formatDate(booking.endDate)}` : ''} (5 hrs/day)`
-      : `${formatDate(booking.startDate)} - ${booking.endDate ? formatDate(booking.endDate) : 'Ongoing'}`;
+    const period = `${formatDate(booking.startDate)} - ${booking.endDate ? formatDate(booking.endDate) : 'Ongoing'}`;
 
     setReceiptData({
       receiptNo: payment.receivedAt.slice(0, 10).replace(/-/g, '').toUpperCase(),
@@ -381,10 +379,7 @@ export default function BookingsView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="hourly">Hourly</SelectItem>
-              <SelectItem value="exclusive">Exclusive</SelectItem>
               <SelectItem value="reserved">Reserved</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
               <SelectItem value="morning_shift">Morning Shift</SelectItem>
               <SelectItem value="day_shift">Day Shift</SelectItem>
               <SelectItem value="night_shift">Night Shift</SelectItem>
@@ -476,9 +471,9 @@ export default function BookingsView() {
                         variant="outline"
                         className={cn(
                           'text-xs',
-                          booking.type === 'exclusive'
+                          booking.type === 'reserved'
                             ? 'bg-sky-100 text-sky-800 border-sky-200'
-                            : 'bg-sky-100 text-sky-800 border-sky-200'
+                            : 'bg-indigo-100 text-indigo-800 border-indigo-200'
                         )}
                       >
                         {booking.type}
@@ -512,17 +507,10 @@ export default function BookingsView() {
                     <p className="text-sm text-gray-500">
                       Cabin #{booking.cabin.cabinNum} &bull; {booking.student.phone}
                     </p>
-                    {booking.type === 'hourly' ? (
-                      <p className="text-sm text-gray-500">
-                        {formatDate(booking.startDate)}
-                        {booking.endDate ? ` - ${formatDate(booking.endDate)}` : ''} &bull; 5 hrs/day
-                      </p>
-                    ) : (
-                      <p className="text-sm text-gray-500">
-                        {formatDate(booking.startDate)}
-                        {booking.endDate ? ` - ${formatDate(booking.endDate)}` : ' - Ongoing'}
-                      </p>
-                    )}
+                    <p className="text-sm text-gray-500">
+                      {formatDate(booking.startDate)}
+                      {booking.endDate ? ` - ${formatDate(booking.endDate)}` : ' - Ongoing'}
+                    </p>
                     {booking.notes && (
                       <p className="text-xs text-gray-400 italic">{booking.notes}</p>
                     )}
@@ -583,7 +571,7 @@ export default function BookingsView() {
                           Record Payment
                         </Button>
                       )}
-                      {(['reserved', 'morning_shift', 'day_shift', 'night_shift', 'exclusive', 'hourly', 'monthly'].includes(booking.type)) && (
+                      {(['reserved', 'morning_shift', 'day_shift', 'night_shift'].includes(booking.type)) && (
                         <Button
                           size="sm"
                           variant="outline"

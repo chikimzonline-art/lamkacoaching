@@ -17,6 +17,10 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
     const type = formData.get('type') as string | null; // 'logo' | 'favicon' | 'gallery' | 'avatar'
 
+    if ((type === 'logo' || type === 'favicon') && user.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden: Only admins can modify global assets' }, { status: 403 });
+    }
+
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
@@ -87,7 +91,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const user = await getAuthUser();
-    if (!user) {
+    if (!user || user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

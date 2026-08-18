@@ -1,25 +1,23 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { db } from '@/lib/db';
+import { verifyRazorpaySignature } from '@/lib/razorpay-server';
+import { env } from '@/env';
 
 export async function POST(req: Request) {
   try {
     const bodyText = await req.text(); // Get raw body text for signature validation
     
     const signature = req.headers.get('x-razorpay-signature');
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const secret = env.RAZORPAY_WEBHOOK_SECRET;
 
     if (!signature || !secret) {
       return NextResponse.json({ error: 'Invalid signature or secret' }, { status: 400 });
     }
 
     // Verify signature
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(bodyText)
-      .digest('hex');
+    const isValidSignature = verifyRazorpaySignature(bodyText, signature, secret);
 
-    if (expectedSignature !== signature) {
+    if (!isValidSignature) {
       console.error('Invalid Razorpay signature');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
@@ -57,7 +55,7 @@ export async function POST(req: Request) {
         if (enrollment) {
           // Check for idempotency
           const existingPayment = await db.enrollmentPayment.findFirst({
-            where: { notes: { contains: paymentEntity.id } }
+            where: { transactionId: paymentEntity.id }
           });
 
           if (existingPayment) {
@@ -72,6 +70,7 @@ export async function POST(req: Request) {
                 studentId: studentId,
                 amount: amountPaid,
                 mode: 'razorpay',
+                transactionId: paymentEntity.id,
                 notes: `Razorpay Payment ID: ${paymentEntity.id}`,
                 status: 'completed',
               }
@@ -101,7 +100,7 @@ export async function POST(req: Request) {
         if (booking) {
           // Check for idempotency
           const existingPayment = await db.payment.findFirst({
-            where: { notes: { contains: paymentEntity.id } }
+            where: { transactionId: paymentEntity.id }
           });
 
           if (existingPayment) {
@@ -138,6 +137,7 @@ export async function POST(req: Request) {
                 studentId: studentId,
                 amount: amountPaid,
                 mode: 'razorpay',
+                transactionId: paymentEntity.id,
                 notes: `Razorpay Payment ID: ${paymentEntity.id}`,
                 status: 'completed',
               }
@@ -165,7 +165,7 @@ export async function POST(req: Request) {
         if (booking && booking.status === 'active') {
           // Check for idempotency
           const existingPayment = await db.payment.findFirst({
-            where: { notes: { contains: paymentEntity.id } }
+            where: { transactionId: paymentEntity.id }
           });
 
           if (!existingPayment) {
@@ -181,6 +181,7 @@ export async function POST(req: Request) {
                   studentId: studentId,
                   amount: amountPaid,
                   mode: 'razorpay',
+                  transactionId: paymentEntity.id,
                   notes: `Razorpay Renewal ID: ${paymentEntity.id}`,
                   status: 'completed',
                 }
