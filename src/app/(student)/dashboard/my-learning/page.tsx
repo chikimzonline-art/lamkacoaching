@@ -1,6 +1,6 @@
 import { requireStudent } from "@/lib/student-auth"
 import Link from "next/link"
-import { BookOpen, MapPin, Calendar, ChevronRight, DoorOpen } from "lucide-react"
+import { GraduationCap, Building2, Calendar, ChevronRight, BookOpen } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -62,7 +62,7 @@ export default async function MyLearningPage({
                 {allEnrollments.map(enrollment => (
                   <Card key={enrollment.id} className="group overflow-hidden border-none shadow-sm transition-all hover:shadow-md hover:ring-1 hover:ring-blue-500/20">
                     <div className="h-32 w-full bg-gradient-to-br from-blue-100 to-indigo-50 group-hover:from-blue-200 group-hover:to-indigo-100 transition-colors flex items-center justify-center">
-                      <BookOpen className="h-12 w-12 text-blue-300" />
+                      <GraduationCap className="h-12 w-12 text-blue-400" />
                     </div>
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start mb-2">
@@ -138,7 +138,7 @@ export default async function MyLearningPage({
                 {activeBookings.map(booking => (
                   <Card key={booking.id} className="group overflow-hidden border-none shadow-sm transition-all hover:shadow-md hover:ring-1 hover:ring-emerald-500/20">
                     <div className="h-28 w-full bg-gradient-to-br from-emerald-100 to-teal-50 group-hover:from-emerald-200 group-hover:to-teal-100 transition-colors flex flex-col items-center justify-center">
-                      <DoorOpen className="h-10 w-10 text-emerald-400 mb-1" />
+                      <Building2 className="h-10 w-10 text-emerald-500 mb-1" />
                       <span className="font-bold text-emerald-800 text-lg">Cabin {booking.cabin.cabinNum}</span>
                     </div>
                     <CardHeader className="pb-3">
@@ -194,7 +194,7 @@ export default async function MyLearningPage({
               <Card className="border-dashed border-2 shadow-none bg-slate-50/50 mt-4">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="rounded-full bg-slate-100 p-4 mb-4">
-                    <DoorOpen className="h-8 w-8 text-slate-400" />
+                    <Building2 className="h-8 w-8 text-slate-400" />
                   </div>
                   <h3 className="font-semibold text-lg text-slate-900">No Active Bookings</h3>
                   <p className="text-slate-500 mt-2 max-w-sm mb-6">You don't have any study cabin bookings yet. Get a quiet space to maximize your focus.</p>

@@ -8,14 +8,14 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { 
   Home, 
   BookOpen, 
-  MapPin, 
+  Building2, 
   CreditCard, 
   LogOut, 
   User, 
   Bell, 
   Calendar, 
   HelpCircle, 
-  Search,
+  GraduationCap, 
   Grid
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -53,8 +53,8 @@ import { cn } from "@/lib/utils";
 const desktopNavItems = [
   { title: "Home", href: "/dashboard", icon: Home },
   { title: "My Enrollment & Booking", href: "/dashboard/my-learning", icon: BookOpen },
-  { title: "Explore Courses", href: "/dashboard/courses", icon: Search },
-  { title: "Explore Study Cabin", href: "/dashboard/cabins", icon: MapPin },
+  { title: "Explore Courses", href: "/dashboard/courses", icon: GraduationCap },
+  { title: "Explore Study Cabin", href: "/dashboard/cabins", icon: Building2 },
   { title: "History & Billing", href: "/dashboard/history", icon: CreditCard },
   { title: "Notices", href: "/dashboard/notices", icon: Bell },
   { title: "Schedule", href: "/dashboard/schedule", icon: Calendar },
@@ -64,8 +64,8 @@ const desktopNavItems = [
 const mobileCoreNavItems = [
   { title: "Home", href: "/dashboard", icon: Home },
   { title: "My Learning", href: "/dashboard/my-learning", icon: BookOpen },
-  { title: "Courses", href: "/dashboard/courses", icon: Search },
-  { title: "Cabins", href: "/dashboard/cabins", icon: MapPin },
+  { title: "Courses", href: "/dashboard/courses", icon: GraduationCap },
+  { title: "Cabins", href: "/dashboard/cabins", icon: Building2 },
 ];
 
 const mobileMoreNavItems = [

@@ -1,6 +1,6 @@
 import { requireStudent } from "@/lib/student-auth"
 import Link from "next/link"
-import { BookOpen, MapPin, AlertCircle, Calendar, GraduationCap, ChevronRight, Search, Clock, ArrowUpRight } from "lucide-react"
+import { BookOpen, Building2, AlertCircle, Calendar, GraduationCap, ChevronRight, Clock, ArrowUpRight } from "lucide-react"
 import { formatCurrency } from "@/lib/helpers"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Courses</CardTitle>
               <div className="p-2 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <BookOpen className="h-4 w-4" />
+                <GraduationCap className="h-4 w-4" />
               </div>
             </CardHeader>
             <CardContent>
@@ -108,7 +108,7 @@ export default async function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Study Cabins</CardTitle>
               <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                <MapPin className="h-4 w-4" />
+                <Building2 className="h-4 w-4" />
               </div>
             </CardHeader>
             <CardContent>
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
           <Card className="border border-slate-200/80 shadow-xs bg-white hover:shadow-md hover:border-blue-300 transition-all rounded-2xl h-full flex flex-col justify-between">
             <CardHeader className="pb-3">
               <div className="rounded-xl bg-blue-50 p-3 w-fit mb-3 group-hover:bg-blue-600 group-hover:text-white text-blue-700 transition-colors">
-                <Search className="h-6 w-6" />
+                <GraduationCap className="h-6 w-6" />
               </div>
               <CardTitle className="text-lg">Explore Courses</CardTitle>
               <CardDescription className="text-xs text-slate-500">Discover new courses and expand your career skills.</CardDescription>
@@ -190,7 +190,7 @@ export default async function DashboardPage() {
           <Card className="border border-slate-200/80 shadow-xs bg-white hover:shadow-md hover:border-emerald-300 transition-all rounded-2xl h-full flex flex-col justify-between">
             <CardHeader className="pb-3">
               <div className="rounded-xl bg-emerald-50 p-3 w-fit mb-3 group-hover:bg-emerald-600 group-hover:text-white text-emerald-700 transition-colors">
-                <MapPin className="h-6 w-6" />
+                <Building2 className="h-6 w-6" />
               </div>
               <CardTitle className="text-lg">Explore Cabins</CardTitle>
               <CardDescription className="text-xs text-slate-500">Reserve a personal, air-conditioned study space.</CardDescription>
