@@ -19,6 +19,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import CourseDetailModal from '@/components/public/course-detail-modal';
+import { resolveIcon } from '@/components/homepage/homepage-view';
 
 /* ─────────────────────────────────────────────
    Types & Interfaces
@@ -67,6 +68,16 @@ interface SuccessStory {
   name: string;
   achievement: string;
   batch: string;
+}
+
+interface FeatureCard {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  icon: string;
+  linkText: string;
+  linkHref: string;
 }
 
 const defaultSuccessStories: SuccessStory[] = [
@@ -128,6 +139,8 @@ export default function HomePage() {
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [stories, setStories] = useState<SuccessStory[]>(defaultSuccessStories);
+  const [featureCards, setFeatureCards] = useState<FeatureCard[]>([]);
+  const [featureCardsLoading, setFeatureCardsLoading] = useState(true);
   const [dailyQuote, setDailyQuote] = useState<{ text: string; author: string } | null>(null);
   const [storySlideIndex, setStorySlideIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -173,6 +186,13 @@ export default function HomePage() {
         setDailyQuote(DEFAULT_QUOTE);
       })
       .finally(() => setLoading(false));
+
+    // Fetch feature cards separately so the rest of the page isn't blocked
+    fetch('/api/public/feature-cards')
+      .then((r) => r.json())
+      .then((data) => { if (data.cards?.length > 0) setFeatureCards(data.cards); })
+      .catch((err) => console.error('Error loading feature cards:', err))
+      .finally(() => setFeatureCardsLoading(false));
   }, []);
 
   // Filtered courses
@@ -324,7 +344,52 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-8">
+          {/* Dynamic Feature Cards Grid */}
+          {featureCardsLoading ? (
+            // Skeleton loader while fetching
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-8">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="rounded-2xl bg-white/10 animate-pulse h-[340px] sm:h-[380px] md:h-[400px]" />
+              ))}
+            </div>
+          ) : featureCards.length > 0 ? (
+            // Dynamically fetched cards
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-8">
+              {featureCards.map((card) => (
+                <div key={card.id} className="group relative rounded-2xl overflow-hidden flex flex-col h-[340px] sm:h-[380px] md:h-[400px] shadow-2xl border border-white/20 hover:shadow-cyan-950/50 hover:border-white/40 hover:-translate-y-1.5 transition-all duration-300">
+                  {card.image ? (
+                    <img
+                      src={card.image}
+                      alt={card.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-800 to-sky-950" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/75 to-transparent" />
+                  <div className="relative z-10 p-5 sm:p-7 flex flex-col h-full justify-end">
+                    <div className="w-12 sm:w-14 h-12 sm:h-14 bg-gradient-to-br from-cyan-400 to-sky-500 rounded-2xl flex items-center justify-center mb-4 sm:mb-5 shadow-lg shadow-cyan-950/40 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 border border-white/20">
+                      {resolveIcon(card.icon, 'h-6 sm:h-7 w-6 sm:w-7 text-white stroke-[2]')}
+                    </div>
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-2 leading-snug">
+                      {card.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-cyan-100/90 mb-4 sm:mb-5 leading-relaxed line-clamp-2 sm:line-clamp-3">
+                      {card.description}
+                    </p>
+                    <Link
+                      href={card.linkHref}
+                      className="text-cyan-300 hover:text-white text-xs font-bold uppercase flex items-center gap-1.5 transition-colors tracking-wider group-hover:translate-x-1"
+                    >
+                      {card.linkText} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Fallback — static hardcoded cards when no CMS data exists
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-8">
             {/* Dept 1 - Competitive Exam Coaching */}
             <div className="group relative rounded-2xl overflow-hidden flex flex-col h-[340px] sm:h-[380px] md:h-[400px] shadow-2xl border border-white/20 hover:shadow-cyan-950/50 hover:border-white/40 hover:-translate-y-1.5 transition-all duration-300">
               <img
@@ -406,6 +471,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </section>
 
