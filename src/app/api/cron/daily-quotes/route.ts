@@ -9,15 +9,13 @@ const redis = Redis.fromEnv();
 // Function to generate and save quotes
 async function generateAndSaveQuotes() {
   const prompt = `
-    Generate 5 highly motivational, inspiring, and concise quotes for students and professionals.
-    The quotes should focus on success, perseverance, education, and believing in oneself.
+    Generate 1 highly motivational, inspiring, and concise quote for students and professionals.
+    The quote should focus on success, perseverance, education, dedication, or believing in oneself.
     
-    Return the response strictly as a JSON array of objects with "text" and "author" keys.
-    Do not include markdown blocks, just the raw JSON array.
+    Return the response strictly as a single JSON object with "text" and "author" keys.
+    Do not include markdown blocks or array wrappers, just the raw JSON object.
     Example:
-    [
-      { "text": "The only way to do great work is to love what you do.", "author": "Steve Jobs" }
-    ]
+    { "text": "The only way to do great work is to love what you do.", "author": "Steve Jobs" }
   `;
 
   try {
@@ -32,18 +30,20 @@ async function generateAndSaveQuotes() {
     const cleanJsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
     // Parse the JSON
-    const quotes = JSON.parse(cleanJsonString);
+    const parsed = JSON.parse(cleanJsonString);
+    const quote = Array.isArray(parsed) ? parsed[0] : parsed;
 
-    if (!Array.isArray(quotes) || quotes.length === 0) {
-      throw new Error('Invalid quotes format returned from Gemini');
+    if (!quote || typeof quote.text !== 'string' || typeof quote.author !== 'string') {
+      throw new Error('Invalid quote format returned from Gemini');
     }
 
-    // Save to Upstash Redis
-    await redis.set('daily_inspirations', quotes);
+    // Save to Upstash Redis (both keys for compatibility)
+    await redis.set('daily_inspiration', quote);
+    await redis.set('daily_inspirations', [quote]);
     
-    return { success: true, quotesCount: quotes.length };
+    return { success: true, quote };
   } catch (error) {
-    console.error('Error generating daily quotes:', error);
+    console.error('Error generating daily quote:', error);
     throw error;
   }
 }

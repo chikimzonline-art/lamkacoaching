@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import PublicLayout from '@/components/public/public-layout';
 import {
@@ -15,6 +15,8 @@ import {
   Quote,
   User,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import CourseDetailModal from '@/components/public/course-detail-modal';
 
@@ -57,8 +59,7 @@ interface SiteSettings {
   businessPhone?: string;
   businessEmail?: string;
   businessAddress?: string;
-  inspirationalQuote?: string;
-  inspirationalQuoteAuthor?: string;
+  heroImageUrl?: string;
 }
 
 interface SuccessStory {
@@ -68,10 +69,7 @@ interface SuccessStory {
   batch: string;
 }
 
-/* ─────────────────────────────────────────────
-   Success Stories Data (Ready for upcoming API)
-   ───────────────────────────────────────────── */
-const successStoriesList: SuccessStory[] = [
+const defaultSuccessStories: SuccessStory[] = [
   {
     id: '1',
     name: 'Rahul Sharma',
@@ -98,6 +96,13 @@ const successStoriesList: SuccessStory[] = [
   },
 ];
 
+const DEFAULT_HERO_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCTWsiFMBcYscT6HKyE_tMViTyb3WozM5XHV6PxaMpnQp9DmKM49GARyQabfCGtDJJlKIm_oUvoZBBFp7XZlm1OMAg0o_-UB3CByi5DNaYzxzqLzVlqyBnQZkBSac32Bx5UPJezCPX2_8FxYaEkXbVR4LhnerdBf8xCJ9VThO7dWN9sGLORaw8OnSNqsPIU6wMKDJzsIC5ZqHxcWYpcppNex-DbRmdoAMwkRytftXhqRGhq83ZkN9RD';
+
+const DEFAULT_QUOTE = {
+  text: "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice and most of all, love of what you are doing or learning to do.",
+  author: "Pelé",
+};
+
 /* ─────────────────────────────────────────────
    Helper Utilities
    ───────────────────────────────────────────── */
@@ -122,6 +127,9 @@ export default function HomePage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
+  const [stories, setStories] = useState<SuccessStory[]>(defaultSuccessStories);
+  const [dailyQuote, setDailyQuote] = useState<{ text: string; author: string } | null>(null);
+  const [storySlideIndex, setStorySlideIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
   // Tabs state
@@ -141,17 +149,28 @@ export default function HomePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/public/courses').then((r) => r.json()),
-      fetch('/api/public/batches').then((r) => r.json()),
-      fetch('/api/public/settings').then((r) => r.json()),
+      fetch('/api/public/courses').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/public/batches').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/public/settings').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/public/stories').then((r) => r.json()).catch(() => ({})),
+      fetch('/api/public/daily-quote').then((r) => r.json()).catch(() => ({})),
     ])
-      .then(([coursesData, batchesData, settingsData]) => {
+      .then(([coursesData, batchesData, settingsData, storiesData, quoteData]) => {
         setDepartments(coursesData.departments || []);
         setBatches(Array.isArray(batchesData) ? batchesData : batchesData.batches || []);
         setSiteSettings(settingsData.settings || {});
+        if (storiesData.successStories && storiesData.successStories.length > 0) {
+          setStories(storiesData.successStories);
+        }
+        if (quoteData.quote?.text && quoteData.quote?.author) {
+          setDailyQuote(quoteData.quote);
+        } else {
+          setDailyQuote(DEFAULT_QUOTE);
+        }
       })
       .catch((err) => {
         console.error('Error loading homepage data:', err);
+        setDailyQuote(DEFAULT_QUOTE);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -201,8 +220,19 @@ export default function HomePage() {
 
   // Dynamic values
   const heroBadge = siteSettings.heroBadgeText || 'Admissions Open 2025-26';
-  const quoteText = siteSettings.inspirationalQuote || "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice and most of all, love of what you are doing or learning to do.";
-  const quoteAuthor = siteSettings.inspirationalQuoteAuthor || 'Pelé';
+  const heroImageSrc = siteSettings.heroImageUrl || DEFAULT_HERO_IMAGE;
+
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = carouselRef.current.clientWidth * 0.8;
+      carouselRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   return (
     <PublicLayout>
@@ -250,7 +280,7 @@ export default function HomePage() {
           {/* Right Hero Image Card */}
           <div className="relative h-[240px] sm:h-[340px] md:h-[400px] lg:h-[480px] w-full rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl bg-gray-900 border-2 sm:border-4 border-white dark:border-gray-800 group">
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTWsiFMBcYscT6HKyE_tMViTyb3WozM5XHV6PxaMpnQp9DmKM49GARyQabfCGtDJJlKIm_oUvoZBBFp7XZlm1OMAg0o_-UB3CByi5DNaYzxzqLzVlqyBnQZkBSac32Bx5UPJezCPX2_8FxYaEkXbVR4LhnerdBf8xCJ9VThO7dWN9sGLORaw8OnSNqsPIU6wMKDJzsIC5ZqHxcWYpcppNex-DbRmdoAMwkRytftXhqRGhq83ZkN9RD"
+              src={heroImageSrc}
               alt="Modern classroom with students learning at Lamka Coaching Center"
               className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             />
@@ -391,7 +421,7 @@ export default function HomePage() {
               Ongoing Courses
             </h2>
 
-            {/* Pill Filters (Smooth horizontal swipe on mobile) */}
+            {/* Pill Filters */}
             <div className="flex gap-2 sm:gap-2.5 mt-4 sm:mt-6 mb-4 overflow-x-auto pb-2 scrollbar-none no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
               <button
                 onClick={() => setSelectedCourseTab('all')}
@@ -448,7 +478,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Ongoing Courses Grid (1 col mobile, 2 col tablet, 3 col desktop) */}
+          {/* Ongoing Courses Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-14 sm:mb-20">
             {loading ? (
               [...Array(3)].map((_, i) => (
@@ -469,7 +499,6 @@ export default function HomePage() {
                   key={course.id}
                   className="group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-xl hover:border-cyan-500/30 hover:-translate-y-1.5 transition-all duration-300 relative flex flex-col justify-between"
                 >
-                  {/* Status Badge */}
                   <div className="absolute top-4 right-4 z-10">
                     <span className="bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                       In Progress
@@ -481,11 +510,9 @@ export default function HomePage() {
                       <span className="bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
                         {departmentName}
                       </span>
-
                       <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white mt-4 sm:mt-5 mb-2 sm:mb-3 leading-snug">
                         {course.name}
                       </h3>
-
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-5 sm:mb-6 line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem]">
                         {course.description || 'Comprehensive curriculum with practice mock papers and faculty mentorship.'}
                       </p>
@@ -496,7 +523,6 @@ export default function HomePage() {
                         <Calendar className="h-4 w-4 text-cyan-500" />
                         <span>Duration: {course.duration || 'Flexible'} • {course.totalFee > 0 ? formatCurrency(course.totalFee) : 'Contact Us'}</span>
                       </div>
-
                       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mt-1 sm:mt-2">
                         <Link
                           href={`/register?courseId=${course.id}`}
@@ -523,8 +549,6 @@ export default function HomePage() {
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">
               Upcoming Batches
             </h2>
-
-            {/* Pill Filters (Smooth horizontal swipe on mobile) */}
             <div className="flex gap-2 sm:gap-2.5 mt-4 sm:mt-6 mb-4 overflow-x-auto pb-2 scrollbar-none no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
               <button
                 onClick={() => setSelectedBatchTab('all')}
@@ -581,7 +605,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Upcoming Batches Grid (1 col mobile, 2 col tablet, 3 col desktop) */}
+          {/* Upcoming Batches Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {loading ? (
               [...Array(3)].map((_, i) => (
@@ -602,7 +626,6 @@ export default function HomePage() {
                   key={batch.id}
                   className="group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-xl hover:border-cyan-500/30 hover:-translate-y-1.5 transition-all duration-300 relative flex flex-col justify-between"
                 >
-                  {/* Badge */}
                   <div className="absolute top-4 right-4 z-10">
                     <span className="bg-gradient-to-r from-cyan-500 to-sky-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                       New Batch
@@ -614,11 +637,9 @@ export default function HomePage() {
                       <span className="bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
                         {batch.department}
                       </span>
-
                       <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white mt-4 sm:mt-5 mb-2 sm:mb-3 leading-snug">
                         {batch.courseName}
                       </h3>
-
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-5 sm:mb-6 line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem]">
                         {batch.description || `Timing: ${batch.timing}. Limited seats available.`}
                       </p>
@@ -629,7 +650,6 @@ export default function HomePage() {
                         <Calendar className="h-4 w-4 text-cyan-500" />
                         <span>Starting: {formatDate(batch.startDate)} • {batch.seats} seats left</span>
                       </div>
-
                       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mt-1 sm:mt-2">
                         <Link
                           href="/register"
@@ -654,40 +674,87 @@ export default function HomePage() {
       </section>
 
       {/* ========================================================
-          4. SUCCESS STORIES (Responsive Grid)
+          4. SUCCESS STORIES (Responsive Carousel Slider)
           ======================================================== */}
-      <section className="bg-white dark:bg-gray-950 py-12 sm:py-16 md:py-20 border-t border-gray-200 dark:border-gray-800">
+      <section className="bg-white dark:bg-gray-950 py-12 sm:py-16 md:py-20 border-t border-gray-200 dark:border-gray-800 relative overflow-hidden">
         <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 max-w-[1280px] mx-auto">
-          <div className="text-center mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-2 sm:mb-3 tracking-tight">
-              Our Success Stories
-            </h2>
-            <p className="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-2">
-              Celebrating the hard work and achievements of our dedicated students.
-            </p>
-          </div>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 sm:mb-12 gap-4">
+            <div>
+              <span className="text-cyan-600 dark:text-cyan-400 font-bold text-xs uppercase tracking-wider">
+                Wall of Fame
+              </span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mt-1 mb-2 tracking-tight">
+                Our Success Stories
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-xl">
+                Celebrating the hard work, milestones, and career achievements of our dedicated students.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {successStoriesList.map((student) => (
-              <div
-                key={student.id}
-                className="group bg-gray-50 dark:bg-gray-900 rounded-2xl p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-xl hover:border-cyan-500/40 hover:-translate-y-1.5 transition-all duration-300 text-center flex flex-col justify-between cursor-default"
-              >
-                <div>
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-cyan-50 dark:bg-cyan-950/50 rounded-full mx-auto mb-3 sm:mb-4 flex items-center justify-center border-2 border-cyan-500 shadow-inner transition-transform duration-300 group-hover:scale-105">
-                    <User className="h-8 w-8 sm:h-10 sm:w-10 text-cyan-600 dark:text-cyan-400 stroke-[1.5]" />
-                  </div>
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                    {student.name}
-                  </h3>
-                </div>
-
-                <p className="text-cyan-600 dark:text-cyan-400 font-bold text-[11px] sm:text-xs uppercase mt-2.5 sm:mt-3 leading-relaxed tracking-wider">
-                  {student.achievement}
-                </p>
+            {/* Carousel Navigation Buttons */}
+            {stories.length > 0 && (
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => scrollCarousel('left')}
+                  className="h-10 w-10 rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 shadow-xs flex items-center justify-center active:scale-95 transition-all duration-200 cursor-pointer"
+                  aria-label="Previous stories"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollCarousel('right')}
+                  className="h-10 w-10 rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 shadow-xs flex items-center justify-center active:scale-95 transition-all duration-200 cursor-pointer"
+                  aria-label="Next stories"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
-            ))}
+            )}
           </div>
+
+          {/* Carousel Slider Container */}
+          {stories.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+              <User className="h-8 w-8 text-gray-400 mx-auto mb-2 opacity-50" />
+              <p className="text-gray-500 text-sm">No success stories published yet.</p>
+            </div>
+          ) : (
+            <div
+              ref={carouselRef}
+              className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 px-1 -mx-1 snap-x snap-mandatory scroll-smooth scrollbar-none no-scrollbar"
+            >
+              {stories.map((student) => (
+                <div
+                  key={student.id}
+                  className="shrink-0 w-[260px] sm:w-[280px] md:w-[300px] lg:w-[calc(25%-18px)] snap-start group bg-gray-50 dark:bg-gray-900 rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-xs hover:shadow-xl hover:border-cyan-500/40 hover:-translate-y-1.5 transition-all duration-300 text-center flex flex-col justify-between cursor-default"
+                >
+                  <div>
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-cyan-50 dark:bg-cyan-950/50 rounded-full mx-auto mb-3 sm:mb-4 flex items-center justify-center border-2 border-cyan-500 shadow-inner transition-transform duration-300 group-hover:scale-105">
+                      <User className="h-8 w-8 sm:h-10 sm:w-10 text-cyan-600 dark:text-cyan-400 stroke-[1.5]" />
+                    </div>
+                    
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-snug">
+                      {student.name}
+                    </h3>
+                    
+                    {student.batch && (
+                      <span className="inline-block text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+                        {student.batch}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-gray-200/60 dark:border-gray-800/60">
+                    <p className="text-cyan-600 dark:text-cyan-400 font-bold text-xs uppercase leading-relaxed tracking-wider">
+                      {student.achievement}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -700,13 +767,23 @@ export default function HomePage() {
             <Quote className="h-10 w-10 sm:h-12 sm:w-12 text-cyan-500 dark:text-cyan-400 rotate-180" />
           </div>
 
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 dark:text-white mb-4 sm:mb-6 italic leading-relaxed tracking-tight px-2">
-            &ldquo;{quoteText}&rdquo;
-          </h2>
+          {loading || !dailyQuote ? (
+            <div className="space-y-3 max-w-2xl mx-auto animate-pulse flex flex-col items-center py-2">
+              <div className="h-7 sm:h-9 bg-gray-200 dark:bg-gray-800 rounded-lg w-full max-w-xl" />
+              <div className="h-7 sm:h-9 bg-gray-200 dark:bg-gray-800 rounded-lg w-3/4 max-w-md" />
+              <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded-md w-36 mt-3" />
+            </div>
+          ) : (
+            <div className="animate-in fade-in duration-300">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 dark:text-white mb-4 sm:mb-6 italic leading-relaxed tracking-tight px-2">
+                &ldquo;{dailyQuote.text}&rdquo;
+              </h2>
 
-          <p className="text-base sm:text-lg lg:text-xl font-bold text-cyan-600 dark:text-cyan-400">
-            — {quoteAuthor}
-          </p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-cyan-600 dark:text-cyan-400">
+                — {dailyQuote.author}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

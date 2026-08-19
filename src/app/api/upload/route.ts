@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
     const type = formData.get('type') as string | null; // 'logo' | 'favicon' | 'gallery' | 'avatar'
 
-    if ((type === 'logo' || type === 'favicon') && user.role !== 'admin') {
+    if ((type === 'logo' || type === 'favicon' || type === 'hero_image') && user.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Only admins can modify global assets' }, { status: 403 });
     }
 
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
                 
     const fileName = type === 'favicon' ? `favicon.${ext}` :
                      type === 'logo' ? `logo.${ext}` :
+                     type === 'hero_image' ? `hero_image_${Date.now()}.${ext}` :
                      `${Date.now()}.${ext}`;
 
     const response = await imagekit.files.upload({
@@ -74,6 +75,12 @@ export async function POST(request: Request) {
         where: { key: 'logo_url' },
         update: { value: publicPath },
         create: { key: 'logo_url', value: publicPath },
+      });
+    } else if (type === 'hero_image') {
+      await db.setting.upsert({
+        where: { key: 'hero_image_url' },
+        update: { value: publicPath },
+        create: { key: 'hero_image_url', value: publicPath },
       });
     }
 
@@ -102,11 +109,13 @@ export async function DELETE(request: Request) {
       await db.setting.deleteMany({ where: { key: 'favicon_url' } });
     } else if (type === 'logo') {
       await db.setting.deleteMany({ where: { key: 'logo_url' } });
+    } else if (type === 'hero_image') {
+      await db.setting.deleteMany({ where: { key: 'hero_image_url' } });
     }
 
-    return NextResponse.json({ success: true, message: 'Logo removed' });
+    return NextResponse.json({ success: true, message: `${type || 'Image'} removed` });
   } catch (error) {
-    console.error('Error removing logo:', error);
-    return NextResponse.json({ error: 'Failed to remove logo' }, { status: 500 });
+    console.error('Error removing asset:', error);
+    return NextResponse.json({ error: 'Failed to remove asset' }, { status: 500 });
   }
 }

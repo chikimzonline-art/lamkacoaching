@@ -18,14 +18,20 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, exam, quote, result, initials, gradient, sortOrder, active } = body;
+    const { name, achievement, batch, sortOrder, active } = body;
     
-    if (!name || !exam || !quote || !result) {
-      return NextResponse.json({ error: 'Name, exam, quote, and result are required' }, { status: 400 });
+    if (!name || !achievement || !batch) {
+      return NextResponse.json({ error: 'Name, achievement, and batch are required' }, { status: 400 });
     }
 
     const story = await db.successStory.create({
-      data: { name, exam, quote, result, initials: initials || name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(), gradient: gradient || 'from-cyan-500 to-sky-500', sortOrder: sortOrder || 0, active: active !== undefined ? active : true },
+      data: {
+        name,
+        achievement,
+        batch,
+        sortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
+        active: active !== undefined ? active : true,
+      },
     });
     return NextResponse.json({ story }, { status: 201 });
   } catch (error) {

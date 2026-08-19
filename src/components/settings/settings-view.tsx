@@ -53,6 +53,7 @@ interface SettingsData {
   footer_cta_title: string;
   footer_cta_subtitle: string;
   logo_url: string;
+  hero_image_url: string;
 }
 
 interface UserRecord {
@@ -82,6 +83,7 @@ const defaultSettings: SettingsData = {
   footer_cta_title: 'New Batches Starting Soon!',
   footer_cta_subtitle: 'Enroll now to secure your seat.',
   logo_url: '',
+  hero_image_url: '',
 };
 
 function useSettingsState() {
@@ -111,6 +113,7 @@ function useSettingsState() {
           footer_cta_title: json.settings.footer_cta_title || defaultSettings.footer_cta_title,
           footer_cta_subtitle: json.settings.footer_cta_subtitle || defaultSettings.footer_cta_subtitle,
           logo_url: json.settings.logo_url || defaultSettings.logo_url,
+          hero_image_url: json.settings.hero_image_url || defaultSettings.hero_image_url,
         });
       }
     } catch (err) {
@@ -154,6 +157,58 @@ export default function SettingsViewWrapper() {
   const isAdmin = (session?.user as any)?.role === 'admin';
   const { settings, setSettings, loading, saving, handleSave } = useSettingsState();
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum size: 5MB');
+      return;
+    }
+
+    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'].includes(file.type)) {
+      toast.error('Invalid file type. Allowed: PNG, JPEG, SVG, WebP');
+      return;
+    }
+
+    setUploadingHeroImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'hero_image');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to upload hero image');
+        return;
+      }
+
+      setSettings({ ...settings, hero_image_url: json.url });
+      toast.success('Hero image uploaded successfully');
+    } catch {
+      toast.error('Failed to upload hero image');
+    } finally {
+      setUploadingHeroImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveHeroImage = async () => {
+    try {
+      await fetch('/api/upload?type=hero_image', { method: 'DELETE' });
+      setSettings({ ...settings, hero_image_url: '' });
+      toast.success('Hero image removed');
+    } catch {
+      toast.error('Failed to remove hero image');
+    }
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -555,6 +610,90 @@ export default function SettingsViewWrapper() {
               onChange={(e) => setSettings({ ...settings, footer_cta_subtitle: e.target.value })}
               placeholder="e.g. Enroll now to secure your seat."
             />
+          </div>
+
+          {/* Hero Section Image */}
+          <div className="space-y-3 pt-2 border-t border-gray-100">
+            <div>
+              <Label className="text-sm font-medium">Hero Section Image</Label>
+              <p className="text-xs text-gray-400 mt-0.5">
+                The main banner image displayed on the right side of the homepage hero. Max 5MB (PNG, JPG, WebP).
+              </p>
+            </div>
+
+            <div className="flex items-start gap-4">
+              {/* Preview */}
+              <div className="shrink-0">
+                {settings.hero_image_url ? (
+                  <div className="relative group">
+                    <div className="h-28 w-44 rounded-xl border-2 border-gray-200 overflow-hidden bg-gray-900 shadow-sm flex items-center justify-center">
+                      <img
+                        src={settings.hero_image_url}
+                        alt="Hero preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveHeroImage}
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm cursor-pointer opacity-0 group-hover:opacity-100"
+                      title="Remove hero image"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="h-28 w-44 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center gap-1.5">
+                    <ImagePlus className="h-6 w-6 text-gray-400" />
+                    <span className="text-[10px] text-gray-400 font-medium">Default image in use</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2 justify-center py-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                    onChange={handleHeroImageUpload}
+                    className="hidden"
+                    disabled={uploadingHeroImage}
+                  />
+                  <span className={cn(
+                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                    uploadingHeroImage
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100 hover:border-cyan-300"
+                  )}>
+                    {uploadingHeroImage ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading to ImageKit...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        {settings.hero_image_url ? 'Replace Image' : 'Upload Hero Image'}
+                      </>
+                    )}
+                  </span>
+                </label>
+
+                {settings.hero_image_url && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveHeroImage}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 w-fit"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Reset to Default
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Live Preview */}
