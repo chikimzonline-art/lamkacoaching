@@ -25,6 +25,12 @@ import { toast } from 'sonner';
 import { processPayment } from '@/lib/razorpay';
 import { RazorpayCheckoutButton } from '@/components/payments/razorpay-checkout-button';
 import { CancelBookingButton } from '@/components/bookings/cancel-booking-button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 interface CabinInfo {
   id: string;
@@ -87,6 +93,7 @@ function formatFloorLabel(floor: number): string {
 
 export default function DashboardCabinsClient({ data }: { data: DashboardCabinsClientProps }) {
   const [selectedCabin, setSelectedCabin] = useState<string | null>(null);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [bookingType, setBookingType] = useState<'reserved' | 'morning_shift' | 'day_shift' | 'night_shift'>('reserved');
   const [activeFloor, setActiveFloor] = useState<number | 'all'>('all');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -117,6 +124,11 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
   if (data.isFirstBooking) {
     estimatedAmount += data.pricing.registrationFee * 100;
   }
+
+  const handleSelectCabin = (cabinId: string) => {
+    setSelectedCabin(cabinId);
+    setMobileDrawerOpen(true);
+  };
 
   async function handleBook() {
     if (!selectedCabin) return;
@@ -168,6 +180,7 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
         onSuccess: (response: any) => {
           toast.success("Cabin booked successfully!");
           setSubmitting(false);
+          setMobileDrawerOpen(false);
           router.push(`/dashboard/success?type=cabin&id=${selectedCabin}&payment_id=${response.razorpay_payment_id}`);
         },
         onFailure: (err) => {
@@ -181,21 +194,190 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
     }
   }
 
+  const renderBookingFormContent = () => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+        <div className="h-11 w-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-xs">
+          {selectedCabinInfo?.cabinNum}
+        </div>
+        <div>
+          <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+            Cabin {selectedCabinInfo?.cabinNum}
+            <span className="ml-2 text-xs sm:text-sm font-normal text-slate-500">
+              on {selectedCabinInfo ? formatFloorLabel(selectedCabinInfo.floor) : ''}
+            </span>
+          </h3>
+          <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
+            <Building2 className="h-3.5 w-3.5" />
+            {selectedCabinInfo ? formatFloorLabel(selectedCabinInfo.floor) : ''} &bull; Available
+          </p>
+        </div>
+      </div>
+
+      {/* Booking Type / Shift Selection */}
+      <div>
+        <Label className="mb-2 block font-semibold text-slate-800 text-xs sm:text-sm uppercase tracking-wider">
+          Select Shift
+        </Label>
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100/80 p-1.5 border border-slate-200/60">
+          <button
+            type="button"
+            onClick={() => setBookingType('reserved')}
+            disabled={(selectedCabinInfo?.bookedShifts?.length ?? 0) > 0}
+            className={cn(
+              'flex flex-col items-center justify-center p-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer',
+              bookingType === 'reserved'
+                ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                : 'text-slate-600 hover:text-slate-900',
+              (selectedCabinInfo?.bookedShifts?.length ?? 0) > 0 ? 'opacity-40 cursor-not-allowed line-through' : ''
+            )}
+          >
+            <span>Exclusive Reserved</span>
+            <span className="text-[10px] font-normal opacity-80 mt-0.5">24/7 Access</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setBookingType('morning_shift')}
+            disabled={selectedCabinInfo?.bookedShifts?.includes('morning_shift')}
+            className={cn(
+              'flex flex-col items-center justify-center p-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer',
+              bookingType === 'morning_shift'
+                ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                : 'text-slate-600 hover:text-slate-900',
+              selectedCabinInfo?.bookedShifts?.includes('morning_shift') ? 'opacity-40 cursor-not-allowed line-through' : ''
+            )}
+          >
+            <span>Morning Shift</span>
+            <span className="text-[10px] font-normal opacity-80 mt-0.5">5AM - 10AM</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setBookingType('day_shift')}
+            disabled={selectedCabinInfo?.bookedShifts?.includes('day_shift')}
+            className={cn(
+              'flex flex-col items-center justify-center p-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer',
+              bookingType === 'day_shift'
+                ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                : 'text-slate-600 hover:text-slate-900',
+              selectedCabinInfo?.bookedShifts?.includes('day_shift') ? 'opacity-40 cursor-not-allowed line-through' : ''
+            )}
+          >
+            <span>Day Shift</span>
+            <span className="text-[10px] font-normal opacity-80 mt-0.5">10AM - 5PM</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setBookingType('night_shift')}
+            disabled={selectedCabinInfo?.bookedShifts?.includes('night_shift')}
+            className={cn(
+              'flex flex-col items-center justify-center p-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer',
+              bookingType === 'night_shift'
+                ? 'bg-white text-emerald-800 shadow-xs border border-emerald-200'
+                : 'text-slate-600 hover:text-slate-900',
+              selectedCabinInfo?.bookedShifts?.includes('night_shift') ? 'opacity-40 cursor-not-allowed line-through' : ''
+            )}
+          >
+            <span>Night Shift</span>
+            <span className="text-[10px] font-normal opacity-80 mt-0.5">5PM - 12AM</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Date & Duration */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="startDate" className="mb-1.5 block text-xs font-semibold text-slate-700">Start Date</Label>
+          <Input
+            id="startDate"
+            type="date"
+            required
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+            className="rounded-xl border-slate-200"
+          />
+        </div>
+        <div>
+          <Label className="mb-1.5 block text-xs font-semibold text-slate-700">Duration</Label>
+          <div className="flex items-center h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700">
+            1 Month (Auto-Renewable)
+          </div>
+        </div>
+      </div>
+
+      {/* Estimated Cost */}
+      {estimatedAmount > 0 && (
+        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4">
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between text-xs text-slate-600">
+              <span>Monthly Shift Fee</span>
+              <span className="font-semibold text-slate-800">{formatCurrency(estimatedAmount - (data.isFirstBooking ? data.pricing.registrationFee * 100 : 0))}</span>
+            </div>
+            {data.isFirstBooking && (
+              <div className="flex justify-between text-xs text-slate-600">
+                <span>One-Time Registration Fee</span>
+                <span className="font-semibold text-slate-800">{formatCurrency(data.pricing.registrationFee * 100)}</span>
+              </div>
+            )}
+            <div className="border-t border-emerald-200 pt-2.5 flex items-center justify-between mt-1">
+              <span className="font-bold text-slate-900 text-sm">Total Due Today</span>
+              <span className="text-xl font-extrabold text-emerald-700">{formatCurrency(estimatedAmount)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* 10-Minute Hold Warning */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-800">
+        <Clock className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+        <p>Reserves this cabin temporarily for <strong>10 minutes</strong> while you complete payment.</p>
+      </div>
+
+      {/* Submit Button */}
+      <Button
+        onClick={handleBook}
+        size="lg"
+        disabled={submitting}
+        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-11 text-sm rounded-xl gap-2 shadow-xs cursor-pointer"
+      >
+        {submitting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Reserving & Launching Payment...
+          </>
+        ) : (
+          <>
+            Proceed to Payment ({formatCurrency(estimatedAmount)})
+            <ArrowRight className="h-4 w-4" />
+          </>
+        )}
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {data.pendingCheckout && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6 shadow-sm mb-8">
-          <div className="flex items-start gap-4">
-            <div className="bg-indigo-100 rounded-full p-3 mt-1">
-              <Clock className="w-6 h-6 text-indigo-600" />
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-xs mb-6">
+          <div className="flex items-start gap-3.5">
+            <div className="bg-amber-100 rounded-xl p-2.5 mt-0.5">
+              <Clock className="w-5 h-5 text-amber-700" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-indigo-900">You have a pending cabin checkout in progress!</h2>
-              <p className="text-indigo-700 mt-1">
-                You previously started a booking for <strong>Cabin {data.pendingCheckout.cabinInfo.cabinNum} (Floor {data.pendingCheckout.cabinInfo.floor})</strong> for the <strong>{data.pendingCheckout.type.replace('_', ' ')}</strong>. This cabin is temporarily reserved for you until you complete the payment.
+              <h2 className="text-base sm:text-lg font-bold text-amber-950">You have a pending cabin checkout in progress!</h2>
+              <p className="text-amber-800 text-xs sm:text-sm mt-1">
+                You previously started booking <strong>Cabin {data.pendingCheckout.cabinInfo.cabinNum} (Floor {data.pendingCheckout.cabinInfo.floor})</strong> for the <strong>{data.pendingCheckout.type.replace('_', ' ')}</strong>.
               </p>
               
-              <div className="flex flex-wrap gap-4 mt-6">
+              <div className="flex flex-wrap gap-3 mt-4">
                 <RazorpayCheckoutButton
                   type="cabin"
                   itemId={data.pendingCheckout.id}
@@ -206,8 +388,8 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
                   studentPhone={data.student.phone}
                   totalFee={data.pendingCheckout.totalAmount}
                   paidAmount={0}
-                  buttonText={`Complete Payment (₹${data.pendingCheckout.totalAmount / 100})`}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  buttonText={`Complete Payment (${formatCurrency(data.pendingCheckout.totalAmount)})`}
+                  className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs h-9"
                 />
                 <CancelBookingButton bookingId={data.pendingCheckout.id} />
               </div>
@@ -217,68 +399,73 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
       )}
 
       <div className={cn("transition-opacity", data.pendingCheckout && "opacity-40 pointer-events-none")}>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Study Cabins</h1>
-        <p className="text-muted-foreground mt-2">Book a quiet, comfortable study space.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Study Cabins</h1>
+        <p className="text-slate-500 text-sm sm:text-base mt-1.5">Book a quiet, personal study space with high-speed Wi-Fi and AC.</p>
       </div>
 
       {/* Pricing overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-6 text-center">
-          <CalendarDays className="h-6 w-6 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
-          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Reserved Cabin</h3>
-          <p className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">₹{data.pricing.reservedRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">24/7 access</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white border border-emerald-200/80 rounded-2xl p-4 text-center shadow-xs">
+          <CalendarDays className="h-5 w-5 text-emerald-600 mx-auto mb-1.5" />
+          <h3 className="font-semibold text-slate-900 text-xs sm:text-sm">Reserved</h3>
+          <p className="text-lg sm:text-2xl font-bold text-emerald-700 mt-0.5">₹{data.pricing.reservedRate}<span className="text-xs font-normal text-slate-500">/mo</span></p>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">24/7 access</p>
         </div>
-        <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
-          <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Morning Shift</h3>
-          <p className="text-2xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.morningShiftRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">5am - 10am</p>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
+          <Clock className="h-5 w-5 text-slate-600 mx-auto mb-1.5" />
+          <h3 className="font-semibold text-slate-900 text-xs sm:text-sm">Morning Shift</h3>
+          <p className="text-lg sm:text-2xl font-bold text-slate-800 mt-0.5">₹{data.pricing.morningShiftRate}<span className="text-xs font-normal text-slate-500">/mo</span></p>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">5am - 10am</p>
         </div>
-        <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
-          <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Day Shift</h3>
-          <p className="text-2xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.dayShiftRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">10am - 5pm</p>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
+          <Clock className="h-5 w-5 text-slate-600 mx-auto mb-1.5" />
+          <h3 className="font-semibold text-slate-900 text-xs sm:text-sm">Day Shift</h3>
+          <p className="text-lg sm:text-2xl font-bold text-slate-800 mt-0.5">₹{data.pricing.dayShiftRate}<span className="text-xs font-normal text-slate-500">/mo</span></p>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">10am - 5pm</p>
         </div>
-        <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-2xl p-6 text-center">
-          <Clock className="h-6 w-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-          <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Night Shift</h3>
-          <p className="text-2xl font-extrabold text-green-700 dark:text-green-400 mt-1">₹{data.pricing.nightShiftRate}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">5pm - 12am</p>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
+          <Clock className="h-5 w-5 text-slate-600 mx-auto mb-1.5" />
+          <h3 className="font-semibold text-slate-900 text-xs sm:text-sm">Night Shift</h3>
+          <p className="text-lg sm:text-2xl font-bold text-slate-800 mt-0.5">₹{data.pricing.nightShiftRate}<span className="text-xs font-normal text-slate-500">/mo</span></p>
+          <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">5pm - 12am</p>
         </div>
       </div>
 
       {/* Cabin features */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-gray-400">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm text-slate-600 bg-white p-3.5 rounded-2xl border border-slate-200/60 shadow-xs">
         {[
-          { icon: <Wifi className="h-4 w-4 text-green-600" />, text: 'Free Wi-Fi' },
-          { icon: <AirVent className="h-4 w-4 text-green-600" />, text: 'Air Conditioned' },
-          { icon: <Zap className="h-4 w-4 text-green-600" />, text: 'Power Outlets' },
-          { icon: <ShieldCheck className="h-4 w-4 text-green-600" />, text: 'Secure Environment' },
+          { icon: <Wifi className="h-4 w-4 text-emerald-600" />, text: 'High-speed Wi-Fi' },
+          { icon: <AirVent className="h-4 w-4 text-emerald-600" />, text: 'Air Conditioned' },
+          { icon: <Zap className="h-4 w-4 text-emerald-600" />, text: 'Dedicated Power Socket' },
+          { icon: <ShieldCheck className="h-4 w-4 text-emerald-600" />, text: 'CCTV Monitored' },
         ].map((feat) => (
           <div key={feat.text} className="flex items-center gap-1.5">
             {feat.icon}
-            <span className="font-medium text-gray-600 dark:text-gray-300">{feat.text}</span>
+            <span className="font-medium">{feat.text}</span>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Left: Cabin Selection */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8">
+        {/* Left / Full: Cabin Selection */}
         <div className="lg:col-span-2">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Select a Cabin</h2>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900">Select an Available Cabin</h2>
+            <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+              {availableCabins.length} Available
+            </span>
+          </div>
 
           {/* Floor Tabs */}
           {data.floors.length > 1 && (
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-1.5 mb-3">
               <button
                 onClick={() => setActiveFloor('all')}
                 className={cn(
-                  'px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer',
+                  'px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer',
                   activeFloor === 'all'
-                    ? 'bg-green-600 text-white border-green-600'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-green-300'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                 )}
               >
                 All Floors
@@ -290,10 +477,10 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
                     key={fg.floor}
                     onClick={() => setActiveFloor(fg.floor)}
                     className={cn(
-                      'px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
+                      'px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
                       activeFloor === fg.floor
-                        ? 'bg-green-600 text-white border-green-600'
-                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-green-300'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                     )}
                   >
                     <Building2 className="h-3 w-3" />
@@ -303,10 +490,10 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
                       activeFloor === fg.floor
                         ? 'bg-white/20 text-white'
                         : availCount > 0
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-red-100 text-red-700'
                     )}>
-                      {availCount} free
+                      {availCount}
                     </span>
                   </button>
                 );
@@ -314,15 +501,15 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
             </div>
           )}
 
-          <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
             {/* Group by floor when showing all floors */}
             {activeFloor === 'all' && data.floors.length > 1 ? (
               data.cabinsByFloor.map((fg) => (
                 <div key={fg.floor}>
                   <div className="flex items-center gap-2 mb-2 mt-3 first:mt-0">
-                    <Building2 className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{fg.label}</span>
-                    <Badge variant="outline" className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <Building2 className="h-4 w-4 text-emerald-600" />
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{fg.label}</span>
+                    <Badge variant="outline" className="text-[10px] text-slate-500">
                       {fg.cabins.filter((c) => !c.isOccupied).length} available
                     </Badge>
                   </div>
@@ -332,7 +519,7 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
                       cabin={cabin}
                       isSelected={selectedCabin === cabin.id}
                       showFloorLabel={false}
-                      onSelect={() => !cabin.isOccupied && setSelectedCabin(cabin.id)}
+                      onSelect={() => !cabin.isOccupied && handleSelectCabin(cabin.id)}
                     />
                   ))}
                 </div>
@@ -344,185 +531,38 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
                   cabin={cabin}
                   isSelected={selectedCabin === cabin.id}
                   showFloorLabel={activeFloor === 'all'}
-                  onSelect={() => !cabin.isOccupied && setSelectedCabin(cabin.id)}
+                  onSelect={() => !cabin.isOccupied && handleSelectCabin(cabin.id)}
                 />
               ))
             )}
           </div>
         </div>
 
-        {/* Right: Booking Form */}
-        <div className="lg:col-span-3">
+        {/* Right: Desktop Booking Form Panel (hidden on mobile, uses bottom sheet instead) */}
+        <div className="hidden lg:block lg:col-span-3">
           {!selectedCabin ? (
-            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-10 text-center h-[520px] flex flex-col items-center justify-center">
-              <DoorOpen className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">Select a Cabin</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Choose an available cabin from the list to start your booking</p>
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-10 text-center h-[520px] flex flex-col items-center justify-center shadow-xs">
+              <DoorOpen className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-800 mb-1">Select a Cabin</h3>
+              <p className="text-xs text-slate-500 max-w-xs">Choose an available cabin from the left list to configure your shift and proceed to booking.</p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 sm:p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-lg bg-green-600 text-white flex items-center justify-center font-bold text-sm">
-                  {selectedCabinInfo?.cabinNum}
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100">
-                    Cabin {selectedCabinInfo?.cabinNum}
-                    <span className="ml-2 text-sm font-normal text-gray-400">on {selectedCabinInfo ? formatFloorLabel(selectedCabinInfo.floor) : ''}</span>
-                  </h3>
-                  <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-                    <Building2 className="h-3 w-3" />
-                    {selectedCabinInfo ? formatFloorLabel(selectedCabinInfo.floor) : ''} — Available
-                  </p>
-                </div>
-              </div>
-
-              {/* Booking Type */}
-      <div className="mb-6">
-        <Label className="mb-2 block font-semibold text-gray-700 dark:text-gray-300">Booking Type</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 dark:bg-gray-700 p-1">
-          <button
-            type="button"
-            onClick={() => setBookingType('reserved')}
-            disabled={(selectedCabinInfo?.bookedShifts?.length ?? 0) > 0}
-            className={cn(
-              'flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
-              bookingType === 'reserved'
-                ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
-              (selectedCabinInfo?.bookedShifts?.length ?? 0) > 0 ? 'opacity-50 cursor-not-allowed line-through' : ''
-            )}
-          >
-            Reserved
-          </button>
-          <button
-            type="button"
-            onClick={() => setBookingType('morning_shift')}
-            disabled={selectedCabinInfo?.bookedShifts?.includes('morning_shift')}
-            className={cn(
-              'flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
-              bookingType === 'morning_shift'
-                ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
-              selectedCabinInfo?.bookedShifts?.includes('morning_shift') ? 'opacity-50 cursor-not-allowed line-through' : ''
-            )}
-          >
-            Morning
-          </button>
-          <button
-            type="button"
-            onClick={() => setBookingType('day_shift')}
-            disabled={selectedCabinInfo?.bookedShifts?.includes('day_shift')}
-            className={cn(
-              'flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
-              bookingType === 'day_shift'
-                ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
-              selectedCabinInfo?.bookedShifts?.includes('day_shift') ? 'opacity-50 cursor-not-allowed line-through' : ''
-            )}
-          >
-            Day
-          </button>
-          <button
-            type="button"
-            onClick={() => setBookingType('night_shift')}
-            disabled={selectedCabinInfo?.bookedShifts?.includes('night_shift')}
-            className={cn(
-              'flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all',
-              bookingType === 'night_shift'
-                ? 'bg-white dark:bg-gray-600 text-green-700 dark:text-green-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200',
-              selectedCabinInfo?.bookedShifts?.includes('night_shift') ? 'opacity-50 cursor-not-allowed line-through' : ''
-            )}
-          >
-            Night
-          </button>
-        </div>
-      </div>
-
-              {/* Date & Time */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <Label htmlFor="startDate" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    required
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
-                  />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Duration</Label>
-                  <div className="flex items-center h-9 px-3 rounded-md border bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300">
-                    1 Month
-                  </div>
-                </div>
-              </div>
-
-              {/* Estimated Cost */}
-              {estimatedAmount > 0 && (
-                <div className="bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 rounded-xl p-4 mb-5">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                      <span>Monthly Fee</span>
-                      <span>{formatCurrency(estimatedAmount - (data.isFirstBooking ? data.pricing.registrationFee * 100 : 0))}</span>
-                    </div>
-                    {data.isFirstBooking && (
-                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                        <span>Registration Fee (One-time)</span>
-                        <span>{formatCurrency(data.pricing.registrationFee * 100)}</span>
-                      </div>
-                    )}
-                    <div className="border-t border-green-200 dark:border-green-900/50 pt-2 flex items-center justify-between">
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">Total Amount</span>
-                      <span className="text-xl font-bold text-green-700 dark:text-green-400">{formatCurrency(estimatedAmount)}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Error */}
-              {error && (
-                <div className="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 rounded-xl p-4 mb-5 flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
-                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-                </div>
-              )}
-
-              {/* 10-Min Warning */}
-              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/30 rounded-xl p-4 mb-5 flex items-start gap-2">
-                <Clock className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-700 dark:text-amber-400">
-                  Clicking confirm will reserve this cabin for <strong>10 minutes</strong>. You must complete the payment within this time.
-                </p>
-              </div>
-
-              {/* Submit */}
-              <Button
-                onClick={handleBook}
-                size="lg"
-                disabled={submitting}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-12 text-base rounded-xl gap-2"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Confirm Booking Request
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </Button>
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-8 shadow-xs">
+              {renderBookingFormContent()}
             </div>
           )}
         </div>
       </div>
+
+      {/* Mobile Slide-Up Bottom Sheet Drawer for Booking Form */}
+      <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
+        <SheetContent side="bottom" className="lg:hidden rounded-t-3xl border-t border-slate-200 bg-white p-6 max-h-[85vh] overflow-y-auto">
+          <SheetHeader className="pb-2 text-left">
+            <SheetTitle className="text-base font-bold text-slate-900">Cabin Reservation</SheetTitle>
+          </SheetHeader>
+          {selectedCabinInfo && renderBookingFormContent()}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

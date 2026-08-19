@@ -18,32 +18,39 @@ function getBookingTypeLabel(type: string): string {
   }
 }
 
-export default async function MyLearningPage() {
-  const { student } = await requireStudent()
+export default async function MyLearningPage({
+  searchParams
+}: {
+  searchParams?: Promise<{ tab?: string }>
+}) {
+  const { student } = await requireStudent();
+  const resolvedParams = searchParams ? await searchParams : {};
+  const requestedTab = resolvedParams.tab;
+  const initialTab = requestedTab === 'cabins' || requestedTab === 'my-cabins' ? 'my-cabins' : 'my-courses';
 
-  const allEnrollments = student.enrollments || []
-  const activeBookings = student.bookings || []
+  const allEnrollments = student.enrollments || [];
+  const activeBookings = student.bookings || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Enrollment & Booking</h1>
-        <p className="text-muted-foreground mt-2">Manage your current active courses and study cabin reservations.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">My Enrollment & Booking</h1>
+        <p className="text-slate-500 text-sm sm:text-base mt-1.5">Manage your current active courses and study cabin reservations.</p>
       </div>
 
-      <Tabs defaultValue="my-courses" className="space-y-6">
-        <TabsList className="bg-transparent border-b border-gray-200 w-full justify-start rounded-none p-0 h-auto space-x-8">
+      <Tabs defaultValue={initialTab} className="space-y-6">
+        <TabsList className="bg-slate-100/80 p-1 rounded-xl h-auto flex w-full max-w-md border border-slate-200/60">
           <TabsTrigger 
             value="my-courses" 
-            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 py-3 font-medium text-muted-foreground data-[state=active]:text-blue-600 transition-none"
+            className="flex-1 rounded-lg py-2 text-xs sm:text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-xs transition-all"
           >
-            Current Course Enrollment
+            Course Enrollments ({allEnrollments.length})
           </TabsTrigger>
           <TabsTrigger 
             value="my-cabins" 
-            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 rounded-none px-0 py-3 font-medium text-muted-foreground data-[state=active]:text-emerald-600 transition-none"
+            className="flex-1 rounded-lg py-2 text-xs sm:text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-xs transition-all"
           >
-            Current Cabin Booking
+            Cabin Bookings ({activeBookings.length})
           </TabsTrigger>
         </TabsList>
 

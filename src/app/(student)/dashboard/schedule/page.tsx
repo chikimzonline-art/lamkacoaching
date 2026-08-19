@@ -1,12 +1,13 @@
 import { requireStudent } from "@/lib/student-auth"
-import { Calendar as CalendarIcon, Clock, MapPin, Search } from "lucide-react"
+import Link from "next/link"
+import { Calendar as CalendarIcon, Clock, MapPin, Search, CalendarX, ArrowRight } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 export default async function DashboardSchedulePage() {
   const { student } = await requireStudent()
   
-  // Dummy schedule for demonstration purposes since we don't have a robust Timetable model yet
+  // Dummy schedule for demonstration purposes
   const dummySchedule = [
     { day: "Monday", subject: "Mathematics - Calculus", time: "09:00 AM - 10:30 AM", room: "Room 101" },
     { day: "Monday", subject: "Physics - Mechanics", time: "11:00 AM - 12:30 PM", room: "Room 102" },
@@ -19,19 +20,22 @@ export default async function DashboardSchedulePage() {
   const hasEnrollments = student.enrollments && student.enrollments.length > 0
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-6 md:space-y-8 max-w-5xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Schedule</h1>
-        <p className="text-muted-foreground mt-2">View your upcoming classes and test timings for the week.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">My Schedule</h1>
+        <p className="text-slate-500 text-sm sm:text-base mt-1.5">View your upcoming classes and test timings for the week.</p>
       </div>
 
       {hasEnrollments ? (
-        <Card className="border-none shadow-sm overflow-hidden">
-          <CardHeader className="bg-slate-50/80 border-b">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-indigo-500" /> Weekly Timetable
+        <Card className="border border-slate-200/80 shadow-xs bg-white rounded-2xl overflow-hidden">
+          <CardHeader className="bg-slate-50/80 border-b border-slate-100 p-5 sm:p-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2.5 text-slate-900">
+              <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                <CalendarIcon className="h-5 w-5" />
+              </div>
+              Weekly Timetable
             </CardTitle>
-            <CardDescription>Your classes for the current week.</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Your scheduled classes for the current academic week.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
              <div className="divide-y divide-slate-100">
@@ -40,22 +44,26 @@ export default async function DashboardSchedulePage() {
                   if (dayClasses.length === 0) return null
                   
                   return (
-                    <div key={day} className="grid md:grid-cols-4 gap-4 p-4 hover:bg-slate-50/50 transition-colors">
-                      <div className="md:col-span-1 font-semibold text-slate-900 pt-1">
+                    <div key={day} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 sm:p-5 hover:bg-slate-50/50 transition-colors">
+                      <div className="md:col-span-1 font-bold text-slate-800 text-sm pt-1">
                         {day}
                       </div>
-                      <div className="md:col-span-3 space-y-3">
+                      <div className="md:col-span-3 space-y-2.5">
                         {dayClasses.map((cls, idx) => (
-                          <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border rounded-lg p-3 shadow-sm gap-3">
+                          <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border border-slate-200/80 rounded-xl p-3.5 shadow-xs gap-3">
                             <div>
-                              <p className="font-medium text-indigo-900">{cls.subject}</p>
-                              <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                                <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {cls.time}</span>
-                                <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {cls.room}</span>
+                              <p className="font-semibold text-slate-900 text-sm">{cls.subject}</p>
+                              <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-500">
+                                <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                                  <Clock className="h-3.5 w-3.5 text-slate-400" /> {cls.time}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <MapPin className="h-3.5 w-3.5 text-slate-400" /> {cls.room}
+                                </span>
                               </div>
                             </div>
-                            <Button variant="outline" size="sm" className="shrink-0 h-8 text-xs bg-slate-50 hover:bg-slate-100">
-                              View Details
+                            <Button variant="outline" size="sm" className="shrink-0 h-8 text-xs rounded-lg border-slate-200 hover:bg-slate-50">
+                              Class Details
                             </Button>
                           </div>
                         ))}
@@ -67,15 +75,25 @@ export default async function DashboardSchedulePage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-dashed border-2 shadow-none bg-slate-50/50">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="rounded-full bg-slate-100 p-5 mb-4">
-              <CalendarIcon className="h-10 w-10 text-slate-400" />
+        <Card className="border-2 border-dashed border-slate-200 shadow-none bg-white rounded-3xl p-8 sm:p-12">
+          <CardContent className="flex flex-col items-center justify-center p-0 text-center">
+            <div className="relative mb-5">
+              <div className="w-20 h-20 rounded-full bg-blue-50/80 border border-blue-100 flex items-center justify-center shadow-inner">
+                <CalendarX className="h-10 w-10 text-blue-600" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-white border border-slate-200 shadow-xs">
+                <Search className="h-3.5 w-3.5 text-slate-500" />
+              </div>
             </div>
-            <h3 className="font-semibold text-lg text-slate-900">No Classes Scheduled</h3>
-            <p className="text-slate-500 mt-2 max-w-md mb-6">You don't have any active course enrollments, so your schedule is empty.</p>
-            <Button asChild>
-              <a href="/dashboard/courses/register">Browse Courses</a>
+            <h3 className="font-bold text-lg text-slate-900">No Classes Scheduled</h3>
+            <p className="text-slate-500 text-sm mt-1.5 max-w-sm mb-6 leading-relaxed">
+              You don't have any active course enrollments, so your schedule is currently empty.
+            </p>
+            <Button asChild className="rounded-xl h-10 px-6 font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs gap-2">
+              <Link href="/dashboard/courses">
+                Explore Available Courses
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </Button>
           </CardContent>
         </Card>

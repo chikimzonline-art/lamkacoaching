@@ -42,31 +42,36 @@ export default async function ExploreCoursesPage() {
   const departments = Array.from(new Set(availableCourses.map(c => c.department.name)))
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Explore Courses</h1>
-        <p className="text-muted-foreground mt-2">Discover new courses and expand your skills. Filter by department below.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Explore Courses</h1>
+        <p className="text-slate-500 text-sm sm:text-base mt-1.5">Discover new courses and expand your skills. Filter by department below.</p>
       </div>
 
       {availableCourses.length > 0 ? (
         <Tabs defaultValue="All" className="space-y-6">
-          <TabsList className="bg-slate-100/50 p-1 rounded-xl h-auto flex-wrap justify-start gap-2">
-            <TabsTrigger 
-              value="All"
-              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 font-medium"
-            >
-              All Courses
-            </TabsTrigger>
-            {departments.map(dept => (
+          <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="bg-slate-100/80 p-1 rounded-xl h-auto flex w-max gap-1.5 border border-slate-200/60">
               <TabsTrigger 
-                key={dept} 
-                value={dept}
-                className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 font-medium"
+                value="All"
+                className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-xs px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all"
               >
-                {dept}
+                All Courses ({availableCourses.length})
               </TabsTrigger>
-            ))}
-          </TabsList>
+              {departments.map(dept => {
+                const count = availableCourses.filter(c => c.department.name === dept).length;
+                return (
+                  <TabsTrigger 
+                    key={dept} 
+                    value={dept}
+                    className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-xs px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all"
+                  >
+                    {dept} ({count})
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
           {/* "All" Tab Content */}
           <TabsContent value="All" className="focus-visible:outline-none focus-visible:ring-0">
