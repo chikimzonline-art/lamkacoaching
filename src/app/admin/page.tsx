@@ -234,27 +234,30 @@ function PageHeader() {
             <Shield className="h-3 w-3 mr-1" />
             {user.role === 'admin' ? 'Admin' : 'Staff'}
           </Badge>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2 h-9">
-                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-cyan-100 text-cyan-700">
-                  <UserCircle className="h-4 w-4" />
+          {/* Profile dropdown — hidden on mobile (shown in top bar instead) */}
+          <div className="hidden sm:flex">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 h-9">
+                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-cyan-100 text-cyan-700">
+                    <UserCircle className="h-4 w-4" />
+                  </div>
+                  <span className="hidden sm:inline text-sm">{user.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium">{user.name}</p>
+                  <p className="text-xs text-gray-500">@{user.username}</p>
                 </div>
-                <span className="hidden sm:inline text-sm">{user.name}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-gray-500">@{user.username}</p>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => signOut()}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => signOut()}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       )}
     </header>
@@ -467,6 +470,11 @@ function AuthenticatedApp() {
     }
   }, [role, activeView]);
 
+  const topBarUser = session?.user ? {
+    name: session.user.name || 'User',
+    username: (session.user as any).username || '',
+  } : null;
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Mobile Top Bar */}
@@ -485,7 +493,31 @@ function AuthenticatedApp() {
             </SheetContent>
           </Sheet>
           <AdminLogo size="topbar" />
-          <div className="w-10" /> {/* Spacer for centering */}
+          {/* Profile icon in top-right corner on mobile */}
+          {topBarUser ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10">
+                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-cyan-100 text-cyan-700">
+                    <UserCircle className="h-5 w-5" />
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium">{topBarUser.name}</p>
+                  <p className="text-xs text-gray-500">@{topBarUser.username}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => signOut()}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
       </header>
 
