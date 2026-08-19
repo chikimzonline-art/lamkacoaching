@@ -40,6 +40,7 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'Courses' },
   { href: '/computer-training', label: 'Computer Training', icon: Monitor },
+  { href: '/cabins', label: 'Study Cabins', icon: DoorOpen },
   { href: '/about', label: 'About', icon: Info },
   { href: '/notices', label: 'Notices' },
 ];
@@ -56,7 +57,7 @@ function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      className="rounded-lg h-9 w-9"
+      className="rounded-lg h-9 w-9 text-gray-700 dark:text-gray-300 hover:bg-surface-container-low dark:hover:bg-gray-800"
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       aria-label="Toggle theme"
     >
@@ -77,12 +78,11 @@ export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => voi
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: session } = useSession();
 
-  const isRegisterActive = pathname === '/register' || pathname === '/cabins';
-  const isComputerTrainingActive = pathname === '/computer-training';
+  const isRegisterActive = pathname === '/register';
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg border-b border-gray-100 dark:border-gray-800 shadow-sm transition-all duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 bg-surface-container-lowest/95 dark:bg-gray-950/95 backdrop-blur-md border-b border-surface-variant dark:border-gray-800 shadow-sm transition-all duration-300">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group transition-all duration-300">
@@ -90,87 +90,65 @@ export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => voi
           </Link>
 
           {/* Desktop Navigation */}
-          <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1">
+          <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1.5 lg:gap-2">
             {navLinks.map((link) => {
               const Icon = link.icon;
+              const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  aria-current={pathname === link.href ? 'page' : undefined}
+                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    pathname === link.href
-                      ? 'text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-cyan-700 dark:hover:text-cyan-400 hover:bg-cyan-50/50 dark:hover:bg-cyan-950/30'
+                    'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-all duration-200 border-b-2 rounded-t',
+                    isActive
+                      ? 'text-cyan-600 dark:text-cyan-400 border-cyan-600 dark:border-cyan-400 font-semibold'
+                      : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/60'
                   )}
                 >
-                  {Icon && <Icon className="h-4 w-4" />}
+                  {Icon && <Icon className="h-3.5 w-3.5 opacity-70" />}
                   {link.label}
                 </Link>
               );
             })}
-
-            {/* Register Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={cn(
-                    'flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isRegisterActive
-                      ? 'text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-cyan-700 dark:hover:text-cyan-400 hover:bg-cyan-50/50 dark:hover:bg-cyan-950/30'
-                  )}
-                >
-                  Register
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/register" className="flex items-center gap-2 cursor-pointer">
-                    <GraduationCap className="h-4 w-4 text-cyan-600" />
-                    Coaching Class
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/cabins" className="flex items-center gap-2 cursor-pointer">
-                    <DoorOpen className="h-4 w-4 text-cyan-600" />
-                    Study Cabin
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </nav>
 
-          {/* Desktop Admin Login + Search + Theme Toggle */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* Desktop Admin Login + Search + Theme Toggle + Register */}
+          <div className="hidden md:flex items-center gap-2.5">
+            <Link
+              href="/register"
+              className="bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 active:scale-95 text-white font-semibold text-xs px-5 py-2 rounded-lg shadow-md shadow-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/30 transition-all duration-200 inline-flex items-center justify-center cursor-pointer"
+            >
+              Register
+            </Link>
+
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-lg h-9 w-9"
+              className="rounded-lg h-9 w-9 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={onSearchOpen}
               aria-label="Search"
             >
-              <Search className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+              <Search className="h-4 w-4" />
             </Button>
             <ThemeToggle />
             
             {!session ? (
-              <Link href="/login">
-                <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2">
-                  <LogIn className="h-4 w-4" />
-                  Login
-                </Button>
+              <Link
+                href="/login"
+                className="border border-gray-300 dark:border-gray-700 hover:border-gray-900 dark:hover:border-white text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5 h-9 px-3.5 text-xs font-medium rounded-lg transition-all duration-200 active:scale-95 inline-flex items-center justify-center"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                Login
               </Link>
             ) : (
               <div className="flex items-center gap-2">
                 <Link href={(session.user as any)?.role === 'admin' || (session.user as any)?.role === 'staff' ? '/admin' : '/dashboard'}>
-                  <Button size="sm" variant="outline" className="border-cyan-600 text-cyan-600">
+                  <Button size="sm" variant="outline" className="border-gray-900 text-gray-900 dark:border-gray-100 dark:text-white">
                     Dashboard
                   </Button>
                 </Link>
-                <Button size="sm" variant="ghost" className="text-gray-500" onClick={() => signOut()}>
+                <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-900 dark:hover:text-white" onClick={() => signOut()}>
                   Logout
                 </Button>
               </div>

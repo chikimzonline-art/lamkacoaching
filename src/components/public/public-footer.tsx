@@ -108,16 +108,16 @@ export default function PublicFooter() {
   const ctaSubtitle = settings.footerCtaSubtitle || 'Enroll now to secure your seat.';
 
   return (
-    <footer className="bg-gray-900 dark:bg-gray-950 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer className="bg-gray-950 text-gray-400 border-t border-gray-800 transition-colors">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* About + Social + Newsletter */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-cyan-600 text-white">
+              <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20">
                 <BookOpen className="h-5 w-5" />
               </div>
-              <span className="font-bold text-white text-base">{name}</span>
+              <span className="font-bold text-white text-lg">{name}</span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               {settings.businessDescription ||
@@ -135,7 +135,7 @@ export default function PublicFooter() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={social.label}
-                    className="h-8 w-8 rounded-lg bg-white/5 hover:bg-cyan-600/20 flex items-center justify-center text-gray-500 hover:text-cyan-400 transition-all"
+                    className="h-8 w-8 rounded-lg bg-gray-900 hover:bg-cyan-950/50 flex items-center justify-center text-gray-400 hover:text-cyan-400 border border-gray-800 hover:border-cyan-800 transition-all"
                   >
                     <Icon className="h-4 w-4" />
                   </a>
@@ -144,15 +144,15 @@ export default function PublicFooter() {
             </div>
 
             {/* Newsletter CTA */}
-            <div className="mt-6 bg-white/5 rounded-lg border border-white/10 p-3">
+            <div className="mt-6 bg-gray-900/80 rounded-xl border border-gray-800 p-4">
               {subscribed ? (
-                <div className="flex items-center gap-2 text-green-400 text-xs py-1">
+                <div className="flex items-center gap-2 text-emerald-400 text-xs py-1">
                   <CheckCircle2 className="h-4 w-4 shrink-0" />
                   <span>Thank you for subscribing!</span>
                 </div>
               ) : (
                 <>
-                  <p className="text-xs text-gray-400 mb-2">
+                  <p className="text-xs text-gray-400 mb-2.5 font-medium">
                     Stay updated with our latest news and batch announcements
                   </p>
                   <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
@@ -162,12 +162,12 @@ export default function PublicFooter() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="flex-1 bg-transparent text-white text-xs px-3 py-1.5 rounded-md border border-white/10 placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50 min-w-0"
+                      className="flex-1 bg-gray-950 text-white text-xs px-3 py-2 rounded-lg border border-gray-700 placeholder:text-gray-500 focus:outline-none focus:border-cyan-500 min-w-0"
                     />
                     <button
                       type="submit"
                       disabled={loading}
-                      className="bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors whitespace-nowrap flex items-center gap-1.5"
+                      className="bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-md shadow-cyan-500/20"
                     >
                       {loading ? (
                         <>
@@ -186,7 +186,7 @@ export default function PublicFooter() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-white font-semibold text-sm mb-4">Quick Links</h3>
+            <h3 className="text-white font-bold text-sm mb-4">Quick Links</h3>
             <ul className="space-y-2.5">
               {baseQuickLinks.map((link) => (
                 <li key={link.href}>
@@ -200,8 +200,8 @@ export default function PublicFooter() {
               ))}
               {/* Register with sub-items */}
               <li>
-                <span className="text-sm text-gray-300 font-medium">Register</span>
-                <ul className="ml-3 mt-1 space-y-2">
+                <span className="text-sm text-gray-200 font-medium">Register</span>
+                <ul className="ml-3 mt-1.5 space-y-2">
                   {registerSubLinks.map((link) => {
                     const Icon = link.icon;
                     return (
@@ -223,7 +223,7 @@ export default function PublicFooter() {
 
           {/* Contact */}
           <div>
-            <h3 className="text-white font-semibold text-sm mb-4">Contact Us</h3>
+            <h3 className="text-white font-bold text-sm mb-4">Contact Us</h3>
             <ul className="space-y-3">
               {settings.businessPhone && (
                 <li className="flex items-start gap-2.5">
@@ -252,7 +252,7 @@ export default function PublicFooter() {
 
           {/* Quick Actions + Study Hours */}
           <div>
-            <h3 className="text-white font-semibold text-sm mb-4">Quick Actions</h3>
+            <h3 className="text-white font-bold text-sm mb-4">Quick Actions</h3>
             <ul className="space-y-2.5">
               {quickActions.map((action) => {
                 const Icon = action.icon;
@@ -276,27 +276,27 @@ export default function PublicFooter() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li className="flex justify-between">
                   <span>Mon - Sat</span>
-                  <span>6:00 AM - 10:00 PM</span>
+                  <span className="font-medium text-gray-200">6:00 AM - 10:00 PM</span>
                 </li>
                 <li className="flex justify-between">
                   <span>Sunday</span>
-                  <span>8:00 AM - 6:00 PM</span>
+                  <span className="font-medium text-gray-200">8:00 AM - 6:00 PM</span>
                 </li>
               </ul>
-              <div className="mt-4 p-3 bg-cyan-600/10 rounded-lg border border-cyan-600/20">
-                <p className="text-xs text-cyan-400 font-medium">{ctaTitle}</p>
-                <p className="text-xs text-gray-400 mt-1">{ctaSubtitle}</p>
+              <div className="mt-4 p-3 bg-gray-900 rounded-xl border border-gray-800">
+                <p className="text-xs text-cyan-400 font-semibold">{ctaTitle}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{ctaSubtitle}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Animated Separator */}
-      <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+      {/* Separator */}
+      <div className="h-px bg-gray-800" />
 
       {/* Bottom Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
           <p className="text-xs text-gray-500">
             Made with ❤️ in Lamka
