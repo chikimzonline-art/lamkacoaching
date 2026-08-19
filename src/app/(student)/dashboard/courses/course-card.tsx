@@ -10,8 +10,20 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { joinWaitlist } from './actions';
 
-export function CourseCard({ course, student, isWaitlisted = false }: { course: any, student: any, isWaitlisted?: boolean }) {
-  const [selectedBatch, setSelectedBatch] = useState<string>('');
+export function CourseCard({
+  course,
+  student,
+  isWaitlisted = false,
+  initialBatchId,
+}: {
+  course: any;
+  student: any;
+  isWaitlisted?: boolean;
+  initialBatchId?: string;
+}) {
+  const [selectedBatch, setSelectedBatch] = useState<string>(
+    initialBatchId || (course.batches && course.batches.length > 0 ? course.batches[0].id : '')
+  );
   const [waitlisting, setWaitlisting] = useState(false);
 
   const showWaitlist = course.status === 'coming_soon' || course.status === 'waitlist' || course.batches.length === 0;

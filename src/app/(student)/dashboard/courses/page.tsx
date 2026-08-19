@@ -6,7 +6,14 @@ import { Search, Sparkles, Calendar } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CourseCard } from "./course-card"
 
-export default async function ExploreCoursesPage() {
+export default async function ExploreCoursesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ courseId?: string; batchId?: string }>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const targetCourseId = params.courseId;
+  const targetBatchId = params.batchId;
   const { student } = await requireStudent()
 
   // Fetch active/waitlist/coming_soon courses with their departments, batches, and waitlists
@@ -77,7 +84,13 @@ export default async function ExploreCoursesPage() {
           <TabsContent value="All" className="focus-visible:outline-none focus-visible:ring-0">
              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {availableCourses.map(course => (
-                <CourseCard key={course.id} course={course} student={student} isWaitlisted={waitlistedCourseIds.includes(course.id)} />
+                <CourseCard 
+                  key={course.id} 
+                  course={course} 
+                  student={student} 
+                  isWaitlisted={waitlistedCourseIds.includes(course.id)} 
+                  initialBatchId={targetCourseId === course.id ? targetBatchId : undefined}
+                />
               ))}
             </div>
           </TabsContent>
@@ -89,7 +102,13 @@ export default async function ExploreCoursesPage() {
               <TabsContent key={dept} value={dept} className="focus-visible:outline-none focus-visible:ring-0">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {deptCourses.map(course => (
-                     <CourseCard key={course.id} course={course} student={student} isWaitlisted={waitlistedCourseIds.includes(course.id)} />
+                     <CourseCard 
+                       key={course.id} 
+                       course={course} 
+                       student={student} 
+                       isWaitlisted={waitlistedCourseIds.includes(course.id)} 
+                       initialBatchId={targetCourseId === course.id ? targetBatchId : undefined}
+                     />
                   ))}
                 </div>
               </TabsContent>

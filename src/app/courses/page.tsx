@@ -26,6 +26,9 @@ import {
   ArrowUpDown,
   LayoutGrid,
   LayoutList,
+  Calendar,
+  Users,
+  Check,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -39,20 +42,57 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 
+interface BatchSummary {
+  id: string;
+  batchName: string;
+  startDate: string;
+  endDate: string | null;
+  timing: string;
+  seats: number;
+  totalSeats: number;
+  status: string;
+  description?: string | null;
+}
+
+interface CourseItem {
+  id: string;
+  name: string;
+  durationValue?: number | null;
+  durationUnit?: string | null;
+  duration: string | null;
+  totalFee: number;
+  description: string | null;
+  status?: string;
+  batches?: BatchSummary[];
+  nextBatch?: BatchSummary | null;
+  activeBatch?: BatchSummary | null;
+  isOngoing?: boolean;
+  hasOpenBatches?: boolean;
+  departmentId?: string;
+  departmentName?: string;
+}
+
 interface Department {
   id: string;
   name: string;
-  courses: {
-    id: string;
-    name: string;
-    duration: string | null;
-    totalFee: number;
-    description: string | null;
-  }[];
+  courses: CourseItem[];
 }
 
 function formatCurrency(paise: number): string {
   return `₹${(paise / 100).toLocaleString('en-IN')}`;
+}
+
+function formatDate(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
 }
 
 export default function CoursesPage() {
@@ -65,14 +105,8 @@ export default function CoursesPage() {
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<{
-    id: string;
-    name: string;
-    duration: string | null;
-    totalFee: number;
-    description: string | null;
-    departmentName: string;
-  } | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<CourseItem | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState<string>('');
   const [detailOpen, setDetailOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'fee-low' | 'fee-high' | 'duration'>('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -382,90 +416,138 @@ export default function CoursesPage() {
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                     : "flex flex-col"
                 )}>
-                  {dept.courses.map((course) => (
-                    <Card
-                      key={course.id}
-                      className={cn(
-                        "border hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative cursor-pointer",
-                        compareIds.has(course.id)
-                          ? "border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-200 dark:ring-cyan-800"
-                          : "border-gray-100 dark:border-gray-700 hover:border-cyan-200 dark:hover:border-cyan-700"
-                      )}
-                      onClick={() => {
-                        setSelectedCourse({ ...course, departmentName: dept.name });
-                        setDetailOpen(true);
-                      }}
-                    >
-                      {/* Compare checkbox */}
-                      <div className="absolute top-3 right-3 z-10">
-                        <label
-                          className="flex items-center gap-1.5 cursor-pointer"
-                          title={compareIds.has(course.id) ? 'Remove from comparison' : compareIds.size >= 3 ? 'Max 3 courses for comparison' : 'Add to comparison'}
-                        >
-                          <Checkbox
-                            checked={compareIds.has(course.id)}
-                            onCheckedChange={() => toggleCompare(course.id)}
-                            disabled={!compareIds.has(course.id) && compareIds.size >= 3}
-                            className={cn(
-                              "transition-colors",
-                              compareIds.has(course.id)
-                                ? "border-cyan-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
-                                : ""
-                            )}
-                          />
-                          <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 select-none">Compare</span>
-                        </label>
-                      </div>
-                      <CardContent className={cn(
-                        "p-5 flex h-full",
-                        viewMode === 'list'
-                          ? "flex-row items-center gap-4"
-                          : "flex-col"
-                      )}>
-                        <div className={cn("flex items-start justify-between gap-2", viewMode === 'list' ? "flex-1 min-w-0" : "pr-16")}>
-                          <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-cyan-700 dark:group-hover:text-cyan-400 transition-colors leading-snug">
-                            {course.name}
-                          </h3>
-                        </div>
+                  {dept.courses.map((course) => {
+                    const nextBatch = course.nextBatch;
+                    const isAlmostFull = nextBatch?.status === 'almost_full' || (nextBatch && nextBatch.seats <= 3 && nextBatch.seats > 0);
+                    const isFull = nextBatch?.status === 'full' || nextBatch?.seats === 0;
 
-                        <div className={cn("flex items-center gap-3 mt-2.5", viewMode === 'list' ? "shrink-0" : "flex-wrap")}>
-                          {course.duration && (
-                            <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                              <Clock className="h-3 w-3" />
-                              {course.duration}
-                            </span>
-                          )}
-                          <span className="text-base font-bold text-cyan-700 dark:text-cyan-400">
-                            {formatCurrency(course.totalFee)}
-                          </span>
-                        </div>
-
-                        {course.description && (
-                          <p className={cn(
-                            "text-sm text-gray-500 dark:text-gray-400 leading-relaxed flex-1",
-                            viewMode === 'list' ? "mt-0 ml-4 line-clamp-1" : "mt-2.5 line-clamp-2"
-                          )}>
-                            {course.description}
-                          </p>
+                    return (
+                      <Card
+                        key={course.id}
+                        className={cn(
+                          "border hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative cursor-pointer flex flex-col justify-between",
+                          compareIds.has(course.id)
+                            ? "border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-200 dark:ring-cyan-800"
+                            : "border-gray-100 dark:border-gray-700 hover:border-cyan-200 dark:hover:border-cyan-700"
                         )}
-
-                        <div className={cn(
-                          "mt-4 pt-3 border-t border-gray-50 dark:border-gray-700",
-                          viewMode === 'list' ? "mt-0 pt-0 border-t-0 border-l-0 ml-4 shrink-0" : ""
-                        )}>
-                          <Link href={session ? "/dashboard/courses" : "/login?callbackUrl=/dashboard/courses"}>
-                            <Button
-                              size="sm"
-                              className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium whitespace-nowrap"
-                            >
-                              Enroll Now
-                              <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-                            </Button>
-                          </Link>
+                        onClick={() => {
+                          setSelectedCourse({ ...course, departmentName: dept.name });
+                          setSelectedBatchId(course.nextBatch?.id || course.batches?.[0]?.id || '');
+                          setDetailOpen(true);
+                        }}
+                      >
+                        {/* Compare checkbox */}
+                        <div className="absolute top-3 right-3 z-10">
+                          <label
+                            className="flex items-center gap-1.5 cursor-pointer"
+                            title={compareIds.has(course.id) ? 'Remove from comparison' : compareIds.size >= 3 ? 'Max 3 courses for comparison' : 'Add to comparison'}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Checkbox
+                              checked={compareIds.has(course.id)}
+                              onCheckedChange={() => toggleCompare(course.id)}
+                              disabled={!compareIds.has(course.id) && compareIds.size >= 3}
+                              className={cn(
+                                "transition-colors",
+                                compareIds.has(course.id)
+                                  ? "border-cyan-500 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
+                                  : ""
+                              )}
+                            />
+                            <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 select-none">Compare</span>
+                          </label>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <CardContent className={cn(
+                          "p-5 flex h-full flex-col justify-between",
+                          viewMode === 'list'
+                            ? "flex-row items-center gap-4"
+                            : "flex-col"
+                        )}>
+                          <div className={cn(viewMode === 'list' ? "flex-1 min-w-0" : "pr-16")}>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-cyan-700 dark:group-hover:text-cyan-400 transition-colors leading-snug">
+                              {course.name}
+                            </h3>
+                          </div>
+
+                          <div className={cn("flex items-center gap-3 mt-2.5", viewMode === 'list' ? "shrink-0" : "flex-wrap")}>
+                            {course.duration && (
+                              <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                <Clock className="h-3 w-3" />
+                                {course.duration}
+                              </span>
+                            )}
+                            <span className="text-base font-bold text-cyan-700 dark:text-cyan-400">
+                              {formatCurrency(course.totalFee)}
+                            </span>
+                          </div>
+
+                          {course.description && (
+                            <p className={cn(
+                              "text-sm text-gray-500 dark:text-gray-400 leading-relaxed flex-1",
+                              viewMode === 'list' ? "mt-0 ml-4 line-clamp-1" : "mt-2.5 line-clamp-2"
+                            )}>
+                              {course.description}
+                            </p>
+                          )}
+
+                          {/* Batch Schedule Strip */}
+                          <div className={cn("mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 space-y-1.5", viewMode === 'list' ? "mt-0 pt-0 border-t-0 border-l px-4 shrink-0" : "")}>
+                            {nextBatch ? (
+                              <div className="flex items-center justify-between gap-2 text-xs">
+                                <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-300 font-medium">
+                                  <Calendar className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                                  Starts {formatDate(nextBatch.startDate)}
+                                </span>
+                                <Badge className={cn("text-[10px] px-2 py-0.5", 
+                                  isAlmostFull ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300" :
+                                  isFull ? "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300" :
+                                  "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                )}>
+                                  {isAlmostFull ? `${nextBatch.seats} seats left` : isFull ? 'Full' : 'Enrolling'}
+                                </Badge>
+                              </div>
+                            ) : course.isOngoing ? (
+                              <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>Live Session Ongoing</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 text-xs text-gray-400 italic">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>New batch opening soon</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className={cn(
+                            "mt-4 pt-3 border-t border-gray-50 dark:border-gray-700",
+                            viewMode === 'list' ? "mt-0 pt-0 border-t-0 ml-4 shrink-0" : ""
+                          )} onClick={(e) => e.stopPropagation()}>
+                            <Link
+                              href={
+                                nextBatch && nextBatch.seats > 0
+                                  ? `/register?courseId=${course.id}&batchId=${nextBatch.id}`
+                                  : `/register?courseId=${course.id}`
+                              }
+                            >
+                              <Button
+                                size="sm"
+                                className={cn(
+                                  "text-white font-medium whitespace-nowrap w-full sm:w-auto",
+                                  nextBatch && nextBatch.seats > 0
+                                    ? "bg-cyan-600 hover:bg-cyan-700"
+                                    : "bg-gray-600 hover:bg-gray-700"
+                                )}
+                              >
+                                {nextBatch && nextBatch.seats > 0 ? 'Enroll in Batch' : 'Join Waitlist'}
+                                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -498,7 +580,7 @@ export default function CoursesPage() {
               Course Comparison
             </DialogTitle>
             <DialogDescription>
-              Compare up to 3 courses side by side
+              Compare up to 3 courses side by side including schedules and availability
             </DialogDescription>
           </DialogHeader>
 
@@ -533,6 +615,30 @@ export default function CoursesPage() {
                         <Badge variant="secondary" className="bg-cyan-50 dark:bg-cyan-950/30 text-cyan-700 dark:text-cyan-400 text-xs">
                           {course.departmentName}
                         </Badge>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                    <td className="p-3 text-sm font-medium text-gray-500 dark:text-gray-400">Next Batch</td>
+                    {compareCourses.map((course) => (
+                      <td key={course.id} className="p-3 text-sm text-gray-900 dark:text-gray-100">
+                        {course.nextBatch ? (
+                          <span className="font-semibold text-cyan-600 dark:text-cyan-400">
+                            {formatDate(course.nextBatch.startDate)}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 italic">Waitlist / TBA</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr className="border-t border-gray-100 dark:border-gray-700">
+                    <td className="p-3 text-sm font-medium text-gray-500 dark:text-gray-400">Batch Timing</td>
+                    {compareCourses.map((course) => (
+                      <td key={course.id} className="p-3 text-sm text-gray-700 dark:text-gray-300">
+                        {course.nextBatch?.timing || course.activeBatch?.timing || (
+                          <span className="text-gray-400 italic">Flexible</span>
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -595,7 +701,7 @@ export default function CoursesPage() {
       </Dialog>
 
       {/* Course Detail Dialog */}
-      <Dialog open={detailOpen} onOpenChange={(open) => { if (!open) { setDetailOpen(false); setSelectedCourse(null); } }}>
+      <Dialog open={detailOpen} onOpenChange={(open) => { if (!open) { setDetailOpen(false); setSelectedCourse(null); setSelectedBatchId(''); } }}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] rounded-2xl bg-white dark:bg-gray-900 border-0 p-0 overflow-hidden" showCloseButton={true}>
           {/* Gradient Top Bar */}
           <div className="h-2 bg-gradient-to-r from-cyan-500 via-sky-400 to-cyan-600" />
@@ -606,7 +712,7 @@ export default function CoursesPage() {
                 {selectedCourse?.name}
               </DialogTitle>
               <DialogDescription className="sr-only">
-                Course details for {selectedCourse?.name}
+                Course details and batch schedule for {selectedCourse?.name}
               </DialogDescription>
             </DialogHeader>
 
@@ -644,13 +750,60 @@ export default function CoursesPage() {
                     </div>
                   </div>
 
-                  {/* Installment Note */}
-                  <div className="flex items-start gap-2.5 px-3 py-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-xl">
-                    <CreditCard className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                    <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                      Easy installment options available. Pay in 2–3 installments. Contact us for flexible payment plans.
-                    </p>
-                  </div>
+                  {/* Available Batches & Schedules Section */}
+                  {selectedCourse.batches && selectedCourse.batches.length > 0 ? (
+                    <div className="p-4 bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/40 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-cyan-900 dark:text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-cyan-600" /> Available Batch Cohorts
+                        </span>
+                        <span className="text-[11px] text-gray-500">Select a schedule</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {selectedCourse.batches.map((b) => (
+                          <div
+                            key={b.id}
+                            onClick={() => setSelectedBatchId(b.id)}
+                            className={cn(
+                              "p-3 rounded-lg border text-left cursor-pointer transition-all flex items-center justify-between",
+                              selectedBatchId === b.id
+                                ? "bg-white dark:bg-gray-800 border-cyan-500 shadow-xs ring-1 ring-cyan-500"
+                                : "bg-white/60 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 hover:border-cyan-300"
+                            )}
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{b.batchName}</span>
+                                <Badge className={cn("text-[9px] px-1.5 py-0.2",
+                                  b.status === 'almost_full' ? "bg-amber-100 text-amber-700" :
+                                  b.status === 'full' ? "bg-rose-100 text-rose-700" :
+                                  "bg-emerald-100 text-emerald-700"
+                                )}>
+                                  {b.status.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                Starts: {formatDate(b.startDate)} • Timing: {b.timing}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 font-medium">{b.seats} seats left</span>
+                              {selectedBatchId === b.id && (
+                                <div className="h-5 w-5 rounded-full bg-cyan-600 text-white flex items-center justify-center">
+                                  <Check className="h-3 w-3" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-xl text-xs text-amber-700 dark:text-amber-300">
+                      No active upcoming batches are currently open for this course. You can join the waitlist to receive instant notifications once enrollment opens.
+                    </div>
+                  )}
 
                   {/* Description */}
                   <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl">
@@ -692,12 +845,19 @@ export default function CoursesPage() {
 
                 {/* Actions */}
                 <div className="space-y-3 pt-2">
-                  <Link href={session ? "/dashboard/courses" : "/login?callbackUrl=/dashboard/courses"} className="block">
+                  <Link
+                    href={
+                      selectedBatchId
+                        ? `/register?courseId=${selectedCourse.id}&batchId=${selectedBatchId}`
+                        : `/register?courseId=${selectedCourse.id}`
+                    }
+                    className="block"
+                  >
                     <Button
                       className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-base h-12 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
                     >
                       <GraduationCap className="h-5 w-5 mr-2" />
-                      Enroll Now
+                      {selectedBatchId ? 'Enroll in Selected Batch' : 'Join Course Waitlist'}
                       <ArrowRight className="h-4 w-4 ml-1.5" />
                     </Button>
                   </Link>
@@ -705,7 +865,6 @@ export default function CoursesPage() {
                     onClick={() => {
                       setDetailOpen(false);
                       setSelectedCourse(null);
-                      // Scroll to courses section so user can compare
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     className="flex items-center justify-center gap-1.5 w-full text-sm text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 font-medium py-2 transition-colors"

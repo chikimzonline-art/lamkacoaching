@@ -25,12 +25,34 @@ import { resolveIcon } from '@/components/homepage/homepage-view';
    Types & Interfaces
    ───────────────────────────────────────────── */
 
+interface BatchItemSummary {
+  id: string;
+  batchName: string;
+  startDate: string;
+  endDate: string | null;
+  timing: string;
+  seats: number;
+  totalSeats: number;
+  status: string;
+  description?: string | null;
+}
+
 interface CourseItem {
   id: string;
   name: string;
+  durationValue?: number | null;
+  durationUnit?: string | null;
   duration: string | null;
   totalFee: number;
   description: string | null;
+  status?: string;
+  batches?: BatchItemSummary[];
+  nextBatch?: BatchItemSummary | null;
+  activeBatch?: BatchItemSummary | null;
+  isOngoing?: boolean;
+  hasOpenBatches?: boolean;
+  departmentId?: string;
+  departmentName?: string;
 }
 
 interface Department {
@@ -41,12 +63,17 @@ interface Department {
 
 interface BatchData {
   id: string;
+  courseId: string;
+  batchName: string;
   courseName: string;
   department: string;
+  departmentId: string;
   startDate: string;
+  endDate: string | null;
   duration: string;
   timing: string;
   seats: number;
+  totalSeats: number;
   status: string;
   fee: number;
   description?: string | null;
@@ -157,6 +184,9 @@ export default function HomePage() {
     totalFee: number;
     description: string | null;
     departmentName: string;
+    batches?: BatchItemSummary[];
+    nextBatch?: BatchItemSummary | null;
+    activeBatch?: BatchItemSummary | null;
   } | null>(null);
   const [courseModalOpen, setCourseModalOpen] = useState(false);
 
@@ -195,7 +225,7 @@ export default function HomePage() {
       .finally(() => setFeatureCardsLoading(false));
   }, []);
 
-  // Filtered courses
+  // All courses with department metadata
   const allCourses = useMemo(() => {
     const list: { course: CourseItem; departmentName: string }[] = [];
     departments.forEach((dept) => {
@@ -206,10 +236,29 @@ export default function HomePage() {
     return list;
   }, [departments]);
 
-  const filteredCourses = useMemo(() => {
-    if (selectedCourseTab === 'all') return allCourses;
-    return allCourses.filter((item) => item.departmentName.toLowerCase().includes(selectedCourseTab.toLowerCase()));
-  }, [allCourses, selectedCourseTab]);
+  // Ongoing courses (courses currently in progress or actively running)
+  const ongoingCoursesList = useMemo(() => {
+    const list = allCourses.filter((item) => item.course.isOngoing);
+    // If no course is strictly flagged as in-session, fallback to all active courses
+    return list.length > 0 ? list : allCourses;
+  }, [allCourses]);
+
+  const filteredOngoingCourses = useMemo(() => {
+    if (selectedCourseTab === 'all') return ongoingCoursesList;
+    return ongoingCoursesList.filter((item) =>
+      item.departmentName.toLowerCase().includes(selectedCourseTab.toLowerCase())
+    );
+  }, [ongoingCoursesList, selectedCourseTab]);
+
+  // Unique departments for course tabs
+  const courseDepartments = useMemo(() => {
+    return Array.from(new Set(departments.map((d) => d.name)));
+  }, [departments]);
+
+  // Unique departments for batch tabs
+  const batchDepartments = useMemo(() => {
+    return Array.from(new Set(batches.map((b) => b.department).filter(Boolean)));
+  }, [batches]);
 
   // Filtered batches
   const filteredBatches = useMemo(() => {
@@ -228,15 +277,26 @@ export default function HomePage() {
   // Open modal from batch
   const openBatchModal = (batch: BatchData) => {
     setSelectedCourse({
-      id: batch.id,
+      id: batch.courseId || batch.id,
       name: batch.courseName,
       duration: batch.duration,
       totalFee: batch.fee,
-      description: batch.description || `Batch timing: ${batch.timing}. Seats remaining: ${batch.seats}. Starts on ${formatDate(batch.startDate)}.`,
+      description: batch.description || `Batch timing: ${batch.timing}. Seats remaining: ${batch.seats} of ${batch.totalSeats}. Starts on ${formatDate(batch.startDate)}.`,
       departmentName: batch.department,
+      activeBatch: {
+        id: batch.id,
+        batchName: batch.batchName,
+        startDate: batch.startDate,
+        endDate: batch.endDate,
+        timing: batch.timing,
+        seats: batch.seats,
+        totalSeats: batch.totalSeats,
+        status: batch.status,
+      },
     });
     setCourseModalOpen(true);
   };
+
 
   // Dynamic values
   const heroBadge = siteSettings.heroBadgeText || 'Admissions Open 2025-26';
@@ -487,7 +547,7 @@ export default function HomePage() {
               Ongoing Courses
             </h2>
 
-            {/* Pill Filters */}
+            {/* Dynamic Department Pill Filters for Courses */}
             <div className="flex gap-2 sm:gap-2.5 mt-4 sm:mt-6 mb-4 overflow-x-auto pb-2 scrollbar-none no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
               <button
                 onClick={() => setSelectedCourseTab('all')}
@@ -497,43 +557,26 @@ export default function HomePage() {
                     : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
                 }`}
               >
-                All
+                All Courses
               </button>
-              <button
-                onClick={() => setSelectedCourseTab('competitive')}
-                className={`whitespace-nowrap shrink-0 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                  selectedCourseTab === 'competitive'
-                    ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
-                }`}
-              >
-                Competitive Exam
-              </button>
-              <button
-                onClick={() => setSelectedCourseTab('banking')}
-                className={`whitespace-nowrap shrink-0 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                  selectedCourseTab === 'banking'
-                    ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
-                }`}
-              >
-                Banking
-              </button>
-              <button
-                onClick={() => setSelectedCourseTab('computer')}
-                className={`whitespace-nowrap shrink-0 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                  selectedCourseTab === 'computer'
-                    ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
-                }`}
-              >
-                Computer Training
-              </button>
+              {courseDepartments.map((deptName) => (
+                <button
+                  key={deptName}
+                  onClick={() => setSelectedCourseTab(deptName)}
+                  className={`whitespace-nowrap shrink-0 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                    selectedCourseTab.toLowerCase() === deptName.toLowerCase()
+                      ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
+                  }`}
+                >
+                  {deptName}
+                </button>
+              ))}
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-2">
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Join our active sessions and start learning today.
+                Active learning sessions currently in progress with faculty mentorship.
               </p>
               <Link
                 href="/courses"
@@ -554,20 +597,20 @@ export default function HomePage() {
                   <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded w-full" />
                 </div>
               ))
-            ) : filteredCourses.length === 0 ? (
+            ) : filteredOngoingCourses.length === 0 ? (
               <div className="col-span-full text-center py-12 bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-300 dark:border-gray-800">
                 <BookOpen className="h-8 w-8 text-gray-400 mx-auto mb-2 opacity-50" />
                 <p className="text-gray-500 text-sm">No ongoing courses found for this category.</p>
               </div>
             ) : (
-              filteredCourses.slice(0, 6).map(({ course, departmentName }) => (
+              filteredOngoingCourses.slice(0, 6).map(({ course, departmentName }) => (
                 <div
                   key={course.id}
                   className="group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-xl hover:border-cyan-500/30 hover:-translate-y-1.5 transition-all duration-300 relative flex flex-col justify-between"
                 >
                   <div className="absolute top-4 right-4 z-10">
                     <span className="bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                      In Progress
+                      {course.isOngoing ? 'In Session' : 'Active Course'}
                     </span>
                   </div>
 
@@ -585,13 +628,21 @@ export default function HomePage() {
                     </div>
 
                     <div className="flex flex-col gap-4 pt-2">
-                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs font-medium">
-                        <Calendar className="h-4 w-4 text-cyan-500" />
-                        <span>Duration: {course.duration || 'Flexible'} • {course.totalFee > 0 ? formatCurrency(course.totalFee) : 'Contact Us'}</span>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs font-medium">
+                          <Calendar className="h-4 w-4 text-cyan-500" />
+                          <span>Duration: {course.duration || 'Flexible'} • {course.totalFee > 0 ? formatCurrency(course.totalFee) : 'Contact Us'}</span>
+                        </div>
+                        {course.activeBatch && (
+                          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs">
+                            <Clock className="h-3.5 w-3.5 text-cyan-500" />
+                            <span>Schedule: {course.activeBatch.timing}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mt-1 sm:mt-2">
                         <Link
-                          href={`/register?courseId=${course.id}`}
+                          href={`/register?courseId=${course.id}${course.nextBatch ? `&batchId=${course.nextBatch.id}` : ''}`}
                           className="w-full bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 active:scale-95 text-white py-2.5 sm:py-3 rounded-xl font-semibold shadow-md shadow-cyan-500/20 hover:shadow-lg transition-all duration-200 text-xs sm:text-sm text-center inline-flex items-center justify-center cursor-pointer"
                         >
                           Enrolling Now
@@ -615,6 +666,8 @@ export default function HomePage() {
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">
               Upcoming Batches
             </h2>
+
+            {/* Dynamic Department Pill Filters for Batches */}
             <div className="flex gap-2 sm:gap-2.5 mt-4 sm:mt-6 mb-4 overflow-x-auto pb-2 scrollbar-none no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
               <button
                 onClick={() => setSelectedBatchTab('all')}
@@ -624,49 +677,32 @@ export default function HomePage() {
                     : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
                 }`}
               >
-                All
+                All Batches
               </button>
-              <button
-                onClick={() => setSelectedBatchTab('ssc')}
-                className={`whitespace-nowrap shrink-0 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                  selectedBatchTab === 'ssc'
-                    ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
-                }`}
-              >
-                SSC
-              </button>
-              <button
-                onClick={() => setSelectedBatchTab('banking')}
-                className={`whitespace-nowrap shrink-0 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                  selectedBatchTab === 'banking'
-                    ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
-                }`}
-              >
-                Banking
-              </button>
-              <button
-                onClick={() => setSelectedBatchTab('computer')}
-                className={`whitespace-nowrap shrink-0 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                  selectedBatchTab === 'computer'
-                    ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
-                }`}
-              >
-                Computer Training
-              </button>
+              {batchDepartments.map((deptName) => (
+                <button
+                  key={deptName}
+                  onClick={() => setSelectedBatchTab(deptName)}
+                  className={`whitespace-nowrap shrink-0 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                    selectedBatchTab.toLowerCase() === deptName.toLowerCase()
+                      ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 hover:text-cyan-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 hover:shadow-xs active:scale-95'
+                  }`}
+                >
+                  {deptName}
+                </button>
+              ))}
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-2">
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Secure your spot in our upcoming 2025 programs.
+                New batches starting soon. Reserve your seat early before capacity fills up.
               </p>
               <Link
-                href="/register"
+                href="/courses"
                 className="text-cyan-600 dark:text-cyan-400 font-bold text-xs uppercase flex items-center gap-1 hover:underline transition-all tracking-wider group"
               >
-                View All Batches <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                Explore All Programs <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>
           </div>
@@ -693,8 +729,18 @@ export default function HomePage() {
                   className="group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-xl hover:border-cyan-500/30 hover:-translate-y-1.5 transition-all duration-300 relative flex flex-col justify-between"
                 >
                   <div className="absolute top-4 right-4 z-10">
-                    <span className="bg-gradient-to-r from-cyan-500 to-sky-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                      New Batch
+                    <span className={`text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm ${
+                      batch.status === 'almost_full'
+                        ? 'bg-amber-500'
+                        : batch.status === 'full'
+                        ? 'bg-rose-500'
+                        : 'bg-gradient-to-r from-cyan-500 to-sky-500'
+                    }`}>
+                      {batch.status === 'almost_full'
+                        ? 'Almost Full'
+                        : batch.status === 'full'
+                        ? 'Batch Full'
+                        : 'New Batch'}
                     </span>
                   </div>
 
@@ -707,21 +753,31 @@ export default function HomePage() {
                         {batch.courseName}
                       </h3>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-5 sm:mb-6 line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem]">
-                        {batch.description || `Timing: ${batch.timing}. Limited seats available.`}
+                        {batch.description || `Timing: ${batch.timing}. Seats remaining: ${batch.seats} of ${batch.totalSeats}.`}
                       </p>
                     </div>
 
                     <div className="flex flex-col gap-4 pt-2">
-                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs font-medium">
-                        <Calendar className="h-4 w-4 text-cyan-500" />
-                        <span>Starting: {formatDate(batch.startDate)} • {batch.seats} seats left</span>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs font-medium">
+                          <Calendar className="h-4 w-4 text-cyan-500" />
+                          <span>Starts: {formatDate(batch.startDate)} • {batch.seats} {batch.seats === 1 ? 'seat' : 'seats'} left</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs">
+                          <Clock className="h-3.5 w-3.5 text-cyan-500" />
+                          <span>Timing: {batch.timing}</span>
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mt-1 sm:mt-2">
                         <Link
-                          href="/register"
-                          className="w-full bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 active:scale-95 text-white py-2.5 sm:py-3 rounded-xl font-semibold shadow-md shadow-cyan-500/20 hover:shadow-lg transition-all duration-200 text-xs sm:text-sm text-center inline-flex items-center justify-center cursor-pointer"
+                          href={`/register?courseId=${batch.courseId}&batchId=${batch.id}`}
+                          className={`w-full py-2.5 sm:py-3 rounded-xl font-semibold shadow-md transition-all duration-200 text-xs sm:text-sm text-center inline-flex items-center justify-center cursor-pointer ${
+                            batch.seats === 0
+                              ? 'bg-gray-500 text-white cursor-not-allowed opacity-80'
+                              : 'bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-600 hover:to-sky-600 text-white shadow-cyan-500/20 hover:shadow-lg active:scale-95'
+                          }`}
                         >
-                          Quick Enroll
+                          {batch.seats === 0 ? 'Waitlist' : 'Quick Enroll'}
                         </Link>
                         <button
                           onClick={() => openBatchModal(batch)}

@@ -24,12 +24,15 @@ type DepartmentColor = 'blue' | 'cyan' | 'green';
 
 interface BatchData {
   id: string;
+  courseId?: string;
+  batchName?: string;
   courseName: string;
   department: string;
   startDate: string;
   duration: string;
   timing: string;
   seats: number;
+  totalSeats?: number;
   status: string;
   fee: number;
   description?: string | null;
@@ -258,10 +261,23 @@ export default function UpcomingBatchesSection() {
                     </div>
 
                     {/* Enroll button */}
-                    <Link href="/register#" className="block">
-                      <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-xl">
+                    <Link
+                      href={
+                        batch.seats === 0
+                          ? `/register?courseId=${batch.courseId || batch.id}`
+                          : `/register?courseId=${batch.courseId || batch.id}&batchId=${batch.id}`
+                      }
+                      className="block"
+                    >
+                      <Button
+                        className={`w-full font-semibold rounded-xl ${
+                          batch.seats === 0
+                            ? 'bg-gray-600 hover:bg-gray-700 text-white'
+                            : 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                        }`}
+                      >
                         <GraduationCap className="h-4 w-4 mr-1.5" />
-                        Enroll Now
+                        {batch.seats === 0 ? 'Join Waitlist' : 'Enroll Now'}
                       </Button>
                     </Link>
                   </div>
