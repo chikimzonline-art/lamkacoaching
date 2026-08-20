@@ -55,13 +55,24 @@ export async function DELETE(
       return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
     }
 
+    const enrollmentCount = await db.enrollment.count({ where: { batchId: id } });
+    if (enrollmentCount > 0) {
+      return NextResponse.json(
+        {
+          error: `Cannot delete batch: ${enrollmentCount} student enrollment${enrollmentCount > 1 ? 's are' : ' is'} associated with this batch. Please delete or reassign them first.`,
+        },
+        { status: 400 }
+      );
+    }
+
     await db.batch.delete({ where: { id } });
 
     return NextResponse.json({ message: 'Batch deleted successfully' });
   } catch (error) {
     console.error('Failed to delete batch:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete batch';
     return NextResponse.json(
-      { error: 'Failed to delete batch' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

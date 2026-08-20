@@ -193,6 +193,26 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({ enrollment });
 
+    } else if (action === 'active' || action === 'activate') {
+      if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+      const enrollment = await db.enrollment.update({
+        where: { id },
+        data: { status: 'active' },
+        include: {
+          student: { select: { id: true, name: true, phone: true } },
+          course: { select: { id: true, name: true, department: { select: { name: true } } } },
+        },
+      });
+      return NextResponse.json({ enrollment });
+
+    } else if (action === 'delete') {
+      if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+      const enrollment = await db.enrollment.findUnique({ where: { id } });
+      if (!enrollment) return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 });
+
+      await db.enrollment.delete({ where: { id } });
+      return NextResponse.json({ success: true, message: 'Enrollment deleted successfully' });
+
     } else if (action === 'deletePayment') {
       // Delete an enrollment payment
       const { paymentId } = body;
@@ -214,5 +234,26 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error processing enrollment:', error);
     return NextResponse.json({ error: 'Failed to process enrollment request' }, { status: 500 });
+  }
+}
+
+// DELETE /api/enrollments?id=xxx
+export async function DELETE(request: Request) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+
+    const enrollment = await db.enrollment.findUnique({ where: { id } });
+    if (!enrollment) return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 });
+
+    await db.enrollment.delete({ where: { id } });
+    return NextResponse.json({ success: true, message: 'Enrollment deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting enrollment:', error);
+    return NextResponse.json({ error: 'Failed to delete enrollment' }, { status: 500 });
   }
 }

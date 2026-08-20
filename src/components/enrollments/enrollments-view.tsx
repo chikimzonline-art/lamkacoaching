@@ -27,7 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   UserPlus, Plus, Banknote, Check, X, ChevronRight, ChevronLeft,
-  CalendarIcon, Loader2, Search, Receipt,
+  CalendarIcon, Loader2, Search, Receipt, Trash2, AlertTriangle, RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency, formatDate, addMonths } from '@/lib/helpers';
@@ -69,6 +69,11 @@ export default function EnrollmentsView() {
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('active');
+
+  // Delete dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingEnrollment, setDeletingEnrollment] = useState<Enrollment | null>(null);
+  const [deletingSubmitting, setDeletingSubmitting] = useState(false);
 
   // Wizard
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -317,10 +322,11 @@ export default function EnrollmentsView() {
 
   const handleStatusChange = async (enrollment: Enrollment, newStatus: string) => {
     try {
+      const action = newStatus === 'completed' ? 'complete' : newStatus === 'active' ? 'active' : 'drop';
       const res = await fetch('/api/enrollments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: newStatus === 'completed' ? 'complete' : 'drop', id: enrollment.id }),
+        body: JSON.stringify({ action, id: enrollment.id }),
       });
       const json = await res.json();
       if (!res.ok) { toast.error(json.error || 'Failed to update'); return; }
@@ -328,6 +334,36 @@ export default function EnrollmentsView() {
       fetchEnrollments();
     } catch {
       toast.error('Failed to update enrollment');
+    }
+  };
+
+  const openDeleteDialog = (enrollment: Enrollment) => {
+    setDeletingEnrollment(enrollment);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteEnrollment = async () => {
+    if (!deletingEnrollment) return;
+    setDeletingSubmitting(true);
+    try {
+      const res = await fetch('/api/enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id: deletingEnrollment.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || 'Failed to delete enrollment');
+        return;
+      }
+      toast.success('Enrollment deleted successfully');
+      setDeleteDialogOpen(false);
+      setDeletingEnrollment(null);
+      fetchEnrollments();
+    } catch {
+      toast.error('Failed to delete enrollment');
+    } finally {
+      setDeletingSubmitting(false);
     }
   };
 
@@ -455,6 +491,15 @@ export default function EnrollmentsView() {
                         {enrollment.course.department.name}
                       </Badge>
                     </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-gray-400 hover:text-red-600 hover:bg-red-50 -mr-1 -mt-1"
+                      title="Delete Enrollment"
+                      onClick={() => openDeleteDialog(enrollment)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   <div className="space-y-1.5">
@@ -478,7 +523,7 @@ export default function EnrollmentsView() {
                   </div>
 
                   {/* Actions */}
-                  {enrollment.status === 'active' && (
+                  {enrollment.status === 'active' ? (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {outstanding > 0 && (
                         <Button size="sm" variant="outline" onClick={() => openPayDialog(enrollment)}
@@ -494,6 +539,17 @@ export default function EnrollmentsView() {
                       <Button size="sm" variant="outline" onClick={() => handleStatusChange(enrollment, 'dropped')}
                         className="text-xs h-9 text-red-600 border-red-200 hover:bg-red-50">
                         <X className="h-3 w-3 mr-1" /> Drop
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleStatusChange(enrollment, 'active')}
+                        className="text-xs h-8 text-cyan-700 border-cyan-200 hover:bg-cyan-50">
+                        <RotateCcw className="h-3 w-3 mr-1" /> Re-activate
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openDeleteDialog(enrollment)}
+                        className="text-xs h-8 text-red-600 border-red-200 hover:bg-red-50">
+                        <Trash2 className="h-3 w-3 mr-1" /> Delete Permanently
                       </Button>
                     </div>
                   )}
@@ -801,6 +857,58 @@ export default function EnrollmentsView() {
               </Button>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Enrollment Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Enrollment
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-sm text-gray-600">
+            <p>
+              Are you sure you want to permanently delete the enrollment for{' '}
+              <strong className="text-gray-900">{deletingEnrollment?.student?.name}</strong> in{' '}
+              <strong className="text-gray-900">{deletingEnrollment?.course?.name}</strong>?
+            </p>
+            {deletingEnrollment && deletingEnrollment.payments && deletingEnrollment.payments.length > 0 && (
+              <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                ⚠️ <strong>Warning:</strong> This enrollment has {deletingEnrollment.payments.length} payment record(s) totaling{' '}
+                {formatCurrency(deletingEnrollment.paidAmount)}. Permanently deleting this enrollment will remove these payment records as well.
+              </p>
+            )}
+            <p className="text-xs text-gray-500">
+              This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deletingSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteEnrollment}
+              disabled={deletingSubmitting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deletingSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Permanently'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
