@@ -19,7 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { bookCabin } from './actions';
+import { bookCabin, cancelCabinBooking } from './actions';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { processPayment } from '@/lib/razorpay';
