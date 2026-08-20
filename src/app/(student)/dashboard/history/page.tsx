@@ -6,6 +6,8 @@ import { formatCurrency } from "@/lib/helpers"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { RazorpayCheckoutButton } from "@/components/payments/razorpay-checkout-button"
+import { CancelEnrollmentButton } from "@/components/enrollments/cancel-enrollment-button"
+import { CancelBookingButton } from "@/components/bookings/cancel-booking-button"
 
 export default async function DashboardHistoryPage() {
   const { student } = await requireStudent()
@@ -45,11 +47,18 @@ export default async function DashboardHistoryPage() {
                       <p className="text-xs text-slate-500">Course Fee Balance</p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0">
                     <div className="text-left sm:text-right">
                       <p className="font-extrabold text-red-600 text-base sm:text-lg">{formatCurrency(enrollment.totalFee - enrollment.paidAmount)}</p>
                       <p className="text-[11px] text-slate-400">Total: {formatCurrency(enrollment.totalFee)}</p>
                     </div>
+                    {enrollment.status === 'pending_payment' && enrollment.paidAmount === 0 && (
+                      <CancelEnrollmentButton
+                        enrollmentId={enrollment.id}
+                        variant="outline"
+                        className="h-9 text-xs font-semibold px-3 rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+                      />
+                    )}
                     <RazorpayCheckoutButton
                       type="course"
                       itemId={enrollment.course.id}
@@ -78,11 +87,17 @@ export default async function DashboardHistoryPage() {
                       <p className="text-xs text-slate-500 capitalize">{booking.type.replace('_', ' ')}</p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0">
                     <div className="text-left sm:text-right">
                       <p className="font-extrabold text-red-600 text-base sm:text-lg">{formatCurrency(booking.totalAmount - booking.paidAmount)}</p>
                       <p className="text-[11px] text-slate-400">Total: {formatCurrency(booking.totalAmount)}</p>
                     </div>
+                    {booking.status === 'pending_payment' && booking.paidAmount === 0 && (
+                      <CancelBookingButton
+                        bookingId={booking.id}
+                        className="h-9 text-xs font-semibold px-3 rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+                      />
+                    )}
                     <RazorpayCheckoutButton
                       type="cabin"
                       itemId={booking.cabin.id}

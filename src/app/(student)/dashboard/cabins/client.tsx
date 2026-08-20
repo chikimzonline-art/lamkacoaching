@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -101,6 +101,17 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
   const [error, setError] = useState('');
   const router = useRouter();
 
+  // Close mobile drawer on desktop resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileDrawerOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const availableCabins = data.cabins.filter((c) => !c.isOccupied) || [];
   const selectedCabinInfo = data.cabins.find((c) => c.id === selectedCabin);
 
@@ -127,13 +138,16 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
 
   const handleSelectCabin = (cabinId: string) => {
     setSelectedCabin(cabinId);
-    setMobileDrawerOpen(true);
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setMobileDrawerOpen(true);
+    }
   };
 
   async function handleBook() {
     if (!selectedCabin) return;
     setError('');
     setSubmitting(true);
+    let createdBookingId: string | null = null;
     
     try {
       // 1. Create the booking record (status: pending_payment)
@@ -141,6 +155,7 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
       if (!res?.success || !res?.bookingId) {
         throw new Error(res?.error || "Failed to reserve cabin");
       }
+      createdBookingId = res.bookingId;
 
       // 2. Create Razorpay Order
       const orderRes = await fetch('/api/payments/create-order', {
@@ -161,7 +176,11 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
         throw new Error(orderData.error || 'Failed to create payment order');
       }
 
-      // 3. Launch Razorpay Checkout
+      // 3. Close the mobile drawer BEFORE launching Razorpay
+      // Crucial: Releases Radix UI's pointer-events lock and focus-trap so Razorpay iframe is fully interactive
+      setMobileDrawerOpen(false);
+
+      // 4. Launch Razorpay Checkout
       await processPayment({
         amount: estimatedAmount,
         orderId: orderData.orderId,
@@ -180,15 +199,33 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
         onSuccess: (response: any) => {
           toast.success("Cabin booked successfully!");
           setSubmitting(false);
-          setMobileDrawerOpen(false);
           router.push(`/dashboard/success?type=cabin&id=${selectedCabin}&payment_id=${response.razorpay_payment_id}`);
         },
-        onFailure: (err) => {
-          setError(err.message || "Payment failed or was cancelled.");
+        onFailure: async (err) => {
+          console.error("Payment failed or cancelled", err);
+          // If the user cancelled or exited, instantly discard the draft booking to free the cabin
+          if (createdBookingId) {
+            try {
+              await cancelCabinBooking(createdBookingId);
+              toast.info("Cabin reservation cancelled. You can select any available cabin.");
+            } catch (cancelErr) {
+              console.error("Failed to auto-cancel cabin booking", cancelErr);
+            }
+            router.refresh();
+          } else {
+            setError(err.message || "Payment failed or was cancelled.");
+          }
           setSubmitting(false);
         },
       });
     } catch (e: any) {
+      if (createdBookingId) {
+        try {
+          await cancelCabinBooking(createdBookingId);
+        } catch (cancelErr) {
+          console.error("Failed to auto-cancel cabin booking after error", cancelErr);
+        }
+      }
       setError(e.message || "Failed to book cabin. Please try again.");
       setSubmitting(false);
     }

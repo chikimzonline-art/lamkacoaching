@@ -79,6 +79,11 @@ export const processPayment = async ({
     theme: {
       color: '#06b6d4', // cyan-500 from your tailwind config to match branding
     },
+    modal: {
+      ondismiss: function () {
+        onFailure(new Error('Payment cancelled by user'));
+      },
+    },
   };
 
   const paymentObject = new window.Razorpay(options);

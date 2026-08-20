@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RazorpayCheckoutButton } from "@/components/payments/razorpay-checkout-button"
+import { CancelEnrollmentButton } from "@/components/enrollments/cancel-enrollment-button"
+import { CancelBookingButton } from "@/components/bookings/cancel-booking-button"
 import { formatCurrency } from "@/lib/helpers"
 
 function getBookingTypeLabel(type: string): string {
@@ -67,7 +69,7 @@ export default async function MyLearningPage({
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start mb-2">
                         <Badge variant={enrollment.status === 'active' ? 'default' : 'secondary'} className={enrollment.status === 'active' ? 'bg-blue-600 hover:bg-blue-700' : ''}>
-                          {enrollment.status}
+                          {enrollment.status.replace('_', ' ')}
                         </Badge>
                       </div>
                       <CardTitle className="text-lg line-clamp-1 group-hover:text-blue-700 transition-colors">{enrollment.course.name}</CardTitle>
@@ -88,19 +90,28 @@ export default async function MyLearningPage({
                     </CardContent>
                     <CardFooter className="pt-0 flex flex-col gap-2">
                       {enrollment.paidAmount < enrollment.totalFee ? (
-                        <RazorpayCheckoutButton
-                          type="course"
-                          itemId={enrollment.course.id}
-                          itemName={enrollment.course.name}
-                          studentId={student.id}
-                          studentName={student.name}
-                          studentEmail={student.email || undefined}
-                          studentPhone={student.phone}
-                          totalFee={enrollment.totalFee}
-                          paidAmount={enrollment.paidAmount}
-                          buttonText="Pay Pending Dues"
-                          className="w-full"
-                        />
+                        <>
+                          <RazorpayCheckoutButton
+                            type="course"
+                            itemId={enrollment.course.id}
+                            itemName={enrollment.course.name}
+                            studentId={student.id}
+                            studentName={student.name}
+                            studentEmail={student.email || undefined}
+                            studentPhone={student.phone}
+                            totalFee={enrollment.totalFee}
+                            paidAmount={enrollment.paidAmount}
+                            buttonText="Pay Pending Dues"
+                            className="w-full"
+                          />
+                          {enrollment.status === 'pending_payment' && enrollment.paidAmount === 0 && (
+                            <CancelEnrollmentButton
+                              enrollmentId={enrollment.id}
+                              variant="outline"
+                              className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            />
+                          )}
+                        </>
                       ) : (
                         <div className="w-full inline-flex h-9 items-center justify-center rounded-md bg-green-50 text-green-700 px-4 py-2 text-sm font-medium border border-green-200">
                           Fully Paid
@@ -178,6 +189,12 @@ export default async function MyLearningPage({
                           paidAmount={booking.paidAmount}
                           buttonText="Pay Pending Dues"
                           className="w-full"
+                        />
+                      )}
+                      {booking.status === 'pending_payment' && booking.paidAmount === 0 && (
+                        <CancelBookingButton
+                          bookingId={booking.id}
+                          className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                         />
                       )}
                       <Link 

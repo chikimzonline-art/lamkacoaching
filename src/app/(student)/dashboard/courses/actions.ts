@@ -96,3 +96,40 @@ export async function joinWaitlist(rawCourseId: string) {
     return { success: false, error: error.message || "An unexpected error occurred joining the waitlist." }
   }
 }
+
+const CancelEnrollmentSchema = z.object({
+  enrollmentId: z.string().min(1, "Enrollment ID is required")
+})
+
+export async function cancelCourseEnrollment(rawEnrollmentId: string) {
+  try {
+    const { enrollmentId } = CancelEnrollmentSchema.parse({ enrollmentId: rawEnrollmentId })
+    const { student } = await requireStudent()
+
+    const enrollment = await db.enrollment.findUnique({
+      where: { id: enrollmentId },
+      include: { payments: true }
+    })
+
+    if (!enrollment || enrollment.studentId !== student.id) {
+      return { success: false, error: "Enrollment not found or unauthorized." }
+    }
+
+    if (enrollment.status !== "pending_payment" || enrollment.paidAmount > 0 || enrollment.payments.length > 0) {
+      return { success: false, error: "Cannot cancel an active or partially paid course enrollment. Please contact administration." }
+    }
+
+    await db.enrollment.delete({
+      where: { id: enrollmentId }
+    })
+
+    revalidatePath("/dashboard/courses")
+    revalidatePath("/dashboard/my-learning")
+    revalidatePath("/dashboard/history")
+    return { success: true }
+  } catch (error: any) {
+    Sentry.captureException(error);
+    console.error("Cancel Enrollment Error:", error);
+    return { success: false, error: error.message || "An unexpected error occurred during cancellation." }
+  }
+}

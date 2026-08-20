@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { processPayment } from '@/lib/razorpay';
-import { enrollInCourse } from '@/app/(student)/dashboard/courses/actions';
+import { enrollInCourse, cancelCourseEnrollment } from '@/app/(student)/dashboard/courses/actions';
 import { revalidateDashboard } from '@/app/(student)/dashboard/actions';
 import { Loader2, GraduationCap, Banknote, CreditCard, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -100,6 +100,7 @@ export function RazorpayCheckoutButton({
     }
 
     setLoading(true);
+    let createdEnrollmentId: string | null = null;
 
     try {
       // 1. If this is a brand new enrollment, we must create it in the database first
@@ -111,11 +112,11 @@ export function RazorpayCheckoutButton({
         }
         const res = await enrollInCourse(itemId, batchId || '');
         if (!res?.success) {
-          // If already enrolled, the action returns an error. We can ignore it if we just want to proceed to pay,
-          // but if it fails for another reason, we should stop.
           if (!res?.error?.includes('Already enrolled')) {
              throw new Error(res?.error || "Enrollment failed.");
           }
+        } else if (res?.enrollmentId) {
+          createdEnrollmentId = res.enrollmentId;
         }
       }
 
@@ -140,7 +141,11 @@ export function RazorpayCheckoutButton({
         throw new Error(data.error || 'Failed to create payment order');
       }
 
-      // 3. Open Razorpay Checkout Modal
+      // 3. Close the Radix Dialog BEFORE opening Razorpay modal
+      // This releases Radix's pointer-events: none and focus-trap on document.body
+      setOpen(false);
+
+      // 4. Open Razorpay Checkout Modal
       await processPayment({
         amount: finalAmountPaise,
         orderId: data.orderId,
@@ -157,7 +162,6 @@ export function RazorpayCheckoutButton({
           contact: studentPhone,
         },
         onSuccess: async (response: any) => {
-          setOpen(false);
           toast.success('Payment successful!');
           try {
             await revalidateDashboard();
@@ -166,18 +170,30 @@ export function RazorpayCheckoutButton({
           }
           router.push(`/dashboard/success?type=${type}&id=${itemId}&payment_id=${response.razorpay_payment_id}`);
         },
-        onFailure: (error) => {
-          console.error('Payment failed', error);
-          toast.error('Payment failed or was cancelled.');
-          // Even if it failed, if it was a new enrollment, it's saved as pending_payment.
-          if (isNewEnrollment) {
-             setOpen(false);
-             router.push('/dashboard/courses');
-             toast.info('Enrollment saved. You can pay your dues later from the dashboard.');
+        onFailure: async (error) => {
+          console.error('Payment failed or cancelled', error);
+          // If the user cancelled or exited a fresh enrollment, discard the draft enrollment
+          if (isNewEnrollment && createdEnrollmentId) {
+            try {
+              await cancelCourseEnrollment(createdEnrollmentId);
+              toast.info('Registration cancelled. You can enroll again anytime.');
+            } catch (cancelErr) {
+              console.error('Failed to auto-cancel draft enrollment', cancelErr);
+            }
+            router.refresh();
+          } else {
+            toast.error('Payment failed or was cancelled.');
           }
         },
       });
     } catch (error: any) {
+      if (isNewEnrollment && createdEnrollmentId) {
+        try {
+          await cancelCourseEnrollment(createdEnrollmentId);
+        } catch (cancelErr) {
+          console.error('Failed to clean up draft enrollment after error', cancelErr);
+        }
+      }
       toast.error(error.message || 'An error occurred during payment processing');
     } finally {
       setLoading(false);
