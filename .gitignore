@@ -54,3 +54,7 @@ server.log
 /skills/
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Scratch & temporary test scripts
+scratch.*
+scratch/
