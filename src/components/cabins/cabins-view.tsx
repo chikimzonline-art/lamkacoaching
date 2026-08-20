@@ -36,9 +36,10 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown } from 'lucide-react';
+import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatTime, formatCurrency } from '@/lib/helpers';
+import { generateSecurePassword } from '@/lib/email';
 import { cn } from '@/lib/utils';
 
 interface CabinBooking {
@@ -141,6 +142,9 @@ export default function CabinsView() {
   const [editCabinNum, setEditCabinNum] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
+  // Cabin Search state
+  const [cabinSearch, setCabinSearch] = useState('');
+
   // Quick Book state
   const [bookDialogOpen, setBookDialogOpen] = useState(false);
   const [bookStudentId, setBookStudentId] = useState('');
@@ -148,6 +152,18 @@ export default function CabinsView() {
   const [showNewStudentForm, setShowNewStudentForm] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentPhone, setNewStudentPhone] = useState('');
+  const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentUsername, setNewStudentUsername] = useState('');
+  const [newStudentPassword, setNewStudentPassword] = useState('');
+  const [newStudentAddress, setNewStudentAddress] = useState('');
+  const [newStudentNotes, setNewStudentNotes] = useState('');
+  const [credentialsBanner, setCredentialsBanner] = useState<{
+    name: string;
+    username: string;
+    phone: string;
+    password: string;
+    emailSent: boolean;
+  } | null>(null);
   const [creatingStudent, setCreatingStudent] = useState(false);
 
   const [bookType, setBookType] = useState('morning_shift');
@@ -164,6 +180,12 @@ export default function CabinsView() {
   
   const [bookPayNow, setBookPayNow] = useState(false);
   const [bookPayAmount, setBookPayAmount] = useState('');
+  const [bookPaymentDate, setBookPaymentDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [bookPayMode, setBookPayMode] = useState<'cash' | 'upi'>('cash');
+  const [bookReceiptNo, setBookReceiptNo] = useState('');
   
   const [rates, setRates] = useState({
     morning: 500,
@@ -244,9 +266,19 @@ export default function CabinsView() {
     else if (bookType === 'night_shift') setBookTotalAmount(String(rates.night));
   }, [bookType, rates]);
 
+  // Keep payment amount in sync with total when payNow is toggled
+  useEffect(() => {
+    if (bookPayNow) {
+      const baseAmount = Number(bookTotalAmount) || 0;
+      const regFee = showNewStudentForm ? rates.registration : 0;
+      setBookPayAmount(String(baseAmount + regFee));
+      setBookPaymentDate(bookStartDate);
+    }
+  }, [bookPayNow, bookTotalAmount, showNewStudentForm, rates.registration, bookStartDate]);
+
   const handleCreateInlineStudent = async () => {
-    if (!newStudentName || !newStudentPhone) {
-      toast.error('Please enter name and phone');
+    if (!newStudentName.trim() || !newStudentPhone.trim() || !newStudentEmail.trim()) {
+      toast.error('Please enter student name, phone, and email');
       return null;
     }
     setCreatingStudent(true);
@@ -254,14 +286,37 @@ export default function CabinsView() {
       const res = await fetch('/api/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newStudentName, phone: newStudentPhone }),
+        body: JSON.stringify({
+          action: 'create',
+          name: newStudentName.trim(),
+          phone: newStudentPhone.trim(),
+          email: newStudentEmail.trim(),
+          username: newStudentUsername.trim() || undefined,
+          password: newStudentPassword.trim() || undefined,
+          address: newStudentAddress.trim() || undefined,
+          notes: newStudentNotes.trim() || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
         toast.error(json.error || 'Failed to create student');
         return null;
       }
-      toast.success('Student created successfully');
+
+      setCredentialsBanner({
+        name: json.student.name,
+        username: json.student.username || json.student.phone,
+        phone: json.student.phone,
+        password: json.generatedPassword,
+        emailSent: json.emailSent,
+      });
+
+      if (json.emailSent) {
+        toast.success(`Student created & login credentials sent to ${json.student.email}!`);
+      } else {
+        toast.success(`Student created! Generated password: ${json.generatedPassword}`);
+      }
+
       setStudentSearchRes({ students: [json.student] });
       return json.student.id;
     } catch {
@@ -311,7 +366,9 @@ export default function CabinsView() {
       if (bookPayNow && bookPayAmount) {
         body.payNow = true;
         body.payAmount = Number(bookPayAmount);
-        body.payMode = 'cash'; // default for quick book
+        body.payMode = bookPayMode;
+        body.paymentDate = bookPaymentDate;
+        body.receiptNo = bookReceiptNo || undefined;
       }
 
       const res = await fetch('/api/bookings', {
@@ -334,8 +391,14 @@ export default function CabinsView() {
       setShowNewStudentForm(false);
       setNewStudentName('');
       setNewStudentPhone('');
+      setNewStudentEmail('');
+      setNewStudentUsername('');
+      setNewStudentPassword('');
+      setNewStudentAddress('');
+      setNewStudentNotes('');
       setBookPayNow(false);
       setBookPayAmount('');
+      setBookReceiptNo('');
       setBookTotalAmount('');
       fetchCabins();
     } catch {
@@ -513,9 +576,14 @@ export default function CabinsView() {
     ? cabinStates
     : cabinStates.filter((c) => c.cabin.floor === activeFloor);
 
-  const filteredCabins = filterState === 'all'
+  const statusFilteredCabins = filterState === 'all'
     ? floorFilteredCabins
     : floorFilteredCabins.filter((c) => c.state === filterState);
+
+  const cleanCabinSearch = cabinSearch.replace(/[#\s]/g, '').toLowerCase();
+  const filteredCabins = cleanCabinSearch
+    ? statusFilteredCabins.filter((c) => String(c.cabin.cabinNum).includes(cleanCabinSearch))
+    : statusFilteredCabins;
 
   // Floor stats
   const floorStats = floors.map((f) => {
@@ -673,31 +741,56 @@ export default function CabinsView() {
         );
       })()}
 
-      {/* Filter badges and Add Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          {filterBadges.map((badge) => (
-            <button
-              key={badge.key}
-              onClick={() => setFilterState(badge.key)}
-              className={cn(
-                'px-3 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer',
-                filterState === badge.key ? badge.activeColor : badge.color
-              )}
-            >
-              {badge.label}: {badge.count}
-            </button>
-          ))}
-          {filterState !== 'all' && (
-            <button
-              onClick={() => setFilterState('all')}
-              className="text-sm text-gray-400 hover:text-cyan-600 self-center ml-1 underline cursor-pointer"
-            >
-              Clear
-            </button>
-          )}
+      {/* Toolbar: Search, Filter badges, and Add Button */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-gray-200/80 shadow-xs">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1">
+          {/* Cabin Number Search */}
+          <div className="relative w-full sm:w-52">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search cabin # (e.g. 5, 12)..."
+              value={cabinSearch}
+              onChange={(e) => setCabinSearch(e.target.value)}
+              className="pl-9 h-9 text-xs bg-slate-50 border-slate-200 focus:bg-white"
+            />
+            {cabinSearch && (
+              <button
+                onClick={() => setCabinSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {filterBadges.map((badge) => (
+              <button
+                key={badge.key}
+                onClick={() => setFilterState(badge.key)}
+                className={cn(
+                  'px-3 py-1.5 rounded-full border text-xs font-medium transition-all cursor-pointer',
+                  filterState === badge.key ? badge.activeColor : badge.color
+                )}
+              >
+                {badge.label}: {badge.count}
+              </button>
+            ))}
+            {(filterState !== 'all' || cabinSearch) && (
+              <button
+                onClick={() => {
+                  setFilterState('all');
+                  setCabinSearch('');
+                }}
+                className="text-xs text-gray-400 hover:text-cyan-600 self-center ml-1 underline cursor-pointer"
+              >
+                Reset filters
+              </button>
+            )}
+          </div>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600 text-white">
+
+        <Button onClick={() => setAddDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600 text-white shrink-0">
           <Plus className="h-4 w-4 mr-2" />
           Add Cabin
         </Button>
@@ -739,8 +832,10 @@ export default function CabinsView() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-8 text-center text-gray-400">
             <DoorOpen className="h-12 w-12 mx-auto mb-3 opacity-50 text-cyan-300" />
-            <p>No cabins match the selected filter</p>
-            <p className="text-sm mt-1">Try a different filter or add new cabins</p>
+            <p className="font-semibold text-gray-600">
+              {cabinSearch ? `No cabins found matching "${cabinSearch}"` : 'No cabins match the selected filter'}
+            </p>
+            <p className="text-sm mt-1">Try searching a different cabin number or clear active filters</p>
           </CardContent>
         </Card>
       )}
@@ -1023,23 +1118,85 @@ export default function CabinsView() {
             </div>
             
             {showNewStudentForm ? (
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input
-                    placeholder="Full Name"
-                    value={newStudentName}
-                    onChange={(e) => setNewStudentName(e.target.value)}
-                  />
+              <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700">Full Name *</Label>
+                    <Input
+                      placeholder="e.g. John Doe"
+                      value={newStudentName}
+                      onChange={(e) => setNewStudentName(e.target.value)}
+                      className="h-8.5 bg-white text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700">Phone Number *</Label>
+                    <Input
+                      placeholder="e.g. 9876543210"
+                      value={newStudentPhone}
+                      onChange={(e) => setNewStudentPhone(e.target.value)}
+                      className="h-8.5 bg-white text-xs"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Phone Number</Label>
-                  <Input
-                    placeholder="Phone"
-                    value={newStudentPhone}
-                    onChange={(e) => setNewStudentPhone(e.target.value)}
-                  />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700">Email Address *</Label>
+                    <Input
+                      type="email"
+                      placeholder="student@example.com"
+                      value={newStudentEmail}
+                      onChange={(e) => setNewStudentEmail(e.target.value)}
+                      className="h-8.5 bg-white text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-700">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => setNewStudentPassword(generateSecurePassword())}
+                        className="text-[11px] text-cyan-600 hover:text-cyan-700 flex items-center gap-1 font-medium"
+                      >
+                        <Key className="h-3 w-3" /> Auto-generate
+                      </button>
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="Leave blank to auto-generate"
+                      value={newStudentPassword}
+                      onChange={(e) => setNewStudentPassword(e.target.value)}
+                      className="h-8.5 bg-white text-xs font-mono"
+                    />
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-slate-600">Home Address (Optional)</Label>
+                    <Input
+                      placeholder="e.g. Lamka, Churachandpur"
+                      value={newStudentAddress}
+                      onChange={(e) => setNewStudentAddress(e.target.value)}
+                      className="h-8.5 bg-white text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-slate-600">Notes / Batch (Optional)</Label>
+                    <Input
+                      placeholder="Optional notes..."
+                      value={newStudentNotes}
+                      onChange={(e) => setNewStudentNotes(e.target.value)}
+                      className="h-8.5 bg-white text-xs"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                  Credentials will be automatically sent via Brevo (<span className="font-mono">noreply@lamkacoaching.in</span>).
+                </p>
               </div>
             ) : (
               <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -1100,6 +1257,28 @@ export default function CabinsView() {
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </div>
+            )}
+
+            {credentialsBanner && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-900">
+                <div>
+                  <p className="font-semibold">Created: {credentialsBanner.name}</p>
+                  <p className="font-mono text-[11px] text-emerald-700">
+                    User: {credentialsBanner.phone} | Pwd: {credentialsBanner.password}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`Lamka Coaching Portal Login\nPhone: ${credentialsBanner.phone}\nUsername: @${credentialsBanner.username}\nPassword: ${credentialsBanner.password}\nLogin: ${window.location.origin}/login`);
+                    toast.success('Credentials copied to clipboard!');
+                  }}
+                >
+                  <Copy className="h-3 w-3 mr-1" /> Copy
+                </Button>
               </div>
             )}
 
@@ -1176,28 +1355,70 @@ export default function CabinsView() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-              <Label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={bookPayNow}
-                  onChange={(e) => setBookPayNow(e.target.checked)}
-                  className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
-                />
-                Record Payment Now (Cash)
-              </Label>
-            </div>
-            {bookPayNow && (
-              <div className="space-y-2">
-                <Label>Payment Amount (₹)</Label>
-                <Input
-                  type="number"
-                  placeholder="e.g. 500"
-                  value={bookPayAmount}
-                  onChange={(e) => setBookPayAmount(e.target.value)}
-                />
+            {/* Payment Record Section with Date Backdating */}
+            <div className="pt-2 border-t border-gray-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={bookPayNow}
+                    onChange={(e) => setBookPayNow(e.target.checked)}
+                    className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500 h-4 w-4"
+                  />
+                  Record Payment (Backdate / Instant Entry)
+                </Label>
               </div>
-            )}
+
+              {bookPayNow && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-slate-700">Payment Amount (₹)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 500"
+                        value={bookPayAmount}
+                        onChange={(e) => setBookPayAmount(e.target.value)}
+                        className="h-8.5 bg-white text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-slate-700">Payment Date</Label>
+                      <Input
+                        type="date"
+                        value={bookPaymentDate}
+                        onChange={(e) => setBookPaymentDate(e.target.value)}
+                        className="h-8.5 bg-white text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-slate-700">Payment Mode</Label>
+                      <Select value={bookPayMode} onValueChange={(val: 'cash' | 'upi') => setBookPayMode(val)}>
+                        <SelectTrigger className="h-8.5 bg-white text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="upi">UPI / Online Transfer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-slate-700">Receipt / Invoice No (Optional)</Label>
+                      <Input
+                        placeholder="e.g. RCPT-2024-001"
+                        value={bookReceiptNo}
+                        onChange={(e) => setBookReceiptNo(e.target.value)}
+                        className="h-8.5 bg-white text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBookDialogOpen(false)}>
@@ -1205,7 +1426,7 @@ export default function CabinsView() {
             </Button>
             <Button
               onClick={handleQuickBook}
-              disabled={submitting || (!showNewStudentForm && !bookStudentId) || (showNewStudentForm && (!newStudentName || !newStudentPhone))}
+              disabled={submitting || (!showNewStudentForm && !bookStudentId) || (showNewStudentForm && (!newStudentName.trim() || !newStudentPhone.trim() || !newStudentEmail.trim()))}
               className="bg-sky-500 hover:bg-sky-600 text-white"
             >
               {submitting ? 'Booking...' : 'Confirm Booking'}

@@ -90,6 +90,8 @@ export default function BookingsView() {
   const [paymentStudentId, setPaymentStudentId] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState<'cash' | 'upi'>('cash');
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [paymentReceiptNo, setPaymentReceiptNo] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
@@ -316,6 +318,8 @@ export default function BookingsView() {
           studentId: paymentStudentId,
           amount: Number(paymentAmount),
           mode: paymentMode,
+          paymentDate: paymentDate || undefined,
+          receiptNo: paymentReceiptNo || undefined,
           notes: paymentNotes || undefined,
         }),
       });
@@ -669,6 +673,24 @@ export default function BookingsView() {
                   <SelectItem value="upi">UPI</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Payment Date</Label>
+                <Input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Receipt No <span className="text-gray-400 font-normal">(optional)</span></Label>
+                <Input
+                  placeholder="e.g. RCPT-001"
+                  value={paymentReceiptNo}
+                  onChange={(e) => setPaymentReceiptNo(e.target.value)}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Notes (optional)</Label>

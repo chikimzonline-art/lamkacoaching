@@ -27,9 +27,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   UserPlus, Plus, Banknote, Check, X, ChevronRight, ChevronLeft,
-  CalendarIcon, Loader2, Search, Receipt, Trash2, AlertTriangle, RotateCcw,
+  CalendarIcon, Loader2, Search, Receipt, Trash2, AlertTriangle, RotateCcw, Key, Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateSecurePassword, generateUsernameSlug } from '@/lib/email';
 import { formatCurrency, formatDate, addMonths } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 
@@ -89,6 +90,7 @@ export default function EnrollmentsView() {
   const [wizardPayNow, setWizardPayNow] = useState(false);
   const [wizardPayAmount, setWizardPayAmount] = useState('');
   const [wizardPayMode, setWizardPayMode] = useState<'cash' | 'upi'>('cash');
+  const [wizardPaymentDate, setWizardPaymentDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [wizardPayReceiptNo, setWizardPayReceiptNo] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -96,6 +98,10 @@ export default function EnrollmentsView() {
   const [showNewStudentForm, setShowNewStudentForm] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentPhone, setNewStudentPhone] = useState('');
+  const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentUsername, setNewStudentUsername] = useState('');
+  const [newStudentPassword, setNewStudentPassword] = useState('');
+  const [newStudentAddress, setNewStudentAddress] = useState('');
   const [creatingStudent, setCreatingStudent] = useState(false);
 
   // Options
@@ -205,8 +211,8 @@ export default function EnrollmentsView() {
   };
 
   const handleCreateInlineStudent = async () => {
-    if (!newStudentName.trim() || !newStudentPhone.trim()) {
-      toast.error('Name and phone are required');
+    if (!newStudentName.trim() || !newStudentPhone.trim() || !newStudentEmail.trim()) {
+      toast.error('Student name, phone, and email are required');
       return;
     }
     setCreatingStudent(true);
@@ -214,16 +220,34 @@ export default function EnrollmentsView() {
       const res = await fetch('/api/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', name: newStudentName.trim(), phone: newStudentPhone.trim() }),
+        body: JSON.stringify({
+          action: 'create',
+          name: newStudentName.trim(),
+          phone: newStudentPhone.trim(),
+          email: newStudentEmail.trim(),
+          username: newStudentUsername.trim() || undefined,
+          password: newStudentPassword.trim() || undefined,
+          address: newStudentAddress.trim() || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) { toast.error(json.error || 'Failed to create student'); return; }
-      toast.success(`Student "${json.student.name}" created!`);
+      
+      if (json.emailSent) {
+        toast.success(`Student "${json.student.name}" created & login details emailed!`);
+      } else {
+        toast.success(`Student created! Temporary password: ${json.generatedPassword}`);
+      }
+
       setWizardStudentId(json.student.id);
       setStudentSearchRes((prev) => prev ? { students: [...prev.students, json.student] } : { students: [json.student] });
       setShowNewStudentForm(false);
       setNewStudentName('');
       setNewStudentPhone('');
+      setNewStudentEmail('');
+      setNewStudentUsername('');
+      setNewStudentPassword('');
+      setNewStudentAddress('');
     } catch {
       toast.error('Failed to create student');
     } finally {
@@ -253,6 +277,7 @@ export default function EnrollmentsView() {
         body.payNow = true;
         body.payAmount = Number(wizardPayAmount);
         body.payMode = wizardPayMode;
+        body.paymentDate = wizardPaymentDate;
         body.payReceiptNo = wizardPayReceiptNo || undefined;
       }
 
@@ -677,17 +702,82 @@ export default function EnrollmentsView() {
               <div className="space-y-4">
                 <p className="text-sm text-gray-500 mb-2">Add a new student</p>
                 <div className="space-y-3 rounded-xl border border-cyan-200 bg-cyan-50/50 p-4">
-                  <div className="space-y-2">
-                    <Label>Full Name</Label>
-                    <Input placeholder="Enter student name" value={newStudentName} onChange={(e) => setNewStudentName(e.target.value)} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">Full Name *</Label>
+                      <Input
+                        placeholder="e.g. John Doe"
+                        value={newStudentName}
+                        onChange={(e) => {
+                          const newName = e.target.value;
+                          setNewStudentName(newName);
+                          if (!newStudentUsername || newStudentUsername === generateUsernameSlug(newStudentName)) {
+                            setNewStudentUsername(generateUsernameSlug(newName));
+                          }
+                        }}
+                        className="h-8.5 bg-white text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">Phone Number *</Label>
+                      <Input
+                        placeholder="e.g. 9876543210"
+                        value={newStudentPhone}
+                        onChange={(e) => setNewStudentPhone(e.target.value)}
+                        className="h-8.5 bg-white text-xs"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Phone Number</Label>
-                    <Input placeholder="Enter phone number" value={newStudentPhone} onChange={(e) => setNewStudentPhone(e.target.value)} />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">Email Address *</Label>
+                      <Input
+                        type="email"
+                        placeholder="student@example.com"
+                        value={newStudentEmail}
+                        onChange={(e) => setNewStudentEmail(e.target.value)}
+                        className="h-8.5 bg-white text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold text-slate-700">Password</Label>
+                        <button
+                          type="button"
+                          onClick={() => setNewStudentPassword(generateSecurePassword())}
+                          className="text-[11px] text-cyan-600 hover:text-cyan-700 flex items-center gap-1 font-medium"
+                        >
+                          <Key className="h-3 w-3" /> Auto-generate
+                        </button>
+                      </div>
+                      <Input
+                        placeholder="Leave blank to auto-generate"
+                        value={newStudentPassword}
+                        onChange={(e) => setNewStudentPassword(e.target.value)}
+                        className="h-8.5 bg-white text-xs font-mono"
+                      />
+                    </div>
                   </div>
-                  <div className="flex gap-2 pt-1">
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-slate-600">Home Address (Optional)</Label>
+                    <Input
+                      placeholder="e.g. Lamka, Churachandpur"
+                      value={newStudentAddress}
+                      onChange={(e) => setNewStudentAddress(e.target.value)}
+                      className="h-8.5 bg-white text-xs"
+                    />
+                  </div>
+
+                  <p className="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1 border-t border-cyan-200/60">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                    Credentials will be sent via Brevo (<span className="font-mono">noreply@lamkacoaching.in</span>).
+                  </p>
+
+                  <div className="flex gap-2 pt-2">
                     <Button type="button" onClick={handleCreateInlineStudent}
-                      disabled={creatingStudent || !newStudentName.trim() || !newStudentPhone.trim()}
+                      disabled={creatingStudent || !newStudentName.trim() || !newStudentPhone.trim() || !newStudentEmail.trim()}
                       className="flex-1 bg-cyan-600 hover:bg-cyan-700">
                       {creatingStudent ? 'Creating...' : 'Create & Select'}
                     </Button>
@@ -710,18 +800,20 @@ export default function EnrollmentsView() {
                     {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <div className="max-h-60 overflow-y-auto space-y-1 border rounded-lg p-2">
+
+                <div className="space-y-2 max-h-[280px] overflow-y-auto">
                   {courses.length === 0 ? (
-                    <div className="text-center py-4"><p className="text-sm text-gray-400">No courses available</p></div>
+                    <p className="text-sm text-gray-400 text-center py-4">No courses available</p>
                   ) : courses.map((c) => (
-                    <button key={c.id} onClick={() => setWizardCourseId(c.id)}
-                      className={cn('w-full p-3 rounded-lg text-left transition-colors',
-                        wizardCourseId === c.id ? 'bg-cyan-50 border border-cyan-200' : 'hover:bg-gray-50')}>
-                      <p className="font-medium text-gray-900 text-sm">{c.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-gray-500">{c.department.name}</span>
-                        <span className="text-xs text-cyan-600 font-medium">{formatCurrency(c.totalFee)}</span>
-                        {c.duration && <span className="text-xs text-gray-400">{c.duration}</span>}
+                    <button key={c.id} onClick={() => { setWizardCourseId(c.id); setWizardFee(String(c.totalFee / 100)); }}
+                      className={cn('w-full p-3 rounded-lg text-left transition-colors border',
+                        wizardCourseId === c.id ? 'bg-cyan-50 border-cyan-300' : 'border-gray-200 hover:bg-gray-50')}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">{c.name}</p>
+                          <p className="text-xs text-gray-500">{c.department.name} {c.duration ? `• ${c.duration}` : ''}</p>
+                        </div>
+                        <Badge className="bg-cyan-100 text-cyan-800 hover:bg-cyan-100 border-0">{formatCurrency(c.totalFee)}</Badge>
                       </div>
                     </button>
                   ))}
@@ -729,53 +821,49 @@ export default function EnrollmentsView() {
               </div>
             )}
 
-            {/* Step 3: Details */}
+            {/* Step 3: Details & Fee */}
             {step === 'details' && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-500 mb-2">Enrollment details</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Start Date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start text-left font-normal">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formatDate(wizardStartDate.toISOString())}
+                          <CalendarIcon className="mr-2 h-4 w-4" />{formatDate(wizardStartDate.toISOString())}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0" align="start">
                         <Calendar mode="single" selected={wizardStartDate} onSelect={(d) => d && setWizardStartDate(d)} />
                       </PopoverContent>
                     </Popover>
                   </div>
                   <div className="space-y-2">
-                    <Label>End Date <span className="text-xs font-normal text-gray-400">(optional)</span></Label>
+                    <Label>End Date (Optional)</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start text-left font-normal">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {wizardEndDate ? formatDate(wizardEndDate.toISOString()) : 'Select date'}
+                          <CalendarIcon className="mr-2 h-4 w-4" />{wizardEndDate ? formatDate(wizardEndDate.toISOString()) : 'No end date'}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar mode="single" selected={wizardEndDate} onSelect={(d) => setWizardEndDate(d)} />
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={wizardEndDate} onSelect={setWizardEndDate} />
                       </PopoverContent>
                     </Popover>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Total Fee (₹)</Label>
-                  <Input type="number" value={wizardFee} onChange={(e) => setWizardFee(e.target.value)} min={0} />
-                  <p className="text-xs text-gray-400">Auto-filled from course, you can adjust</p>
+                  <Input type="number" value={wizardFee} onChange={(e) => setWizardFee(e.target.value)} placeholder="e.g. 5000" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Notes (optional)</Label>
-                  <Textarea value={wizardNotes} onChange={(e) => setWizardNotes(e.target.value)} rows={2} />
+                  <Label>Notes</Label>
+                  <Textarea value={wizardNotes} onChange={(e) => setWizardNotes(e.target.value)} placeholder="Optional enrollment notes..." rows={2} />
                 </div>
               </div>
             )}
 
-            {/* Step 4: Confirm with payment */}
+            {/* Step 4: Confirm & Pay */}
             {step === 'confirm' && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-500 mb-2">Review & confirm enrollment</p>
@@ -787,7 +875,7 @@ export default function EnrollmentsView() {
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Fee:</span><span className="font-bold text-cyan-600">{formatCurrency(Number(wizardFee) * 100)}</span></div>
                 </div>
 
-                {/* Inline Payment */}
+                {/* Inline Payment with Backdating */}
                 <div className="rounded-xl border border-green-200 bg-green-50/50 p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">Record payment now?</Label>
@@ -799,28 +887,40 @@ export default function EnrollmentsView() {
                   </div>
                   {wizardPayNow && (
                     <>
-                      <div className="space-y-2">
-                        <Label>Amount Paid (₹)</Label>
-                        <Input type="number" value={wizardPayAmount} onChange={(e) => setWizardPayAmount(e.target.value)}
-                          placeholder={`Max: ₹${wizardFee}`} min={0} max={Number(wizardFee)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Payment Mode</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button type="button" variant={wizardPayMode === 'cash' ? 'default' : 'outline'}
-                            className={wizardPayMode === 'cash' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
-                            onClick={() => setWizardPayMode('cash')}>Cash</Button>
-                          <Button type="button" variant={wizardPayMode === 'upi' ? 'default' : 'outline'}
-                            className={wizardPayMode === 'upi' ? 'bg-cyan-600 hover:bg-cyan-700' : ''}
-                            onClick={() => setWizardPayMode('upi')}>UPI</Button>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Amount Paid (₹)</Label>
+                          <Input type="number" value={wizardPayAmount} onChange={(e) => setWizardPayAmount(e.target.value)}
+                            placeholder={`Max: ₹${wizardFee}`} min={0} max={Number(wizardFee)} className="h-8.5 bg-white text-xs" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Payment Date</Label>
+                          <Input type="date" value={wizardPaymentDate} onChange={(e) => setWizardPaymentDate(e.target.value)}
+                            className="h-8.5 bg-white text-xs" />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Receipt/Invoice No <span className="text-gray-400 font-normal">(optional)</span></Label>
-                        <Input placeholder="e.g. RCPT-1234" value={wizardPayReceiptNo} onChange={(e) => setWizardPayReceiptNo(e.target.value)} />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Payment Mode</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button type="button" variant={wizardPayMode === 'cash' ? 'default' : 'outline'}
+                              className={wizardPayMode === 'cash' ? 'bg-cyan-600 hover:bg-cyan-700 h-8.5 text-xs' : 'h-8.5 text-xs'}
+                              onClick={() => setWizardPayMode('cash')}>Cash</Button>
+                            <Button type="button" variant={wizardPayMode === 'upi' ? 'default' : 'outline'}
+                              className={wizardPayMode === 'upi' ? 'bg-cyan-600 hover:bg-cyan-700 h-8.5 text-xs' : 'h-8.5 text-xs'}
+                              onClick={() => setWizardPayMode('upi')}>UPI</Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Receipt No (Optional)</Label>
+                          <Input placeholder="e.g. RCPT-1234" value={wizardPayReceiptNo} onChange={(e) => setWizardPayReceiptNo(e.target.value)}
+                            className="h-8.5 bg-white text-xs" />
+                        </div>
                       </div>
+
                       {wizardPayAmount && Number(wizardPayAmount) > 0 && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 pt-1">
                           Outstanding after payment: ₹{Math.max(0, Number(wizardFee) - Number(wizardPayAmount)).toLocaleString('en-IN')}
                         </p>
                       )}

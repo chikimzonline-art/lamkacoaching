@@ -35,8 +35,10 @@ import {
   Loader2,
   Banknote,
   Key,
+  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateSecurePassword, generateUsernameSlug } from '@/lib/email';
 import QuickPayDialog from './QuickPayDialog';
 
 interface Student {
@@ -139,7 +141,10 @@ export default function StudentsView() {
 
   const openAddDialog = () => {
     setEditingStudent(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      password: generateSecurePassword(),
+    });
     setDialogOpen(true);
   };
 
@@ -158,8 +163,8 @@ export default function StudentsView() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.phone.trim()) {
-      toast.error('Name and phone are required');
+    if (!form.name.trim() || !form.phone.trim() || !form.email.trim()) {
+      toast.error('Name, phone, and email are required');
       return;
     }
 
@@ -170,7 +175,7 @@ export default function StudentsView() {
         name: form.name.trim(),
         username: form.username.trim() || null,
         phone: form.phone.trim(),
-        email: form.email.trim() || null,
+        email: form.email.trim(),
         address: form.address.trim() || null,
         notes: form.notes.trim() || null,
         password: form.password?.trim() || undefined,
@@ -191,9 +196,16 @@ export default function StudentsView() {
         throw new Error(data.error || 'Failed to save student');
       }
 
-      toast.success(
-        editingStudent ? 'Student updated successfully' : 'Student added successfully'
-      );
+      if (editingStudent) {
+        toast.success('Student updated successfully');
+      } else {
+        if (data.emailSent) {
+          toast.success(`Student added & login credentials emailed to ${form.email.trim()}!`);
+        } else {
+          toast.success(`Student added! Temporary password: ${data.generatedPassword}`);
+        }
+      }
+
       setDialogOpen(false);
       setForm(emptyForm);
       setEditingStudent(null);
@@ -592,14 +604,23 @@ export default function StudentsView() {
                   id="student-name"
                   placeholder="Full name"
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  onChange={(e) => {
+                    const newName = e.target.value;
+                    setForm((prev) => ({
+                      ...prev,
+                      name: newName,
+                      username: (!editingStudent && (!prev.username || prev.username === generateUsernameSlug(prev.name)))
+                        ? generateUsernameSlug(newName)
+                        : prev.username,
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="student-username">Username</Label>
+                <Label htmlFor="student-username">Username Handle</Label>
                 <Input
                   id="student-username"
-                  placeholder="e.g. johndoe (optional)"
+                  placeholder="e.g. john.doe"
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
                 />
@@ -614,11 +635,11 @@ export default function StudentsView() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="student-email">Email</Label>
+                <Label htmlFor="student-email">Email Address *</Label>
                 <Input
                   id="student-email"
                   type="email"
-                  placeholder="Email address (optional)"
+                  placeholder="student@example.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
@@ -630,6 +651,15 @@ export default function StudentsView() {
                 <Label htmlFor="student-password">
                   {editingStudent ? 'New Password (leave blank to keep current)' : 'Password'}
                 </Label>
+                {!editingStudent && (
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, password: generateSecurePassword() })}
+                    className="text-xs text-cyan-600 hover:text-cyan-700 flex items-center gap-1 font-medium"
+                  >
+                    <Key className="h-3.5 w-3.5" /> Re-generate
+                  </button>
+                )}
               </div>
               <div className="flex gap-2">
                 <Input
@@ -638,21 +668,22 @@ export default function StudentsView() {
                   placeholder="Enter password..."
                   value={form.password || ''}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="font-mono"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
-                    let pass = '';
-                    for (let i = 0; i < 8; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-                    setForm({ ...form, password: pass });
-                  }}
-                  title="Generate Random Password"
-                >
-                  <Key className="h-4 w-4" />
-                </Button>
+                {form.password && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(form.password || '');
+                      toast.success('Password copied to clipboard!');
+                    }}
+                    title="Copy Password"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -676,6 +707,13 @@ export default function StudentsView() {
                 rows={3}
               />
             </div>
+
+            {!editingStudent && (
+              <p className="text-xs text-slate-500 flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                Login credentials will be automatically emailed from <span className="font-mono">noreply@lamkacoaching.in</span>.
+              </p>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">

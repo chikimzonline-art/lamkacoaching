@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
+import { generateSecurePassword, generateUsernameSlug, sendStudentCredentialsEmail } from '@/lib/email';
 
 // GET /api/students - List students with FTS5 search + grouped balances (no N+1)
 // Query params:
@@ -157,30 +158,76 @@ export async function POST(request: Request) {
     const { action, id, name, username, phone, email, address, notes, password, avatar } = body;
 
     if (action === 'create') {
-      if (!name || !phone) {
-        return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 });
+      if (!name || !phone || !email) {
+        return NextResponse.json({ error: 'Name, phone, and email are required' }, { status: 400 });
       }
-      const existing = await db.student.findUnique({ where: { phone } });
-      if (existing) {
+
+      const cleanPhone = phone.trim().replace(/\s+/g, '');
+      const cleanEmail = email.trim().toLowerCase();
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(cleanEmail)) {
+        return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 });
+      }
+
+      const existingPhone = await db.student.findUnique({ where: { phone: cleanPhone } });
+      if (existingPhone) {
         return NextResponse.json({ error: 'A student with this phone number already exists' }, { status: 400 });
       }
 
-      if (username) {
-        const existingUsername = await db.student.findUnique({ where: { username } });
-        if (existingUsername) {
+      // Generate or validate username
+      let finalUsername = username ? username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '') : generateUsernameSlug(name);
+      
+      let existingUsername = await db.student.findUnique({ where: { username: finalUsername } });
+      if (existingUsername) {
+        if (username) {
           return NextResponse.json({ error: 'Username is already taken' }, { status: 400 });
+        }
+        // Auto-resolve collision by appending last 4 digits of phone
+        const phoneSuffix = cleanPhone.slice(-4);
+        finalUsername = `${finalUsername}${phoneSuffix}`;
+        existingUsername = await db.student.findUnique({ where: { username: finalUsername } });
+        if (existingUsername) {
+          finalUsername = cleanPhone;
         }
       }
 
-      let hashedPassword: string | null = null;
-      if (password) {
-        hashedPassword = await bcrypt.hash(password, 10);
-      }
+      const plainPassword = password?.trim() || generateSecurePassword();
+      const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
       const student = await db.student.create({
-        data: { name, username: username || null, phone, email: email || null, address: address || null, notes: notes || null, password: hashedPassword },
+        data: {
+          name: name.trim(),
+          username: finalUsername,
+          phone: cleanPhone,
+          email: cleanEmail,
+          address: address?.trim() || null,
+          notes: notes?.trim() || null,
+          password: hashedPassword,
+        },
       });
-      return NextResponse.json({ student });
+
+      // Dispatch welcome credentials email asynchronously (non-blocking)
+      let emailSent = false;
+      try {
+        const emailRes = await sendStudentCredentialsEmail({
+          name: student.name,
+          email: student.email!,
+          phone: student.phone,
+          username: student.username || student.phone,
+          password: plainPassword,
+        });
+        emailSent = emailRes.success;
+      } catch (err) {
+        console.error('[Brevo] Failed to send credentials email:', err);
+      }
+
+      return NextResponse.json({
+        student,
+        generatedPassword: plainPassword,
+        emailSent,
+      });
 
     } else if (action === 'update') {
       if (!id) {

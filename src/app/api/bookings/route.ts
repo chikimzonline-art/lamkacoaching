@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { action, id, studentId, cabinId, type, startDate, endDate, startTime, endTime, totalAmount, notes, payNow, payAmount, payMode } = body;
+    const { action, id, studentId, cabinId, type, startDate, endDate, startTime, endTime, totalAmount, notes, payNow, payAmount, payMode, paymentDate, receiptNo } = body;
 
     if (action === 'create') {
       if (!studentId || !cabinId || !type || !totalAmount) {
@@ -169,14 +169,20 @@ export async function POST(request: Request) {
       // Create payment record if payNow is enabled
       let payment: any = null;
       if (payNow && bookingPaidAmount > 0) {
+        const receivedDate = paymentDate
+          ? new Date(paymentDate.includes('T') ? paymentDate : `${paymentDate}T12:00:00`)
+          : start;
+
         payment = await db.payment.create({
           data: {
             bookingId: booking.id,
             studentId,
             amount: bookingPaidAmount,
-            mode: payMode,
+            mode: payMode || 'cash',
             status: 'completed',
+            receivedAt: receivedDate,
             notes: 'Payment at admission',
+            receiptNo: receiptNo || null,
           },
         });
       }

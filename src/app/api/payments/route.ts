@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { action, id, paymentType, bookingId, studentId, amount, mode, notes, receiptNo } = body;
+    const { action, id, paymentType, bookingId, studentId, amount, mode, notes, receiptNo, paymentDate, receivedAt } = body;
 
     if (action === 'create') {
       if (!bookingId || !studentId || !amount || !mode) {
@@ -109,6 +109,10 @@ export async function POST(request: Request) {
       }
 
       const paymentAmount = Math.round(Number(amount) * 100); // convert to paise
+
+      const receivedDate = paymentDate
+        ? new Date(paymentDate.includes('T') ? paymentDate : `${paymentDate}T12:00:00`)
+        : (receivedAt ? new Date(receivedAt) : new Date());
 
       // Create payment and update booking paid amount atomically
       const [payment] = await db.$transaction([
@@ -119,6 +123,7 @@ export async function POST(request: Request) {
             amount: paymentAmount,
             mode,
             status: 'completed',
+            receivedAt: receivedDate,
             notes: notes || null,
             receiptNo: receiptNo || null,
           },

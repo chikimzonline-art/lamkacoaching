@@ -204,6 +204,7 @@ export default function PaymentsView() {
   const [selectedBookingId, setSelectedBookingId] = useState('');
   const [payAmount, setPayAmount] = useState('');
   const [payMode, setPayMode] = useState('cash');
+  const [payDate, setPayDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [payNotes, setPayNotes] = useState('');
   const [payReceiptNo, setPayReceiptNo] = useState('');
   const [saving, setSaving] = useState(false);
@@ -410,6 +411,7 @@ export default function PaymentsView() {
           studentId: selectedStudentId,
           amount: numAmount,
           mode: payMode,
+          paymentDate: payDate || undefined,
           notes: payNotes || undefined,
           receiptNo: payReceiptNo || undefined,
         }),
@@ -1146,15 +1148,26 @@ export default function PaymentsView() {
               </div>
             </div>
 
-            {/* Receipt No */}
-            <div className="space-y-2">
-              <Label htmlFor="record-receipt">Receipt/Invoice No <span className="text-gray-400 font-normal">(optional)</span></Label>
-              <Input
-                id="record-receipt"
-                placeholder="e.g. RCPT-1234"
-                value={payReceiptNo}
-                onChange={(e) => setPayReceiptNo(e.target.value)}
-              />
+            {/* Payment Date & Receipt No */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="record-date">Payment Date</Label>
+                <Input
+                  id="record-date"
+                  type="date"
+                  value={payDate}
+                  onChange={(e) => setPayDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="record-receipt">Receipt No <span className="text-gray-400 font-normal">(optional)</span></Label>
+                <Input
+                  id="record-receipt"
+                  placeholder="e.g. RCPT-1234"
+                  value={payReceiptNo}
+                  onChange={(e) => setPayReceiptNo(e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Notes */}

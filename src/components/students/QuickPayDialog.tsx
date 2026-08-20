@@ -61,6 +61,8 @@ export default function QuickPayDialog({
   const [selectedBookingId, setSelectedBookingId] = useState('');
   const [amount, setAmount] = useState('');
   const [mode, setMode] = useState('cash');
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [receiptNo, setReceiptNo] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchingBookings, setFetchingBookings] = useState(false);
@@ -109,6 +111,8 @@ export default function QuickPayDialog({
     setSelectedBookingId('');
     setAmount('');
     setMode('cash');
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setReceiptNo('');
     setNotes('');
     setBookings([]);
   };
@@ -145,6 +149,8 @@ export default function QuickPayDialog({
           studentId: student.id,
           amount: numAmount,
           mode,
+          paymentDate: paymentDate || undefined,
+          receiptNo: receiptNo || undefined,
           notes: notes || undefined,
         }),
       });
@@ -290,6 +296,28 @@ export default function QuickPayDialog({
                 >
                   UPI
                 </Button>
+              </div>
+            </div>
+
+            {/* Payment Date & Receipt No */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="pay-date">Payment Date</Label>
+                <Input
+                  id="pay-date"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pay-receipt">Receipt No <span className="text-gray-400 font-normal">(optional)</span></Label>
+                <Input
+                  id="pay-receipt"
+                  placeholder="e.g. RCPT-001"
+                  value={receiptNo}
+                  onChange={(e) => setReceiptNo(e.target.value)}
+                />
               </div>
             </div>
 

@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, id, studentId, courseId, startDate, endDate, totalFee, paidAmount, notes, status,
             // Payment at enrollment
-            payNow, payAmount, payMode, payReceiptNo, receiptNo } = body;
+            payNow, payAmount, payMode, payReceiptNo, receiptNo, paymentDate, receivedAt } = body;
 
     if (action === 'create') {
       if (!studentId || !courseId || !totalFee || !body.batchId) {
@@ -100,6 +100,10 @@ export async function POST(request: Request) {
 
       // Create payment record if payNow
       if (payNow && enrollmentPaidAmount > 0) {
+        const receivedDate = paymentDate
+          ? new Date(paymentDate.includes('T') ? paymentDate : `${paymentDate}T12:00:00`)
+          : (startDate ? new Date(startDate) : new Date());
+
         await db.enrollmentPayment.create({
           data: {
             enrollmentId: enrollment.id,
@@ -107,6 +111,7 @@ export async function POST(request: Request) {
             amount: enrollmentPaidAmount,
             mode: payMode || 'cash',
             status: 'completed',
+            receivedAt: receivedDate,
             notes: 'Payment at enrollment',
             receiptNo: payReceiptNo || null,
           },
@@ -132,6 +137,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Payment amount exceeds outstanding fee' }, { status: 400 });
       }
 
+      const receivedDate = paymentDate
+        ? new Date(paymentDate.includes('T') ? paymentDate : `${paymentDate}T12:00:00`)
+        : (receivedAt ? new Date(receivedAt) : new Date());
+
       // Create payment
       const payment = await db.enrollmentPayment.create({
         data: {
@@ -140,6 +149,7 @@ export async function POST(request: Request) {
           amount: paymentAmount,
           mode: payMode,
           status: 'completed',
+          receivedAt: receivedDate,
           notes: notes || null,
           receiptNo: receiptNo || null,
         },

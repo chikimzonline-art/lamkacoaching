@@ -5,6 +5,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { SiteLogo } from "@/components/ui/site-logo";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { FirstLoginPasswordDialog } from "@/components/students/first-login-password-dialog";
 import { 
   Home, 
   BookOpen, 
@@ -299,6 +300,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </SheetContent>
         </Sheet>
+
+        {/* First Login Password Prompt Dialog */}
+        <FirstLoginPasswordDialog />
       </SidebarInset>
     </SidebarProvider>
   );
