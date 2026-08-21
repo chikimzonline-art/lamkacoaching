@@ -1091,14 +1091,14 @@ export default function CabinsView() {
 
       {/* Quick Book Dialog */}
       <Dialog open={bookDialogOpen} onOpenChange={setBookDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="p-5 pb-3 border-b border-slate-100 shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <CalendarPlus className="h-5 w-5 text-sky-500" />
               Book Cabin #{selectedCabin?.cabinNum}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 p-5 overflow-y-auto flex-1">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold">Student Details</Label>
               <Button
@@ -1420,7 +1420,7 @@ export default function CabinsView() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="p-4 border-t border-slate-100 bg-slate-50/75 shrink-0 rounded-b-lg flex flex-row items-center justify-end gap-2">
             <Button variant="outline" onClick={() => setBookDialogOpen(false)}>
               Cancel
             </Button>
