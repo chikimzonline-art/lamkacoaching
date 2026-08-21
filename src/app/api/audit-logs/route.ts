@@ -72,6 +72,11 @@ export async function GET(request: Request) {
       db.auditLog.groupBy({
         by: ['action'],
         _count: { action: true },
+        orderBy: {
+          _count: {
+            action: 'desc',
+          },
+        },
       }),
       db.auditLog.findMany({
         select: { userName: true, userRole: true },
@@ -93,7 +98,8 @@ export async function GET(request: Request) {
       stats: {
         totalLogs: totalCount,
         byAction: actionAggregates.reduce((acc, curr) => {
-          acc[curr.action] = curr._count.action;
+          const countVal = typeof curr._count === 'object' && curr._count !== null ? (curr._count as any).action : (curr._count || 0);
+          acc[curr.action] = Number(countVal) || 0;
           return acc;
         }, {} as Record<string, number>),
       },
