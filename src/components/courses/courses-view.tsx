@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,9 @@ interface Course {
 }
 
 export default function CoursesView() {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,10 +218,12 @@ export default function CoursesView() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={openCreate} size="sm" className="bg-cyan-600 hover:bg-cyan-700">
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add Course
-          </Button>
+          {isAdmin && (
+            <Button onClick={openCreate} size="sm" className="bg-cyan-600 hover:bg-cyan-700">
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Course
+            </Button>
+          )}
         </div>
       </div>
 
@@ -258,24 +264,26 @@ export default function CoursesView() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(course)}>
-                      <Pencil className="h-3 w-3 text-gray-400" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handleDelete(course.id)}
-                      disabled={deletingId === course.id}
-                    >
-                      {deletingId === course.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3 w-3 text-red-400" />
-                      )}
-                    </Button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(course)}>
+                        <Pencil className="h-3 w-3 text-gray-400" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleDelete(course.id)}
+                        disabled={deletingId === course.id}
+                      >
+                        {deletingId === course.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3 text-red-400" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                   <p className="text-sm font-bold text-cyan-600">{formatCurrency(course.totalFee)}</p>

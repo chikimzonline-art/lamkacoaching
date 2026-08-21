@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireAdmin, requireStaffOrAdmin } from '@/lib/auth';
 
-// GET — list all feature cards (admin)
+// GET — list all feature cards (staff/admin)
 export async function GET() {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const cards = await db.featureCard.findMany({
       orderBy: { sortOrder: 'asc' },
     });
@@ -14,9 +18,12 @@ export async function GET() {
   }
 }
 
-// POST — create a new feature card
+// POST — create a new feature card (admin only)
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await req.json();
     const { title, description, image, icon, linkText, linkHref, sortOrder, active } = body;
 
@@ -44,9 +51,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT — update an existing feature card
+// PUT — update an existing feature card (admin only)
 export async function PUT(req: NextRequest) {
   try {
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await req.json();
     const { id, ...data } = body;
 
@@ -75,9 +85,12 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE — remove a feature card
+// DELETE — remove a feature card (admin only)
 export async function DELETE(req: NextRequest) {
   try {
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

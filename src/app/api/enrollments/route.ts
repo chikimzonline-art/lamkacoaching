@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
+import { requireAdmin, requireStaffOrAdmin } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
-// GET /api/enrollments
+// GET /api/enrollments (staff/admin)
 export async function GET(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
@@ -62,11 +63,11 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/enrollments
+// POST /api/enrollments (staff/admin)
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { action, id, studentId, courseId, startDate, endDate, totalFee, paidAmount, notes, status,
@@ -85,40 +86,53 @@ export async function POST(request: Request) {
           studentId: studentId.toString(),
           courseId: courseId.toString(),
           batchId: body.batchId.toString(),
-          startDate: startDate ? new Date(startDate) : new Date(),
+          startDate: new Date(startDate || Date.now()),
           endDate: endDate ? new Date(endDate) : null,
           totalFee: Math.round(Number(totalFee) * 100),
           paidAmount: enrollmentPaidAmount,
           notes: notes || null,
+          status: status || 'active',
         },
         include: {
           student: { select: { id: true, name: true, phone: true } },
-          course: { select: { id: true, name: true, department: { select: { name: true } } } },
-          payments: true,
+          course: {
+            select: { id: true, name: true, department: { select: { id: true, name: true } } },
+          },
         },
       });
 
-      // Create payment record if payNow
-      if (payNow && enrollmentPaidAmount > 0) {
+      // If initial payment was made at enrollment, create payment record atomically
+      let payment: any = null;
+      if (enrollmentPaidAmount > 0) {
         const receivedDate = paymentDate
           ? new Date(paymentDate.includes('T') ? paymentDate : `${paymentDate}T12:00:00`)
-          : (startDate ? new Date(startDate) : new Date());
+          : (receivedAt ? new Date(receivedAt) : new Date());
 
-        await db.enrollmentPayment.create({
+        payment = await db.enrollmentPayment.create({
           data: {
             enrollmentId: enrollment.id,
-            studentId,
+            studentId: studentId.toString(),
             amount: enrollmentPaidAmount,
             mode: payMode || 'cash',
             status: 'completed',
             receivedAt: receivedDate,
-            notes: 'Payment at enrollment',
-            receiptNo: payReceiptNo || null,
+            notes: notes || 'Payment at enrollment',
+            receiptNo: payReceiptNo || receiptNo || null,
           },
         });
       }
 
-      return NextResponse.json({ enrollment });
+      await logAudit({
+        user: auth.user,
+        action: 'ENROLLMENT_CREATED',
+        entityType: 'Enrollment',
+        entityId: enrollment.id,
+        description: `Enrolled student '${enrollment.student?.name || studentId}' into course '${enrollment.course?.name}' (Fee: ₹${enrollment.totalFee / 100})`,
+        details: { enrollmentId: enrollment.id, studentId, courseId, totalFee: enrollment.totalFee / 100, paidAmount: enrollmentPaidAmount / 100 },
+        req: request,
+      });
+
+      return NextResponse.json({ enrollment, payment });
 
     } else if (action === 'recordPayment') {
       if (!id || !payAmount || !payMode) {
@@ -128,7 +142,10 @@ export async function POST(request: Request) {
       const paymentAmount = Math.round(Number(payAmount) * 100);
 
       // Get enrollment to find studentId
-      const enrollment = await db.enrollment.findUnique({ where: { id } });
+      const enrollment = await db.enrollment.findUnique({
+        where: { id },
+        include: { student: { select: { name: true } }, course: { select: { name: true } } },
+      });
       if (!enrollment) {
         return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 });
       }
@@ -159,6 +176,16 @@ export async function POST(request: Request) {
       await db.enrollment.update({
         where: { id },
         data: { paidAmount: { increment: paymentAmount } },
+      });
+
+      await logAudit({
+        user: auth.user,
+        action: 'PAYMENT_RECORDED',
+        entityType: 'Payment',
+        entityId: payment.id,
+        description: `Recorded ${payMode.toUpperCase()} course fee of ₹${paymentAmount / 100} for student '${enrollment.student?.name || enrollment.studentId}' (Course: ${enrollment.course?.name})`,
+        details: { paymentId: payment.id, enrollmentId: id, studentId: enrollment.studentId, amount: paymentAmount / 100, mode: payMode, receiptNo },
+        req: request,
       });
 
       return NextResponse.json({ payment });
@@ -216,18 +243,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ enrollment });
 
     } else if (action === 'delete') {
+      if (auth.user.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Only administrators can delete enrollments' }, { status: 403 });
+      }
+
       if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
-      const enrollment = await db.enrollment.findUnique({ where: { id } });
-      if (!enrollment) return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 });
+      const existing = await db.enrollment.findUnique({
+        where: { id },
+        include: { student: { select: { name: true } }, course: { select: { name: true } } },
+      });
+      if (!existing) return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 });
 
       await db.enrollment.delete({ where: { id } });
+
+      await logAudit({
+        user: auth.user,
+        action: 'ENROLLMENT_DELETED',
+        entityType: 'Enrollment',
+        entityId: id,
+        description: `Deleted enrollment record #${id} for student '${existing?.student?.name || 'N/A'}' (Course: ${existing?.course?.name})`,
+        details: { enrollmentId: id, studentId: existing?.studentId, courseId: existing?.courseId },
+        req: request,
+      });
+
       return NextResponse.json({ success: true, message: 'Enrollment deleted successfully' });
 
     } else if (action === 'deletePayment') {
+      if (auth.user.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Only administrators can delete payments' }, { status: 403 });
+      }
+
       // Delete an enrollment payment
       const { paymentId } = body;
       if (!paymentId) return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
-      const payment = await db.enrollmentPayment.findUnique({ where: { id: paymentId } });
+      const payment = await db.enrollmentPayment.findUnique({
+        where: { id: paymentId },
+        include: { student: { select: { name: true } } },
+      });
       if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
 
       // Update enrollment paid amount
@@ -237,6 +289,17 @@ export async function POST(request: Request) {
       });
 
       await db.enrollmentPayment.delete({ where: { id: paymentId } });
+
+      await logAudit({
+        user: auth.user,
+        action: 'PAYMENT_DELETED',
+        entityType: 'Payment',
+        entityId: paymentId,
+        description: `Deleted course payment #${paymentId} (₹${payment.amount / 100}) for student '${payment.student?.name || payment.studentId}'`,
+        details: { paymentId, amount: payment.amount / 100, studentId: payment.studentId },
+        req: request,
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -247,20 +310,34 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE /api/enrollments?id=xxx
+// DELETE /api/enrollments?id=xxx (admin only)
 export async function DELETE(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
-    const enrollment = await db.enrollment.findUnique({ where: { id } });
+    const enrollment = await db.enrollment.findUnique({
+      where: { id },
+      include: { student: { select: { name: true } }, course: { select: { name: true } } },
+    });
     if (!enrollment) return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 });
 
     await db.enrollment.delete({ where: { id } });
+
+    await logAudit({
+      user: auth.user,
+      action: 'ENROLLMENT_DELETED',
+      entityType: 'Enrollment',
+      entityId: id,
+      description: `Deleted enrollment #${id} for student '${enrollment.student?.name || enrollment.studentId}'`,
+      details: { enrollmentId: id, studentId: enrollment.studentId },
+      req: request,
+    });
+
     return NextResponse.json({ success: true, message: 'Enrollment deleted successfully' });
   } catch (error) {
     console.error('Error deleting enrollment:', error);

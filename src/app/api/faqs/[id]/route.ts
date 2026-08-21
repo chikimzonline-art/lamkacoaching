@@ -1,11 +1,15 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const body = await request.json();
     const { question, answer, sortOrder, active } = body;
@@ -32,6 +36,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     await db.fAQ.delete({ where: { id } });
     return NextResponse.json({ success: true });

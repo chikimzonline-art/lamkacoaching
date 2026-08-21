@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
 import { db } from '@/lib/db';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || (session.user as any).role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');

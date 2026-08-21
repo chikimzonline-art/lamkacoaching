@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const body = await req.json();
     const { active } = body;
@@ -38,6 +42,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
 
     await db.newsletterSubscriber.delete({

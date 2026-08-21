@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
-// GET /api/dashboard - Get dashboard stats
+// GET /api/dashboard - Get dashboard stats (staff/admin)
 // All queries are independent and run in a single Promise.all batch,
 // turning ~15 sequential network round-trips into one concurrent batch.
 export async function GET() {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

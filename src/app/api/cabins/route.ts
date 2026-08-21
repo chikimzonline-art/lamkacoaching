@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAllActiveCabinsWithBookings } from '@/lib/db/queries/cabins';
-import { getAuthUser } from '@/lib/auth';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
-// GET /api/cabins - List all cabins, grouped by floor
+// GET /api/cabins - List all cabins, grouped by floor (staff/admin)
 export async function GET() {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const cabins = await getAllActiveCabinsWithBookings();
 
@@ -23,13 +21,11 @@ export async function GET() {
   }
 }
 
-// POST /api/cabins - Create/update/delete cabins
+// POST /api/cabins - Create/update/delete cabins (staff/admin)
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { action, cabinNum, floor, count, notes, status, id } = body;
@@ -117,6 +113,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ cabin });
 
     } else if (action === 'delete') {
+      if (auth.user.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Only administrators can delete cabins' }, { status: 403 });
+      }
+
       if (!id) {
         return NextResponse.json({ error: 'Cabin ID is required' }, { status: 400 });
       }

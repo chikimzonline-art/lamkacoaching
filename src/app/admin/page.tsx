@@ -27,6 +27,7 @@ import {
   Mail,
   HelpCircle,
   MessageSquare,
+  ShieldAlert,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -77,6 +78,9 @@ const WebsiteContainer = dynamic(() => import('@/components/website/website-cont
 const StudentsContainer = dynamic(() => import('@/components/students/students-container'), {
   loading: () => <PageSkeleton />,
 });
+const AuditLogsView = dynamic(() => import('@/components/audit-logs/audit-logs-view'), {
+  loading: () => <PageSkeleton />,
+});
 
 // Bottom nav items (5 primary + More)
 const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[] = [
@@ -88,8 +92,9 @@ const primaryNavItems: { view: ViewType; label: string; icon: React.ReactNode }[
 ];
 
 const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; adminOnly: boolean }[] = [
-  { view: 'communications', label: 'Communications', icon: <Mail className="h-5 w-5" />, adminOnly: true },
+  { view: 'communications', label: 'Communications', icon: <Mail className="h-5 w-5" />, adminOnly: false },
   { view: 'website', label: 'Website CMS', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: true },
+  { view: 'audit-logs', label: 'Audit Logs', icon: <ShieldAlert className="h-5 w-5" />, adminOnly: true },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
@@ -97,12 +102,13 @@ const moreNavItems: { view: ViewType; label: string; icon: React.ReactNode; admi
 const allSidebarItems: { view: ViewType; label: string; icon: React.ReactNode; adminOnly: boolean }[] = [
   { view: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: false },
   { view: 'reports', label: 'Reports', icon: <BarChart3 className="h-5 w-5" />, adminOnly: false },
-  { view: 'academics', label: 'Academics', icon: <GraduationCap className="h-5 w-5" />, adminOnly: true },
+  { view: 'academics', label: 'Academics', icon: <GraduationCap className="h-5 w-5" />, adminOnly: false },
   { view: 'students', label: 'Students', icon: <Users className="h-5 w-5" />, adminOnly: false },
   { view: 'facilities', label: 'Facilities', icon: <DoorOpen className="h-5 w-5" />, adminOnly: false },
   { view: 'payments', label: 'Payments', icon: <Banknote className="h-5 w-5" />, adminOnly: false },
-  { view: 'communications', label: 'Communications', icon: <Mail className="h-5 w-5" />, adminOnly: true },
+  { view: 'communications', label: 'Communications', icon: <Mail className="h-5 w-5" />, adminOnly: false },
   { view: 'website', label: 'Website CMS', icon: <LayoutDashboard className="h-5 w-5" />, adminOnly: true },
+  { view: 'audit-logs', label: 'Audit Logs', icon: <ShieldAlert className="h-5 w-5" />, adminOnly: true },
   { view: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
 ];
 
@@ -213,6 +219,7 @@ function PageHeader() {
     communications: 'Communications & Support',
     website: 'Website Content',
     bookings: 'Cabin Bookings',
+    'audit-logs': 'System Audit Logs',
   };
 
   return (
@@ -264,17 +271,18 @@ function PageHeader() {
   );
 }
 
-function renderView(view: ViewType) {
+function renderView(view: ViewType, isAdmin: boolean) {
   switch (view) {
     case 'dashboard': return <DashboardView />;
     case 'students': return <StudentsContainer />;
     case 'payments': return <PaymentsView />;
     case 'reports': return <ReportsView />;
-    case 'settings': return <SettingsView />;
+    case 'settings': return isAdmin ? <SettingsView /> : <DashboardView />;
     case 'academics': return <AcademicsContainer />;
     case 'facilities': return <FacilitiesContainer />;
     case 'communications': return <CommunicationsContainer />;
-    case 'website': return <WebsiteContainer />;
+    case 'website': return isAdmin ? <WebsiteContainer /> : <DashboardView />;
+    case 'audit-logs': return isAdmin ? <AuditLogsView /> : <DashboardView />;
     case 'bookings': return <FacilitiesContainer />;
     default: return <DashboardView />;
   }
@@ -465,7 +473,7 @@ function AuthenticatedApp() {
   }, [activeView]);
 
   useEffect(() => {
-    if (role && role !== 'admin' && (activeView === 'settings' || activeView === 'academics')) {
+    if (role && role !== 'admin' && (activeView === 'settings' || activeView === 'website' || activeView === 'audit-logs')) {
       useAppStore.getState().setActiveView('dashboard');
     }
   }, [role, activeView]);
@@ -540,7 +548,7 @@ function AuthenticatedApp() {
       >
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
           <PageHeader />
-          {renderView(activeView)}
+          {renderView(activeView, role === 'admin')}
         </div>
       </main>
 
@@ -591,7 +599,7 @@ export default function Home() {
         You are signed in as a student. Admin dashboard is for staff only.
       </p>
       <a 
-        href="/student/dashboard" 
+        href="/dashboard" 
         className="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
       >
         Go to Student Dashboard

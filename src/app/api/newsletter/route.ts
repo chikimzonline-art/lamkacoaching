@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);

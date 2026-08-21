@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
-// GET /api/notices - Admin: list all notices
+// GET /api/notices - list all notices (staff/admin)
 export async function GET() {
   try {
-    const user = await getAuthUser();
-    if (!user)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const notices = await db.notice.findMany({
       orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }],
@@ -23,12 +22,11 @@ export async function GET() {
   }
 }
 
-// POST /api/notices - Admin: CRUD notices
+// POST /api/notices - CRUD notices (staff/admin)
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { action, id, title, content, pinned, status } = body;

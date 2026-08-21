@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
-// GET /api/attendance - List attendance records
+// GET /api/attendance - List attendance records (staff/admin)
 export async function GET(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
     const bookingId = searchParams.get('bookingId');
@@ -44,13 +42,11 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/attendance - Check in/out
+// POST /api/attendance - Check in/out (staff/admin)
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { action, bookingId } = body;

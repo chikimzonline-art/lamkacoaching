@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
     
-    if (existing.studentId !== user.id && user.role !== 'admin') {
+    if (existing.studentId !== user.id && user.role !== 'admin' && user.role !== 'staff') {
       return NextResponse.json({ error: 'Unauthorized to renew this booking' }, { status: 403 });
     }
 

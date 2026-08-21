@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getOverlappingBookings } from '@/lib/db/queries/bookings';
-import { getAuthUser } from '@/lib/auth';
+import { requireStaffOrAdmin } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
-// GET /api/bookings - List bookings with filters
+// GET /api/bookings - List bookings with filters (staff/admin)
 export async function GET(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
@@ -69,13 +68,11 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/bookings - Create/update/cancel/renew bookings
+// POST /api/bookings - Create/update/cancel/renew bookings (staff/admin)
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { action, id, studentId, cabinId, type, startDate, endDate, startTime, endTime, totalAmount, notes, payNow, payAmount, payMode, paymentDate, receiptNo } = body;
@@ -187,6 +184,16 @@ export async function POST(request: Request) {
         });
       }
 
+      await logAudit({
+        user: auth.user,
+        action: 'BOOKING_CREATED',
+        entityType: 'Booking',
+        entityId: booking.id,
+        description: `Created ${type.replace('_', ' ')} desk booking for student '${booking.student?.name || studentId}' (Cabin #${booking.cabin?.cabinNum})`,
+        details: { bookingId: booking.id, studentId, cabinId, type, totalAmount: bookingTotalAmount / 100 },
+        req: request,
+      });
+
       return NextResponse.json({ booking, payment });
 
     } else if (action === 'update') {
@@ -218,6 +225,17 @@ export async function POST(request: Request) {
           cabin: { select: { id: true, cabinNum: true } },
         },
       });
+
+      await logAudit({
+        user: auth.user,
+        action: 'BOOKING_CANCELLED',
+        entityType: 'Booking',
+        entityId: id,
+        description: `Cancelled booking #${id} for student '${booking.student?.name || booking.studentId}' (Cabin #${booking.cabin?.cabinNum})`,
+        details: { bookingId: id, studentId: booking.studentId, cabinId: booking.cabinId },
+        req: request,
+      });
+
       return NextResponse.json({ booking });
 
     } else if (action === 'complete') {
@@ -342,13 +360,11 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH /api/bookings - Approve or reject a pending booking
+// PATCH /api/bookings - Approve or reject a pending booking (staff/admin)
 export async function PATCH(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { id, action } = body;
@@ -379,6 +395,16 @@ export async function PATCH(request: Request) {
         student: { select: { id: true, name: true, phone: true } },
         cabin: { select: { id: true, cabinNum: true, status: true } },
       },
+    });
+
+    await logAudit({
+      user: auth.user,
+      action: action === 'approve' ? 'BOOKING_APPROVED' : 'BOOKING_REJECTED',
+      entityType: 'Booking',
+      entityId: id,
+      description: `${action === 'approve' ? 'Approved' : 'Rejected'} booking request #${id} for student '${updatedBooking.student?.name || 'N/A'}' (Cabin #${updatedBooking.cabin?.cabinNum})`,
+      details: { bookingId: id, action, newStatus, studentId: updatedBooking.studentId, cabinId: updatedBooking.cabinId },
+      req: request,
     });
 
     return NextResponse.json({

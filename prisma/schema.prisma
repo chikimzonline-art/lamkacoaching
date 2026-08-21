@@ -344,3 +344,22 @@ model StudentNotification {
   createdAt DateTime @default(now())
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  userName    String
+  userRole    String   // 'admin' | 'staff' | 'student' | 'system'
+  action      String   // e.g. 'PAYMENT_RECORDED', 'STUDENT_CREATED', 'BOOKING_APPROVED'
+  entityType  String   // 'Payment', 'Student', 'Batch', 'Booking', 'Enrollment', 'Setting', etc.
+  entityId    String?
+  description String   // Human-readable summary e.g. "Recorded ₹1,500 cash payment for John Doe"
+  details     String?  // JSON string containing previous/new values or extra metadata
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([action])
+  @@index([entityType])
+  @@index([userId])
+  @@index([createdAt])
+}

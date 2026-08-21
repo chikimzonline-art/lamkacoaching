@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { useDebouncedSearch } from '@/lib/hooks/use-debounced-search';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,6 +87,9 @@ function formatCurrency(amount: number): string {
 }
 
 export default function StudentsView() {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
+
   const fetchFn = useCallback(async (q: string, signal: AbortSignal) => {
     const params = new URLSearchParams();
     if (q) params.set('search', q);
@@ -380,19 +384,21 @@ export default function StudentsView() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-gray-400 hover:text-red-600"
-                      onClick={() => handleDelete(student.id)}
-                      disabled={deletingId === student.id}
-                    >
-                      {deletingId === student.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-red-600"
+                        onClick={() => handleDelete(student.id)}
+                        disabled={deletingId === student.id}
+                      >
+                        {deletingId === student.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -550,19 +556,21 @@ export default function StudentsView() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-red-600"
-                        onClick={() => handleDelete(student.id)}
-                        disabled={deletingId === student.id}
-                      >
-                        {deletingId === student.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-red-600"
+                          onClick={() => handleDelete(student.id)}
+                          disabled={deletingId === student.id}
+                        >
+                          {deletingId === student.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

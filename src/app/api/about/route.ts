@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
+import { requireAdmin, requireStaffOrAdmin } from '@/lib/auth';
 
-// GET /api/about - Admin: get all about data
+// GET /api/about - get all about data (staff/admin)
 export async function GET() {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const aboutKeys = [
       'about_story',
@@ -33,8 +31,6 @@ export async function GET() {
       }),
     ]);
 
-
-
     const settingsMap: Record<string, string> = {};
     settings.forEach((s) => {
       settingsMap[s.key] = s.value;
@@ -55,13 +51,11 @@ export async function GET() {
   }
 }
 
-// POST /api/about - Admin: CRUD operations
+// POST /api/about - Admin: CRUD operations (admin only)
 export async function POST(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json();
     const { action, type, data, id } = body;

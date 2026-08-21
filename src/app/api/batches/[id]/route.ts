@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireStaffOrAdmin } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
-// PUT /api/batches/[id] — update a batch
+// PUT /api/batches/[id] — update a batch (staff/admin)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -32,6 +37,16 @@ export async function PUT(
       data: updateData,
     });
 
+    await logAudit({
+      user: auth.user,
+      action: 'BATCH_UPDATED',
+      entityType: 'Batch',
+      entityId: id,
+      description: `Updated batch '${batch.batchName}' (Status: ${batch.status}, Seats: ${batch.seats})`,
+      details: { batchId: id, updatedFields: Object.keys(updateData) },
+      req: request,
+    });
+
     return NextResponse.json(batch);
   } catch (error) {
     console.error('Failed to update batch:', error);
@@ -42,12 +57,15 @@ export async function PUT(
   }
 }
 
-// DELETE /api/batches/[id] — delete a batch
+// DELETE /api/batches/[id] — delete a batch (staff/admin)
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
 
     const existing = await db.batch.findUnique({ where: { id } });
@@ -66,6 +84,16 @@ export async function DELETE(
     }
 
     await db.batch.delete({ where: { id } });
+
+    await logAudit({
+      user: auth.user,
+      action: 'BATCH_DELETED',
+      entityType: 'Batch',
+      entityId: id,
+      description: `Deleted batch '${existing.batchName}'`,
+      details: { batchId: id, batchName: existing.batchName, courseId: existing.courseId },
+      req: request,
+    });
 
     return NextResponse.json({ message: 'Batch deleted successfully' });
   } catch (error) {

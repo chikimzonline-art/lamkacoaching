@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth-options';
+import { getAuthUser } from '@/lib/auth';
 import { createRazorpayOrder } from '@/lib/razorpay-server';
 import { db } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
-       console.warn('Creating order without active session');
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { amount: _clientAmount, notes } = await req.json();
@@ -23,7 +21,9 @@ export async function POST(req: Request) {
     }
 
     let calculatedAmountPaise = 0;
-    const resolvedStudentId = (session?.user as any)?.id || studentId;
+    const resolvedStudentId = (user.role === 'admin' || user.role === 'staff')
+      ? (studentId || user.id)
+      : user.id;
 
     if (type === 'course') {
       const enrollment = await db.enrollment.findFirst({

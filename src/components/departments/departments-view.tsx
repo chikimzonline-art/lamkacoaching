@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,9 @@ interface Department {
 }
 
 export default function DepartmentsView() {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
+
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -123,10 +127,12 @@ export default function DepartmentsView() {
           <Building2 className="h-5 w-5 text-cyan-600" />
           <h2 className="text-lg font-bold text-gray-900">Departments</h2>
         </div>
-        <Button onClick={openCreate} size="sm" className="bg-cyan-600 hover:bg-cyan-700">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Add Department
-        </Button>
+        {isAdmin && (
+          <Button onClick={openCreate} size="sm" className="bg-cyan-600 hover:bg-cyan-700">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add Department
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -160,24 +166,26 @@ export default function DepartmentsView() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(dept)}>
-                      <Pencil className="h-3.5 w-3.5 text-gray-400" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDelete(dept.id)}
-                      disabled={deletingId === dept.id}
-                    >
-                      {deletingId === dept.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                      )}
-                    </Button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(dept)}>
+                        <Pencil className="h-3.5 w-3.5 text-gray-400" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleDelete(dept.id)}
+                        disabled={deletingId === dept.id}
+                      >
+                        {deletingId === dept.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

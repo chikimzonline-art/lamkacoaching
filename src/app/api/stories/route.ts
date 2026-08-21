@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireAdmin, requireStaffOrAdmin } from '@/lib/auth';
 
-// GET all success stories (admin)
+// GET all success stories (staff/admin)
 export async function GET() {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const stories = await db.successStory.findMany({
       orderBy: { sortOrder: 'asc' },
     });
@@ -14,9 +18,12 @@ export async function GET() {
   }
 }
 
-// POST create new story
+// POST create new story (admin only)
 export async function POST(request: Request) {
   try {
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await request.json();
     const { name, achievement, batch, sortOrder, active } = body;
     
@@ -40,9 +47,12 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT update story
+// PUT update story (admin only)
 export async function PUT(request: Request) {
   try {
+    const auth = await requireAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await request.json();
     const { id, ...data } = body;
     

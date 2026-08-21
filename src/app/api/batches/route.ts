@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireStaffOrAdmin } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
 // GET /api/batches — list all active batches sorted by sortOrder then startDate
 export async function GET() {
@@ -23,9 +25,12 @@ export async function GET() {
   }
 }
 
-// POST /api/batches — create a new batch
+// POST /api/batches — create a new batch (staff/admin)
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await request.json();
     const { courseId, batchName, startDate, endDate, timing, seats, status, description, sortOrder } = body;
 
@@ -48,6 +53,7 @@ export async function POST(request: NextRequest) {
         description: description || null,
         sortOrder: sortOrder !== undefined ? Number(sortOrder) : 0,
       },
+      include: { course: { select: { name: true } } },
     });
 
     if (batch.active && (batch.status === 'enrolling' || batch.status === 'almost_full')) {
@@ -71,6 +77,16 @@ export async function POST(request: NextRequest) {
         });
       }
     }
+
+    await logAudit({
+      user: auth.user,
+      action: 'BATCH_CREATED',
+      entityType: 'Batch',
+      entityId: batch.id,
+      description: `Created batch '${batch.batchName}' for course '${batch.course?.name}' (Seats: ${batch.seats})`,
+      details: { batchId: batch.id, courseId, batchName, timing, seats },
+      req: request,
+    });
 
     return NextResponse.json(batch, { status: 201 });
   } catch (error) {

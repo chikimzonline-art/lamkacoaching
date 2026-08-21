@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getPendingBookings, getPendingBookingCount } from '@/lib/db/queries/bookings';
-import { getAuthUser } from '@/lib/auth';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
+// GET /api/dashboard/recent (staff/admin)
 export async function GET() {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const [
       recentPayments,

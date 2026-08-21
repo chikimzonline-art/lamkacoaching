@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -160,6 +161,9 @@ function formatDateTime(dateStr: string): string {
 }
 
 export default function PaymentsView() {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
+
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -853,25 +857,27 @@ export default function PaymentsView() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 border-cyan-300 text-cyan-600 hover:bg-cyan-50"
+                    className="border-cyan-300 text-cyan-600 hover:bg-cyan-50 text-xs h-8"
                     onClick={() => viewReceipt(payment)}
                   >
                     <Receipt className="h-3.5 w-3.5 mr-1" />
                     Receipt
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-gray-400 hover:text-red-600"
-                    onClick={() => handleDelete(payment.id)}
-                    disabled={deletingId === payment.id}
-                  >
-                    {deletingId === payment.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-gray-400 hover:text-red-600"
+                      onClick={() => handleDelete(payment.id)}
+                      disabled={deletingId === payment.id}
+                    >
+                      {deletingId === payment.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -958,19 +964,21 @@ export default function PaymentsView() {
                         <Receipt className="h-3.5 w-3.5 mr-1" />
                         Receipt
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-red-600"
-                        onClick={() => handleDelete(payment.id)}
-                        disabled={deletingId === payment.id}
-                      >
-                        {deletingId === payment.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-red-600"
+                          onClick={() => handleDelete(payment.id)}
+                          disabled={deletingId === payment.id}
+                        >
+                          {deletingId === payment.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

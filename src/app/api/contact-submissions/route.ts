@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireStaffOrAdmin } from '@/lib/auth';
 
-// GET: Returns all contact submissions ordered by createdAt DESC
+// GET: Returns all contact submissions ordered by createdAt DESC (staff/admin)
 export async function GET() {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const submissions = await db.contactSubmission.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -17,9 +21,12 @@ export async function GET() {
   }
 }
 
-// PATCH: Update submission status (new → read → replied)
+// PATCH: Update submission status (new → read → replied) (staff/admin)
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await request.json();
     const { id, status } = body;
 
@@ -60,9 +67,12 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE: Delete a contact submission
+// DELETE: Delete a contact submission (staff/admin)
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

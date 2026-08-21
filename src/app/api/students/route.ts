@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
+import { getAuthUser, requireAdmin, requireStaffOrAdmin } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
 import { generateSecurePassword, generateUsernameSlug, sendStudentCredentialsEmail } from '@/lib/email';
+import { logAudit } from '@/lib/audit';
 
-// GET /api/students - List students with FTS5 search + grouped balances (no N+1)
+// GET /api/students - List students with FTS5 search + grouped balances (staff/admin)
 // Query params:
 //   search    - FTS5 MATCH term (name/email) OR substring on phone/username
 //   bookings  - "true" to include active bookings with cabin info
@@ -13,10 +14,8 @@ import { generateSecurePassword, generateUsernameSlug, sendStudentCredentialsEma
 //   skip      - offset for pagination / load-more
 export async function GET(request: Request) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireStaffOrAdmin();
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(request.url);
     const search = (searchParams.get('search') || '').trim();
@@ -158,6 +157,11 @@ export async function POST(request: Request) {
     const { action, id, name, username, phone, email, address, notes, password, avatar } = body;
 
     if (action === 'create') {
+      // Only staff and admin can create students
+      if (user.role !== 'admin' && user.role !== 'staff') {
+        return NextResponse.json({ error: 'Forbidden: Only staff and admins can register students' }, { status: 403 });
+      }
+
       if (!name || !phone || !email) {
         return NextResponse.json({ error: 'Name, phone, and email are required' }, { status: 400 });
       }
@@ -223,6 +227,16 @@ export async function POST(request: Request) {
         console.error('[Brevo] Failed to send credentials email:', err);
       }
 
+      await logAudit({
+        user,
+        action: 'STUDENT_CREATED',
+        entityType: 'Student',
+        entityId: student.id,
+        description: `Registered new student '${student.name}' (Phone: ${student.phone})`,
+        details: { studentId: student.id, name: student.name, phone: student.phone, email: student.email, username: student.username },
+        req: request,
+      });
+
       return NextResponse.json({
         student,
         generatedPassword: plainPassword,
@@ -234,6 +248,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Student ID is required' }, { status: 400 });
       }
 
+      // Students can ONLY update their own record
+      if (user.role === 'student' && user.id !== id) {
+        return NextResponse.json({ error: 'Forbidden: You can only update your own profile' }, { status: 403 });
+      }
+
       if (username) {
         const existingUsername = await db.student.findUnique({ where: { username } });
         if (existingUsername && existingUsername.id !== id) {
@@ -241,15 +260,20 @@ export async function POST(request: Request) {
         }
       }
 
-      const updateData: any = {
-        name: name || undefined,
-        username: username !== undefined ? (username || null) : undefined,
-        phone: phone || undefined,
-        email: email !== undefined ? email : undefined,
-        address: address !== undefined ? address : undefined,
-        notes: notes !== undefined ? notes : undefined,
-        avatar: avatar !== undefined ? avatar : undefined,
-      };
+      // If student is updating own record, restrict fields they can change
+      const updateData: any = {};
+      if (user.role === 'admin' || user.role === 'staff') {
+        if (name !== undefined) updateData.name = name;
+        if (username !== undefined) updateData.username = username || null;
+        if (phone !== undefined) updateData.phone = phone;
+        if (email !== undefined) updateData.email = email;
+        if (address !== undefined) updateData.address = address;
+        if (notes !== undefined) updateData.notes = notes;
+        if (avatar !== undefined) updateData.avatar = avatar;
+      } else {
+        // Student role
+        if (avatar !== undefined) updateData.avatar = avatar;
+      }
 
       if (password) {
         updateData.password = await bcrypt.hash(password, 10);
@@ -259,12 +283,30 @@ export async function POST(request: Request) {
         where: { id },
         data: updateData,
       });
+
+      await logAudit({
+        user,
+        action: 'STUDENT_UPDATED',
+        entityType: 'Student',
+        entityId: student.id,
+        description: `Updated student profile for '${student.name}'`,
+        details: { studentId: student.id, updatedFields: Object.keys(updateData) },
+        req: request,
+      });
+
       return NextResponse.json({ student });
 
     } else if (action === 'delete') {
+      // ONLY ADMIN can delete student records
+      if (user.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Only administrators can delete student records' }, { status: 403 });
+      }
+
       if (!id) {
         return NextResponse.json({ error: 'Student ID is required' }, { status: 400 });
       }
+
+      const existingStudent = await db.student.findUnique({ where: { id }, select: { name: true, phone: true } });
       const activeBookings = await db.booking.count({
         where: { studentId: id, status: 'active' },
       });
@@ -275,6 +317,17 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Cannot delete student with active bookings (${activeBookings}) or enrollments (${activeEnrollments})` }, { status: 400 });
       }
       await db.student.delete({ where: { id } });
+
+      await logAudit({
+        user,
+        action: 'STUDENT_DELETED',
+        entityType: 'Student',
+        entityId: id,
+        description: `Deleted student record for '${existingStudent?.name || id}'`,
+        details: { studentId: id, name: existingStudent?.name, phone: existingStudent?.phone },
+        req: request,
+      });
+
       return NextResponse.json({ success: true });
     }
 
