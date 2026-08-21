@@ -37,11 +37,12 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatTime, formatCurrency } from '@/lib/helpers';
 import { generateSecurePassword } from '@/lib/email';
 import { cn } from '@/lib/utils';
+import { HistoricalBookingDialog } from './historical-booking-dialog';
 
 interface CabinBooking {
   id: string;
@@ -181,6 +182,10 @@ export default function CabinsView() {
     emailSent: boolean;
   } | null>(null);
   const [creatingStudent, setCreatingStudent] = useState(false);
+
+  // Historical Multi-Month Onboarding state
+  const [historicalDialogOpen, setHistoricalDialogOpen] = useState(false);
+  const [historicalCabin, setHistoricalCabin] = useState<Cabin | null>(null);
 
   const [bookType, setBookType] = useState('morning_shift');
   const [bookStartDate, setBookStartDate] = useState(() => {
@@ -815,12 +820,28 @@ export default function CabinsView() {
           </div>
         </div>
 
-        {isAdmin && (
-          <Button onClick={() => setAddDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600 text-white shrink-0">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Cabin
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && (
+            <Button
+              onClick={() => {
+                setHistoricalCabin(null);
+                setHistoricalDialogOpen(true);
+              }}
+              variant="outline"
+              className="border-amber-400 text-amber-900 bg-amber-50/70 hover:bg-amber-100/80 shrink-0 font-medium text-xs sm:text-sm h-9"
+            >
+              <History className="h-4 w-4 mr-1.5 text-amber-600" />
+              Onboard Existing Student
+            </Button>
+          )}
+
+          {isAdmin && (
+            <Button onClick={() => setAddDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600 text-white shrink-0 text-xs sm:text-sm h-9">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Cabin
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Cabin Grid — Grouped by Floor when showing all floors */}
@@ -1097,15 +1118,30 @@ export default function CabinsView() {
                 Permanently Delete
               </Button>
             )}
-            <div className="flex gap-2 sm:ml-auto">
+            <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
               {selectedCabin && (getCabinDisplayState(selectedCabin) === 'available' || getCabinDisplayState(selectedCabin) === 'partially_booked') && (
-                <Button
-                  onClick={() => setBookDialogOpen(true)}
-                  className="bg-sky-500 hover:bg-sky-600 text-white mr-auto sm:mr-4"
-                >
-                  <CalendarPlus className="h-4 w-4 mr-1.5" />
-                  Book Shift
-                </Button>
+                <>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => {
+                        setHistoricalCabin(selectedCabin);
+                        setHistoricalDialogOpen(true);
+                      }}
+                      variant="outline"
+                      className="border-amber-400 text-amber-900 bg-amber-50 hover:bg-amber-100 text-xs sm:text-sm mr-auto sm:mr-0"
+                    >
+                      <History className="h-4 w-4 mr-1.5 text-amber-600" />
+                      Onboard Existing
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => setBookDialogOpen(true)}
+                    className="bg-sky-500 hover:bg-sky-600 text-white mr-auto sm:mr-2"
+                  >
+                    <CalendarPlus className="h-4 w-4 mr-1.5" />
+                    Book Shift
+                  </Button>
+                </>
               )}
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                 Cancel
@@ -1627,6 +1663,19 @@ export default function CabinsView() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Historical Multi-Month Onboarding Dialog */}
+      <HistoricalBookingDialog
+        open={historicalDialogOpen}
+        onOpenChange={setHistoricalDialogOpen}
+        selectedCabin={historicalCabin}
+        cabins={cabins}
+        rates={rates}
+        onSuccess={() => {
+          fetchCabins();
+          setEditDialogOpen(false);
+        }}
+      />
     </div>
   );
 }

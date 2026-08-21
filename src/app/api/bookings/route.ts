@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { getOverlappingBookings } from '@/lib/db/queries/bookings';
 import { requireStaffOrAdmin } from '@/lib/auth';
@@ -350,6 +351,205 @@ export async function POST(request: Request) {
         booking,
         renewedAmount: renewAmount,
         newEndDate: newEnd.toISOString(),
+      });
+
+    } else if (action === 'onboard_historical') {
+      const {
+        studentId,
+        cabinId,
+        type,
+        startDate,
+        endDate,
+        monthlyRate,
+        includeRegistrationFee,
+        registrationFee,
+        paidMonthsCount,
+        paymentMode,
+        paymentDay,
+        receiptPrefix,
+        notes,
+      } = body;
+
+      if (!studentId || !cabinId || !type || !startDate || !endDate || !monthlyRate) {
+        return NextResponse.json({ error: 'Student ID, Cabin ID, shift type, start date, end date, and monthly rate are required' }, { status: 400 });
+      }
+
+      if (!['morning_shift', 'day_shift', 'night_shift', 'reserved'].includes(type)) {
+        return NextResponse.json({ error: 'Invalid booking type' }, { status: 400 });
+      }
+
+      const student = await db.student.findUnique({ where: { id: studentId } });
+      if (!student) {
+        return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+      }
+
+      const cabin = await db.cabin.findUnique({ where: { id: cabinId } });
+      if (!cabin) {
+        return NextResponse.json({ error: 'Cabin not found' }, { status: 404 });
+      }
+
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      if (start > end) {
+        return NextResponse.json({ error: 'Start date must be before or equal to end date' }, { status: 400 });
+      }
+
+      // Check for any active bookings on this cabin that overlap
+      const overlappingBookings = await getOverlappingBookings(cabinId, start, end);
+      for (const existing of overlappingBookings) {
+        if (existing.type === 'reserved') {
+          return NextResponse.json({
+            error: 'Cabin has a conflicting active reserved booking in this period',
+            conflicts: overlappingBookings,
+          }, { status: 409 });
+        }
+        if (type === 'reserved') {
+          return NextResponse.json({
+            error: 'Cabin cannot be reserved because it has active shift bookings in this period',
+            conflicts: overlappingBookings,
+          }, { status: 409 });
+        }
+        if (existing.type === type) {
+          return NextResponse.json({
+            error: `Cabin already booked for ${type.replace('_', ' ')} in this period`,
+            conflicts: overlappingBookings,
+          }, { status: 409 });
+        }
+      }
+
+      // Calculate monthly intervals
+      const startYear = start.getFullYear();
+      const startMonth = start.getMonth();
+      const endYear = end.getFullYear();
+      const endMonth = end.getMonth();
+      const totalMonths = Math.max(1, (endYear - startYear) * 12 + (endMonth - startMonth) + 1);
+
+      const ratePaise = Math.round(Number(monthlyRate) * 100);
+      const regFeePaise = includeRegistrationFee ? Math.round(Number(registrationFee || 200) * 100) : 0;
+      const targetDay = Math.min(Math.max(Number(paymentDay) || 1, 1), 28);
+
+      const milestones: {
+        index: number;
+        label: string;
+        date: Date;
+        amountPaise: number;
+        hasRegFee: boolean;
+      }[] = [];
+
+      for (let i = 0; i < totalMonths; i++) {
+        const mDate = new Date(startYear, startMonth + i, targetDay, 12, 0, 0);
+        const mLabel = mDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+        const isFirst = i === 0;
+        const currentMonthFee = ratePaise + (isFirst ? regFeePaise : 0);
+
+        milestones.push({
+          index: i + 1,
+          label: mLabel,
+          date: mDate,
+          amountPaise: currentMonthFee,
+          hasRegFee: isFirst && regFeePaise > 0,
+        });
+      }
+
+      const bookingTotalAmount = milestones.reduce((sum, m) => sum + m.amountPaise, 0);
+      const numPaid = (paidMonthsCount === -1 || paidMonthsCount === undefined || paidMonthsCount === null)
+        ? totalMonths
+        : Math.min(Math.max(Number(paidMonthsCount), 0), totalMonths);
+
+      const paidMilestones = milestones.slice(0, numPaid);
+      const bookingPaidAmount = paidMilestones.reduce((sum, m) => sum + m.amountPaise, 0);
+
+      let actualStartTime = startTime;
+      let actualEndTime = endTime;
+      if (type === 'morning_shift') { actualStartTime = '05:00'; actualEndTime = '10:00'; }
+      if (type === 'day_shift') { actualStartTime = '10:00'; actualEndTime = '17:00'; }
+      if (type === 'night_shift') { actualStartTime = '17:00'; actualEndTime = '23:59'; }
+
+      // Execute transaction to create booking and historical payments atomically
+      const result = await db.$transaction(async (tx) => {
+        const newBooking = await tx.booking.create({
+          data: {
+            studentId,
+            cabinId,
+            type,
+            status: 'active',
+            startDate: start,
+            endDate: end,
+            startTime: actualStartTime,
+            endTime: actualEndTime,
+            totalAmount: bookingTotalAmount,
+            paidAmount: bookingPaidAmount,
+            notes: notes ? `[Historical Onboarding] ${notes}` : '[Historical Onboarding] Existing student multi-month booking',
+          },
+          include: {
+            student: { select: { id: true, name: true, phone: true } },
+            cabin: { select: { id: true, cabinNum: true } },
+          },
+        });
+
+        const payments: any[] = [];
+        for (let i = 0; i < paidMilestones.length; i++) {
+          const m = paidMilestones[i];
+          const receiptNo = receiptPrefix ? `${receiptPrefix}-${m.label.replace(/[^a-zA-Z0-9]/g, '')}-${i + 1}` : null;
+          const note = m.hasRegFee
+            ? `Historical desk fee (${m.label}) + registration fee`
+            : `Historical desk fee (${m.label})`;
+
+          const payment = await tx.payment.create({
+            data: {
+              bookingId: newBooking.id,
+              studentId,
+              amount: m.amountPaise,
+              mode: paymentMode || 'cash',
+              status: 'completed',
+              receivedAt: m.date,
+              notes: note,
+              receiptNo,
+            },
+          });
+          payments.push(payment);
+        }
+
+        return { booking: newBooking, payments };
+      });
+
+      revalidatePath('/dashboard/history');
+      revalidatePath('/dashboard/cabins');
+      revalidatePath('/dashboard/students');
+      revalidatePath('/admin');
+
+      await logAudit({
+        user: auth.user,
+        action: 'BOOKING_CREATED',
+        entityType: 'Booking',
+        entityId: result.booking.id,
+        description: `Onboarded historical ${type.replace('_', ' ')} desk booking (${totalMonths} months) for student '${result.booking.student?.name || studentId}' (Cabin #${result.booking.cabin?.cabinNum}) with ${result.payments.length} monthly payments recorded`,
+        details: {
+          bookingId: result.booking.id,
+          studentId,
+          cabinId,
+          type,
+          totalAmount: bookingTotalAmount / 100,
+          paidAmount: bookingPaidAmount / 100,
+          totalMonths,
+          paymentsRecorded: result.payments.length,
+          startDate,
+          endDate,
+        },
+        req: request,
+      });
+
+      return NextResponse.json({
+        booking: result.booking,
+        paymentsCount: result.payments.length,
+        totalMonths,
+        totalAmount: bookingTotalAmount / 100,
+        paidAmount: bookingPaidAmount / 100,
+        dueAmount: (bookingTotalAmount - bookingPaidAmount) / 100,
       });
     }
 

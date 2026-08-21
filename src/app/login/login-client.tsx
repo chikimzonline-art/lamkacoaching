@@ -11,12 +11,14 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { isNativePlatform } from "@/lib/capacitor/bridge";
 
 export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [isNative, setIsNative] = useState(false);
 
   // Login state
   const [identifier, setIdentifier] = useState("");
@@ -29,6 +31,7 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
   const [regPassword, setRegPassword] = useState("");
 
   useEffect(() => {
+    setIsNative(isNativePlatform());
     if (searchParams.get("tab") === "register") {
       setIsLogin(false);
     }
@@ -313,11 +316,13 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
             </button>
           </div>
           
-          <div className="text-center mt-8">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors">
-              &larr; Back to Home
-            </Link>
-          </div>
+          {!isNative && (
+            <div className="text-center mt-8">
+              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors">
+                &larr; Back to Home
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

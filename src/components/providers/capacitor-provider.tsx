@@ -2,13 +2,51 @@
 
 import React, { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { isNativePlatform } from '@/lib/capacitor/bridge';
 
 export function CapacitorProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session, status } = useSession();
   const lastBackPressTimeRef = useRef<number>(0);
+
+  // Native App Route Guard: Restrict Android users from public marketing website
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+    if (status === 'loading') return;
+
+    const publicMarketingRoutes = [
+      '/',
+      '/about',
+      '/computer-training',
+      '/contact',
+      '/faq',
+      '/notices',
+    ];
+
+    const isPublicMarketingRoute =
+      pathname === '/' ||
+      (pathname !== '/login' &&
+        pathname !== '/register' &&
+        !pathname.startsWith('/dashboard') &&
+        !pathname.startsWith('/admin') &&
+        publicMarketingRoutes.includes(pathname));
+
+    if (isPublicMarketingRoute) {
+      if (status === 'authenticated') {
+        const userRole = (session?.user as any)?.role;
+        if (userRole === 'admin' || userRole === 'staff') {
+          router.replace('/admin');
+        } else {
+          router.replace('/dashboard');
+        }
+      } else if (status === 'unauthenticated') {
+        router.replace('/login');
+      }
+    }
+  }, [pathname, status, session, router]);
 
   useEffect(() => {
     if (!isNativePlatform()) return;

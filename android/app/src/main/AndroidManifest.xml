@@ -32,11 +32,13 @@
                 <data android:scheme="lamkacoaching" />
             </intent-filter>
 
-            <!-- App Links HTTPS Deep Linking: https://lamkacoaching.com -->
+            <!-- App Links HTTPS Deep Linking: https://lamkacoaching.in and https://lamkacoaching.com -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="lamkacoaching.in" />
+                <data android:scheme="https" android:host="www.lamkacoaching.in" />
                 <data android:scheme="https" android:host="lamkacoaching.com" />
                 <data android:scheme="https" android:host="www.lamkacoaching.com" />
             </intent-filter>
