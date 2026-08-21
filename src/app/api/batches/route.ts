@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
             studentId: w.studentId,
             title: `New Batch Open: ${w.course.name}`,
             message: `A new batch starting on ${batch.startDate.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'})} has opened for ${w.course.name}. Enroll now before seats fill up!`,
-            link: `/dashboard`
+            link: `/dashboard/courses`
           }))
         });
         

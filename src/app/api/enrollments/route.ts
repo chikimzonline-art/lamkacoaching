@@ -12,16 +12,18 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
     const courseId = searchParams.get('courseId');
+    const batchId = searchParams.get('batchId');
     const departmentId = searchParams.get('departmentId');
     const status = searchParams.get('status');
 
     const where: Record<string, unknown> = {};
     if (studentId) where.studentId = studentId;
     if (courseId) where.courseId = courseId;
-    if (status) where.status = status;
-    else where.status = 'active';
+    if (batchId && batchId !== 'all') where.batchId = batchId;
+    if (status && status !== 'all') where.status = status;
+    else if (!status) where.status = 'active';
 
-    if (departmentId) {
+    if (departmentId && departmentId !== 'all') {
       where.course = { departmentId };
     }
 
@@ -35,6 +37,9 @@ export async function GET(request: Request) {
           course: {
             select: { id: true, name: true, department: { select: { id: true, name: true } } },
           },
+          batch: {
+            select: { id: true, batchName: true, timing: true, startDate: true, status: true },
+          },
           payments: {
             select: { id: true, amount: true, mode: true, receivedAt: true, notes: true, receiptNo: true },
             orderBy: { receivedAt: 'desc' },
@@ -42,7 +47,7 @@ export async function GET(request: Request) {
         },
       }),
       db.enrollment.aggregate({
-        where: { status: 'active' },
+        where: Object.keys(where).length > 0 ? where : { status: 'active' },
         _count: { _all: true },
         _sum: { totalFee: true, paidAmount: true },
       })

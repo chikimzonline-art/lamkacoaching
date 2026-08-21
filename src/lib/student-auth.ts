@@ -24,10 +24,21 @@ export async function requireStudent() {
         include: { cabin: true }
       },
       payments: {
+        orderBy: { receivedAt: 'desc' },
         include: { booking: { include: { cabin: true } } }
       },
       enrollmentPayments: {
-        include: { enrollment: { include: { course: true } } }
+        orderBy: { receivedAt: 'desc' },
+        include: {
+          enrollment: {
+            include: {
+              course: {
+                include: { department: true }
+              },
+              batch: true
+            }
+          }
+        }
       }
     }
   })

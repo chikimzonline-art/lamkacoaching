@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { useDebouncedSearch } from '@/lib/hooks/use-debounced-search';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   UserPlus, Plus, Banknote, Check, X, ChevronRight, ChevronLeft,
-  CalendarIcon, Loader2, Search, Receipt, Trash2, AlertTriangle, RotateCcw, Key, Copy,
+  CalendarIcon, Loader2, Search, Receipt, Trash2, AlertTriangle, RotateCcw, Key, Copy, Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateSecurePassword, generateUsernameSlug } from '@/lib/email';
@@ -36,6 +37,7 @@ import { cn } from '@/lib/utils';
 
 interface Department { id: string; name: string }
 interface Course { id: string; name: string; departmentId: string; duration: string | null; totalFee: number; department: { name: string } }
+interface BatchOption { id: string; batchName: string; courseId: string; timing: string; startDate: string; status: string }
 interface StudentOption { id: string; name: string; phone: string }
 interface EnrollmentPayment { id: string; amount: number; mode: string; receivedAt: string; notes: string | null; receiptNo: string | null }
 
@@ -43,6 +45,7 @@ interface Enrollment {
   id: string;
   studentId: string;
   courseId: string;
+  batchId?: string | null;
   startDate: string;
   endDate: string | null;
   totalFee: number;
@@ -51,6 +54,7 @@ interface Enrollment {
   notes: string | null;
   student: { id: string; name: string; phone: string };
   course: { id: string; name: string; department: { id: string; name: string } };
+  batch?: { id: string; batchName: string; timing: string; startDate: string; status: string } | null;
   payments: EnrollmentPayment[];
 }
 
@@ -64,11 +68,15 @@ const STEPS: { key: StepType; label: string }[] = [
 ];
 
 export default function EnrollmentsView() {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
+
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [stats, setStats] = useState({ totalActive: 0, totalFees: 0, totalPaid: 0, totalOutstanding: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState<string>('all');
+  const [batchFilter, setBatchFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('active');
 
   // Delete dialog
@@ -82,6 +90,7 @@ export default function EnrollmentsView() {
   const [wizardStudentId, setWizardStudentId] = useState('');
 
   const [wizardCourseId, setWizardCourseId] = useState('');
+  const [wizardBatchId, setWizardBatchId] = useState('');
   const [wizardDeptId, setWizardDeptId] = useState('');
   const [wizardStartDate, setWizardStartDate] = useState<Date>(new Date());
   const [wizardEndDate, setWizardEndDate] = useState<Date | undefined>(addMonths(new Date(), 6));
@@ -107,6 +116,7 @@ export default function EnrollmentsView() {
   // Options
   const [departments, setDepartments] = useState<Department[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [batches, setBatches] = useState<BatchOption[]>([]);
 
   // Payment dialog for existing enrollments
   const [payDialogOpen, setPayDialogOpen] = useState(false);
@@ -123,6 +133,7 @@ export default function EnrollmentsView() {
       setLoading(true);
       const params = new URLSearchParams();
       if (deptFilter !== 'all') params.set('departmentId', deptFilter);
+      if (batchFilter !== 'all') params.set('batchId', batchFilter);
       if (statusFilter !== 'all') params.set('status', statusFilter);
       const res = await fetch(`/api/enrollments?${params.toString()}`);
       const json = await res.json();
@@ -133,13 +144,21 @@ export default function EnrollmentsView() {
     } finally {
       setLoading(false);
     }
-  }, [deptFilter, statusFilter]);
+  }, [deptFilter, batchFilter, statusFilter]);
 
   const fetchDepartments = useCallback(async () => {
     try {
       const res = await fetch('/api/departments');
       const json = await res.json();
       if (json.departments) setDepartments(json.departments);
+    } catch { /* ignore */ }
+  }, []);
+
+  const fetchBatches = useCallback(async () => {
+    try {
+      const res = await fetch('/api/batches');
+      const json = await res.json();
+      if (Array.isArray(json)) setBatches(json);
     } catch { /* ignore */ }
   }, []);
 
@@ -171,7 +190,7 @@ export default function EnrollmentsView() {
   const studentOptions = studentSearchRes?.students || [];
 
   useEffect(() => { fetchEnrollments(); }, [fetchEnrollments]);
-  useEffect(() => { fetchDepartments(); }, []);
+  useEffect(() => { fetchDepartments(); fetchBatches(); }, [fetchDepartments, fetchBatches]);
 
   useEffect(() => {
     if (wizardOpen && step === 'course') fetchCourses();
@@ -191,6 +210,7 @@ export default function EnrollmentsView() {
     setWizardStudentSearch('');
     setStudentSearchRes(null);
     setWizardCourseId('');
+    setWizardBatchId('');
     setWizardDeptId('');
     setWizardStartDate(new Date());
     setWizardEndDate(addMonths(new Date(), 6));
@@ -256,8 +276,8 @@ export default function EnrollmentsView() {
   };
 
   const handleCreateEnrollment = async () => {
-    if (!wizardStudentId || !wizardCourseId || !wizardFee) {
-      toast.error('Please fill all required fields');
+    if (!wizardStudentId || !wizardCourseId || !wizardBatchId || !wizardFee) {
+      toast.error('Please select student, course, batch, and fee');
       return;
     }
     setSubmitting(true);
@@ -266,6 +286,7 @@ export default function EnrollmentsView() {
         action: 'create',
         studentId: wizardStudentId,
         courseId: wizardCourseId,
+        batchId: wizardBatchId,
         startDate: wizardStartDate.toISOString().split('T')[0],
         totalFee: Number(wizardFee),
         notes: wizardNotes || undefined,
@@ -394,12 +415,18 @@ export default function EnrollmentsView() {
 
   const selectedStudent = studentOptions.find((s) => s.id === wizardStudentId);
   const selectedCourse = courses.find((c) => c.id === wizardCourseId);
+  const selectedBatch = batches.find((b) => b.id === wizardBatchId);
   const stepIndex = STEPS.findIndex((s) => s.key === step);
 
   const filteredEnrollments = enrollments.filter((e) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return e.student.name.toLowerCase().includes(q) || e.student.phone.includes(q) || e.course.name.toLowerCase().includes(q);
+    return (
+      e.student.name.toLowerCase().includes(q) ||
+      e.student.phone.includes(q) ||
+      e.course.name.toLowerCase().includes(q) ||
+      (e.batch?.batchName && e.batch.batchName.toLowerCase().includes(q))
+    );
   });
 
   return (
@@ -449,19 +476,32 @@ export default function EnrollmentsView() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search by student, phone, or course..."
+            placeholder="Search by student, phone, course, or batch..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
           />
         </div>
         <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Department" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Depts</SelectItem>
             {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={batchFilter} onValueChange={setBatchFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All Batches" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Batches</SelectItem>
+            {batches.map((b) => (
+              <SelectItem key={b.id} value={b.id}>
+                {b.batchName} ({b.timing || 'Standard'})
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -503,7 +543,7 @@ export default function EnrollmentsView() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <Badge variant="outline" className={cn(
                         'text-xs',
                         enrollment.status === 'active' && 'bg-cyan-100 text-cyan-800 border-cyan-200',
@@ -515,16 +555,24 @@ export default function EnrollmentsView() {
                       <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                         {enrollment.course.department.name}
                       </Badge>
+                      {enrollment.batch && (
+                        <Badge variant="outline" className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200 gap-1">
+                          <Layers className="h-3 w-3 text-cyan-600" />
+                          {enrollment.batch.batchName} ({enrollment.batch.timing || 'Standard'})
+                        </Badge>
+                      )}
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-gray-400 hover:text-red-600 hover:bg-red-50 -mr-1 -mt-1"
-                      title="Delete Enrollment"
-                      onClick={() => openDeleteDialog(enrollment)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {isAdmin && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-gray-400 hover:text-red-600 hover:bg-red-50 -mr-1 -mt-1 shrink-0"
+                        title="Delete Enrollment"
+                        onClick={() => openDeleteDialog(enrollment)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -572,10 +620,12 @@ export default function EnrollmentsView() {
                         className="text-xs h-8 text-cyan-700 border-cyan-200 hover:bg-cyan-50">
                         <RotateCcw className="h-3 w-3 mr-1" /> Re-activate
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => openDeleteDialog(enrollment)}
-                        className="text-xs h-8 text-red-600 border-red-200 hover:bg-red-50">
-                        <Trash2 className="h-3 w-3 mr-1" /> Delete Permanently
-                      </Button>
+                      {isAdmin && (
+                        <Button size="sm" variant="outline" onClick={() => openDeleteDialog(enrollment)}
+                          className="text-xs h-8 text-red-600 border-red-200 hover:bg-red-50">
+                          <Trash2 className="h-3 w-3 mr-1" /> Delete Permanently
+                        </Button>
+                      )}
                     </div>
                   )}
 
@@ -789,11 +839,11 @@ export default function EnrollmentsView() {
               </div>
             )}
 
-            {/* Step 2: Course */}
+            {/* Step 2: Course & Batch */}
             {step === 'course' && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500 mb-2">Select a course</p>
-                <Select value={wizardDeptId} onValueChange={(v) => { setWizardDeptId(v); setWizardCourseId(''); }}>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">Select course and batch</p>
+                <Select value={wizardDeptId} onValueChange={(v) => { setWizardDeptId(v); setWizardCourseId(''); setWizardBatchId(''); }}>
                   <SelectTrigger><SelectValue placeholder="Filter by department" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
@@ -801,11 +851,11 @@ export default function EnrollmentsView() {
                   </SelectContent>
                 </Select>
 
-                <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                <div className="space-y-2 max-h-[220px] overflow-y-auto">
                   {courses.length === 0 ? (
                     <p className="text-sm text-gray-400 text-center py-4">No courses available</p>
                   ) : courses.map((c) => (
-                    <button key={c.id} onClick={() => { setWizardCourseId(c.id); setWizardFee(String(c.totalFee / 100)); }}
+                    <button key={c.id} onClick={() => { setWizardCourseId(c.id); setWizardBatchId(''); setWizardFee(String(c.totalFee / 100)); }}
                       className={cn('w-full p-3 rounded-lg text-left transition-colors border',
                         wizardCourseId === c.id ? 'bg-cyan-50 border-cyan-300' : 'border-gray-200 hover:bg-gray-50')}>
                       <div className="flex justify-between items-start">
@@ -818,6 +868,43 @@ export default function EnrollmentsView() {
                     </button>
                   ))}
                 </div>
+
+                {wizardCourseId && (
+                  <div className="space-y-2 pt-3 border-t border-gray-100">
+                    <Label className="text-xs font-semibold text-gray-700">Select Batch *</Label>
+                    {batches.filter((b) => b.courseId === wizardCourseId).length === 0 ? (
+                      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800">
+                        No batches created for this course yet. Please create a batch under Academics &gt; Batches first.
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-[160px] overflow-y-auto">
+                        {batches
+                          .filter((b) => b.courseId === wizardCourseId)
+                          .map((b) => (
+                            <button
+                              key={b.id}
+                              type="button"
+                              onClick={() => setWizardBatchId(b.id)}
+                              className={cn(
+                                'w-full p-2.5 rounded-lg text-left text-xs transition-colors border flex items-center justify-between',
+                                wizardBatchId === b.id
+                                  ? 'bg-cyan-50 border-cyan-400 font-medium text-cyan-900'
+                                  : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                              )}
+                            >
+                              <div>
+                                <span className="font-semibold">{b.batchName}</span>
+                                <span className="text-gray-500 ml-2">({b.timing || 'Standard'})</span>
+                              </div>
+                              <Badge variant="outline" className="text-[10px]">
+                                Starts {formatDate(b.startDate)}
+                              </Badge>
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -871,6 +958,10 @@ export default function EnrollmentsView() {
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Student:</span><span className="font-medium">{selectedStudent?.name}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Course:</span><span className="font-medium">{selectedCourse?.name}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Department:</span><span className="font-medium">{selectedCourse?.department.name}</span></div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Batch:</span>
+                    <span className="font-medium text-cyan-800">{selectedBatch?.batchName || 'N/A'} ({selectedBatch?.timing || 'Standard'})</span>
+                  </div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Start:</span><span className="font-medium">{formatDate(wizardStartDate.toISOString())}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Fee:</span><span className="font-bold text-cyan-600">{formatCurrency(Number(wizardFee) * 100)}</span></div>
                 </div>
@@ -944,7 +1035,7 @@ export default function EnrollmentsView() {
                 onClick={() => setStep(STEPS[stepIndex + 1].key)}
                 disabled={
                   (step === 'student' && !wizardStudentId) ||
-                  (step === 'course' && !wizardCourseId)
+                  (step === 'course' && (!wizardCourseId || !wizardBatchId))
                 }
                 className="bg-cyan-600 hover:bg-cyan-700"
               >
