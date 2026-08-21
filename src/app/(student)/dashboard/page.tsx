@@ -128,26 +128,50 @@ export default async function DashboardPage() {
         </Link>
 
         {/* Next Class Stat Card */}
-        <Link 
-          href="/dashboard/schedule" 
-          className="group block focus:outline-none"
-        >
-          <Card className="border border-slate-200/80 shadow-xs bg-white hover:shadow-md hover:border-purple-300 transition-all rounded-2xl h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Next Class</CardTitle>
-              <div className="p-2 rounded-xl bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                <Calendar className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline justify-between">
-                <div className="text-xl font-bold text-slate-900">Tomorrow · 9 AM</div>
-                <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-              </div>
-              <p className="text-xs text-slate-500 mt-1">Tap to view full timetable</p>
-            </CardContent>
-          </Card>
-        </Link>
+        {(() => {
+          const activeEnrs = allEnrollments.filter(e => e.status === "active" && e.batch);
+          const hasClasses = activeEnrs.length > 0;
+          let timeDisplay = "No Classes";
+          let subDisplay = "Tap to explore courses";
+
+          if (hasClasses) {
+            const now = new Date();
+            const currentDay = now.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+            const primaryBatch = activeEnrs[0].batch;
+            const timingParts = (primaryBatch?.timing || "").split(/[-–—]/);
+            const startTime = timingParts[0]?.trim() || primaryBatch?.timing || "Scheduled";
+
+            if (currentDay === 0) {
+              timeDisplay = `Mon · ${startTime}`;
+            } else {
+              timeDisplay = `Today · ${startTime}`;
+            }
+            subDisplay = `${primaryBatch?.batchName || 'View timetable'}`;
+          }
+
+          return (
+            <Link 
+              href="/dashboard/schedule" 
+              className="group block focus:outline-none"
+            >
+              <Card className="border border-slate-200/80 shadow-xs bg-white hover:shadow-md hover:border-purple-300 transition-all rounded-2xl h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Next Class</CardTitle>
+                  <div className="p-2 rounded-xl bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline justify-between">
+                    <div className="text-xl font-bold text-slate-900">{timeDisplay}</div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 truncate">{subDisplay}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })()}
       </div>
 
       {/* Quick Actions */}

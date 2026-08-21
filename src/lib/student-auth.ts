@@ -17,7 +17,12 @@ export async function requireStudent() {
     include: {
       enrollments: {
         where: { status: { in: ["active", "pending_payment"] } },
-        include: { course: true }
+        include: {
+          course: {
+            include: { department: true }
+          },
+          batch: true
+        }
       },
       bookings: {
         where: { status: { in: ["active", "pending_payment"] } },

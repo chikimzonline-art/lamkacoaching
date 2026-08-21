@@ -58,7 +58,8 @@ interface BatchFormData {
   batchName: string;
   startDate: string;
   endDate: string;
-  timing: string;
+  startTime: string;
+  endTime: string;
   seats: number;
   status: string;
   description: string;
@@ -70,12 +71,52 @@ const emptyForm: BatchFormData = {
   batchName: '',
   startDate: '',
   endDate: '',
-  timing: '',
+  startTime: '10:00',
+  endTime: '11:30',
   seats: 10,
   status: 'enrolling',
   description: '',
   sortOrder: 0,
 };
+
+function time24To12(time24: string): string {
+  if (!time24) return '';
+  const [h, m] = time24.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12.toString().padStart(2, '0')}:${(m !== undefined ? m : 0).toString().padStart(2, '0')} ${period}`;
+}
+
+function time12To24(time12: string): string {
+  if (!time12) return '';
+  const match = time12.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return '';
+  const [, h, m, period] = match;
+  let hour = parseInt(h, 10);
+  if (period.toUpperCase() === 'PM' && hour < 12) hour += 12;
+  if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
+  return `${hour.toString().padStart(2, '0')}:${m}`;
+}
+
+function parseTimingRange(timingStr: string): { startTime: string; endTime: string } {
+  if (!timingStr) return { startTime: '10:00', endTime: '11:30' };
+  const parts = timingStr.split(/[-–—]/);
+  if (parts.length >= 2) {
+    const start24 = time12To24(parts[0].replace(/^[^\d]*/, '').trim());
+    const end24 = time12To24(parts[1].trim());
+    if (start24 && end24) {
+      return { startTime: start24, endTime: end24 };
+    }
+  }
+  const times = timingStr.match(/\d{1,2}:\d{2}\s*(?:AM|PM)/gi);
+  if (times && times.length >= 2) {
+    return {
+      startTime: time12To24(times[0]) || '10:00',
+      endTime: time12To24(times[1]) || '11:30',
+    };
+  }
+  return { startTime: '10:00', endTime: '11:30' };
+}
 
 const statusOptions = [
   { value: 'enrolling', label: 'Enrolling' },
@@ -178,12 +219,22 @@ const BatchForm = ({ form, setForm, courses, submitting, onSubmit, submitLabel }
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="timing">Timing *</Label>
+        <Label htmlFor="startTime">Start Time *</Label>
         <Input
-          id="timing"
-          value={form.timing}
-          onChange={(e) => setForm({ ...form, timing: e.target.value })}
-          placeholder="e.g., Morning: 7:00 AM – 10:00 AM"
+          id="startTime"
+          type="time"
+          value={form.startTime}
+          onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="endTime">End Time *</Label>
+        <Input
+          id="endTime"
+          type="time"
+          value={form.endTime}
+          onChange={(e) => setForm({ ...form, endTime: e.target.value })}
           required
         />
       </div>
@@ -286,17 +337,29 @@ export default function BatchView() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.courseId || !form.batchName || !form.startDate || !form.timing) {
+    if (!form.courseId || !form.batchName || !form.startDate || !form.startTime || !form.endTime) {
       toast.error('Please fill in all required fields');
       return;
     }
 
     try {
       setSubmitting(true);
+      const timing = `${time24To12(form.startTime)} - ${time24To12(form.endTime)}`;
+      const payload = {
+        courseId: form.courseId,
+        batchName: form.batchName,
+        startDate: form.startDate,
+        endDate: form.endDate || null,
+        timing,
+        seats: form.seats,
+        status: form.status,
+        description: form.description,
+        sortOrder: form.sortOrder,
+      };
       const res = await fetch('/api/batches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -315,13 +378,29 @@ export default function BatchView() {
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingId) return;
+    if (!form.courseId || !form.batchName || !form.startDate || !form.startTime || !form.endTime) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
 
     try {
       setSubmitting(true);
+      const timing = `${time24To12(form.startTime)} - ${time24To12(form.endTime)}`;
+      const payload = {
+        courseId: form.courseId,
+        batchName: form.batchName,
+        startDate: form.startDate,
+        endDate: form.endDate || null,
+        timing,
+        seats: form.seats,
+        status: form.status,
+        description: form.description,
+        sortOrder: form.sortOrder,
+      };
       const res = await fetch(`/api/batches/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -359,13 +438,15 @@ export default function BatchView() {
   };
 
   const openEditDialog = (batch: Batch) => {
+    const { startTime, endTime } = parseTimingRange(batch.timing);
     setEditingId(batch.id);
     setForm({
       courseId: batch.courseId,
       batchName: batch.batchName,
       startDate: batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : '',
       endDate: batch.endDate ? new Date(batch.endDate).toISOString().split('T')[0] : '',
-      timing: batch.timing,
+      startTime,
+      endTime,
       seats: batch.seats,
       status: batch.status,
       description: batch.description || '',
