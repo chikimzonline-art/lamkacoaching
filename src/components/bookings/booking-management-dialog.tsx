@@ -238,25 +238,7 @@ export function BookingManagementDialog({
     }
   }, [open]);
 
-  if (!booking) return null;
-
-  const pendingAmount = Math.max(0, booking.totalAmount - booking.paidAmount);
-  const paidPercent =
-    booking.totalAmount > 0
-      ? Math.min(100, Math.round((booking.paidAmount / booking.totalAmount) * 100))
-      : 100;
-
-  // Calculate approximate duration in months
-  const durationMonths = (() => {
-    if (!booking.startDate) return 1;
-    const start = new Date(booking.startDate);
-    const end = booking.endDate ? new Date(booking.endDate) : new Date(start);
-    if (!booking.endDate) end.setMonth(end.getMonth() + 1);
-    const diff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-    return Math.max(1, diff);
-  })();
-
-  // Unique floors available in inventory
+  // Unique floors available in inventory (top-level hook)
   const uniqueFloors = useMemo(() => {
     const set = new Set<number>();
     liveCabins.forEach((c) => {
@@ -265,7 +247,7 @@ export function BookingManagementDialog({
     return Array.from(set).sort((a, b) => a - b);
   }, [liveCabins]);
 
-  // Filtered cabins list based on floor and search query
+  // Filtered cabins list based on floor and search query (top-level hook)
   const displayedCabins = useMemo(() => {
     return liveCabins
       .filter((c) => {
@@ -304,6 +286,24 @@ export function BookingManagementDialog({
         return a.cabinNum - b.cabinNum;
       });
   }, [liveCabins, floorFilter, cabinSearchQuery]);
+
+  if (!booking) return null;
+
+  const pendingAmount = Math.max(0, booking.totalAmount - booking.paidAmount);
+  const paidPercent =
+    booking.totalAmount > 0
+      ? Math.min(100, Math.round((booking.paidAmount / booking.totalAmount) * 100))
+      : 100;
+
+  // Calculate approximate duration in months
+  const durationMonths = (() => {
+    if (!booking.startDate) return 1;
+    const start = new Date(booking.startDate);
+    const end = booking.endDate ? new Date(booking.endDate) : new Date(start);
+    if (!booking.endDate) end.setMonth(end.getMonth() + 1);
+    const diff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+    return Math.max(1, diff);
+  })();
 
   const handleSelectCabinItem = (cabin: CabinOption) => {
     const evalStatus = evaluateCabinTransferStatus(cabin, booking);
