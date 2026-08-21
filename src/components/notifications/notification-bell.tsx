@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, BellRing, CheckCheck, ChevronRight, CheckCircle2, Calendar, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ export function NotificationBell() {
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch('/api/notifications');
       if (res.ok) {
@@ -38,12 +38,28 @@ export function NotificationBell() {
     } catch (e) {
       console.error('Failed to fetch notifications:', e);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // refresh every minute
-    return () => clearInterval(interval);
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/notifications');
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (e) {
+        console.error('Failed to fetch notifications:', e);
+      }
+    };
+    load();
+    const interval = setInterval(load, 60000); // refresh every minute
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const markAsRead = async (id: string) => {

@@ -12,9 +12,18 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
-    "db:fts5": "bun scripts/apply-fts5.ts"
+    "db:fts5": "bun scripts/apply-fts5.ts",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "cap:copy": "cap copy android"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
+    "@capawesome/capacitor-navigation-bar": "^8.0.1",
     "@imagekit/nodejs": "^7.10.0",
     "@libsql/client": "^0.17.3",
     "@prisma/adapter-libsql": "6",
@@ -78,6 +87,8 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
     "@tailwindcss/postcss": "^4",
     "@types/react": "^19",
     "@types/react-dom": "^19",

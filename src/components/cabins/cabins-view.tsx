@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { useDebouncedSearch } from '@/lib/hooks/use-debounced-search';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +37,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote } from 'lucide-react';
+import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatTime, formatCurrency } from '@/lib/helpers';
 import { generateSecurePassword } from '@/lib/email';
@@ -62,13 +63,14 @@ interface Cabin {
   bookings: CabinBooking[];
 }
 
-type CabinDisplayState = 'available' | 'reserved' | 'partially_booked' | 'fully_booked' | 'inactive';
+type CabinDisplayState = 'available' | 'reserved' | 'partially_booked' | 'fully_booked' | 'maintenance' | 'inactive';
 type FilterType = 'all' | CabinDisplayState;
 
 function getCabinDisplayState(
   cabin: Cabin
 ): CabinDisplayState {
-  if (cabin.status === 'inactive' || cabin.status === 'maintenance') return 'inactive';
+  if (cabin.status === 'maintenance') return 'maintenance';
+  if (cabin.status === 'inactive') return 'inactive';
   const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && b.status === 'active');
   if (reservedBooking) return 'reserved';
 
@@ -89,8 +91,10 @@ function getDisplayStyles(state: CabinDisplayState) {
       return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
     case 'fully_booked':
       return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
+    case 'maintenance':
+      return 'border-amber-300 bg-amber-50/70 hover:border-amber-400';
     case 'inactive':
-      return 'border-gray-300 bg-gray-50 hover:border-gray-400 opacity-70';
+      return 'border-gray-300 bg-gray-100/70 hover:border-gray-400 opacity-70';
     default:
       return 'border-gray-200 bg-white';
   }
@@ -106,8 +110,10 @@ function getStatusBadge(state: CabinDisplayState) {
       return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Partially Booked</Badge>;
     case 'fully_booked':
       return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Fully Booked</Badge>;
+    case 'maintenance':
+      return <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs flex items-center gap-1"><Wrench className="h-3 w-3" /> Maintenance</Badge>;
     case 'inactive':
-      return <Badge className="bg-gray-100 text-gray-800 border-gray-200 text-xs">Inactive</Badge>;
+      return <Badge className="bg-gray-200 text-gray-700 border-gray-300 text-xs">Inactive</Badge>;
     default:
       return null;
   }
@@ -120,6 +126,9 @@ function formatFloorLabel(floor: number): string {
 }
 
 export default function CabinsView() {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
+
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [floors, setFloors] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +145,13 @@ export default function CabinsView() {
   const [deleteFloorDialogOpen, setDeleteFloorDialogOpen] = useState(false);
   const [deleteFloorNum, setDeleteFloorNum] = useState<number | null>(null);
   const [deleteFloorConfirm, setDeleteFloorConfirm] = useState('');
+
+  // 2-Step Cabin Deletion states (Admin Only)
+  const [deleteCabinDialogOpen, setDeleteCabinDialogOpen] = useState(false);
+  const [deleteCabinStep, setDeleteCabinStep] = useState<1 | 2>(1);
+  const [deleteCabinInput, setDeleteCabinInput] = useState('');
+  const [cabinToDelete, setCabinToDelete] = useState<Cabin | null>(null);
+
   const [editStatus, setEditStatus] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editFloor, setEditFloor] = useState('');
@@ -491,15 +507,14 @@ export default function CabinsView() {
     }
   };
 
-  const handleDeleteCabin = async () => {
-    if (!selectedCabin) return;
-    if (!confirm(`Delete Cabin #${selectedCabin.cabinNum} on ${formatFloorLabel(selectedCabin.floor)}? This cannot be undone.`)) return;
+  const executeDeleteCabin = async () => {
+    if (!cabinToDelete) return;
     setSubmitting(true);
     try {
       const res = await fetch('/api/cabins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', id: selectedCabin.id }),
+        body: JSON.stringify({ action: 'delete', id: cabinToDelete.id }),
       });
       const json = await res.json();
 
@@ -508,9 +523,12 @@ export default function CabinsView() {
         return;
       }
 
-      toast.success('Cabin deleted successfully');
+      toast.success(`Cabin #${cabinToDelete.cabinNum} permanently deleted`);
+      setDeleteCabinDialogOpen(false);
       setEditDialogOpen(false);
       setSelectedCabin(null);
+      setCabinToDelete(null);
+      setDeleteCabinInput('');
       fetchCabins();
     } catch {
       toast.error('Failed to delete cabin');
@@ -529,7 +547,7 @@ export default function CabinsView() {
   };
 
   const handleDeleteFloor = async () => {
-    if (!deleteFloorNum) return;
+    if (!deleteFloorNum || !isAdmin) return;
     const floorCabins = cabins.filter((c) => c.floor === deleteFloorNum);
     const hasActiveBookings = floorCabins.some((c) => c.bookings.length > 0);
     if (hasActiveBookings) {
@@ -569,6 +587,7 @@ export default function CabinsView() {
   const reservedCount = cabinStates.filter((c) => c.state === 'reserved').length;
   const partiallyBookedCount = cabinStates.filter((c) => c.state === 'partially_booked').length;
   const fullyBookedCount = cabinStates.filter((c) => c.state === 'fully_booked').length;
+  const maintenanceCount = cabinStates.filter((c) => c.state === 'maintenance').length;
   const inactiveCount = cabinStates.filter((c) => c.state === 'inactive').length;
 
   // Filter cabins by floor and status
@@ -595,6 +614,7 @@ export default function CabinsView() {
       available: floorCabins.filter((c) => c.state === 'available').length,
       occupied: floorCabins.filter((c) => c.state === 'reserved').length,
       shifts: floorCabins.filter((c) => c.state === 'partially_booked' || c.state === 'fully_booked').length,
+      maintenance: floorCabins.filter((c) => c.state === 'maintenance').length,
       inactive: floorCabins.filter((c) => c.state === 'inactive').length,
     };
   });
@@ -625,7 +645,8 @@ export default function CabinsView() {
     { key: 'reserved', label: 'Reserved', count: reservedCount, color: 'border-red-200 text-red-700 bg-red-50', activeColor: 'border-red-500 text-red-900 bg-red-200' },
     { key: 'partially_booked', label: 'Partially Booked', count: partiallyBookedCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' },
     ...(fullyBookedCount > 0 ? [{ key: 'fully_booked' as FilterType, label: 'Fully Booked', count: fullyBookedCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' }] : []),
-    ...(inactiveCount > 0 ? [{ key: 'inactive' as FilterType, label: 'Inactive', count: inactiveCount, color: 'border-gray-200 text-gray-500 bg-gray-50', activeColor: 'border-gray-400 text-gray-700 bg-gray-200' }] : []),
+    { key: 'maintenance', label: 'Maintenance', count: maintenanceCount, color: 'border-amber-200 text-amber-700 bg-amber-50', activeColor: 'border-amber-500 text-amber-900 bg-amber-200' },
+    { key: 'inactive', label: 'Inactive', count: inactiveCount, color: 'border-gray-200 text-gray-700 bg-gray-50', activeColor: 'border-gray-500 text-gray-900 bg-gray-200' },
   ];
 
   return (
@@ -661,7 +682,7 @@ export default function CabinsView() {
                 <span className="text-xs opacity-70">({fs.total})</span>
               </span>
             </button>
-            {activeFloor === fs.floor && (
+            {activeFloor === fs.floor && isAdmin && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -677,24 +698,26 @@ export default function CabinsView() {
             )}
           </div>
         ))}
-        {/* Quick Add Floor Button */}
-        <button
-          onClick={() => {
-            setAddMode('bulk');
-            // Find next floor number not in use
-            const usedFloors = new Set(floors);
-            let nextFloor = 1;
-            while (usedFloors.has(nextFloor)) nextFloor++;
-            setBulkFloor(String(nextFloor));
-            setBulkCount('');
-            setAddDialogOpen(true);
-          }}
-          className="px-3 py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm font-medium text-gray-400 hover:border-cyan-400 hover:text-cyan-500 hover:bg-cyan-50/50 transition-all cursor-pointer flex items-center gap-1.5"
-          title="Add a new floor with cabins"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add Floor
-        </button>
+        {/* Quick Add Floor Button (Admin Only) */}
+        {isAdmin && (
+          <button
+            onClick={() => {
+              setAddMode('bulk');
+              // Find next floor number not in use
+              const usedFloors = new Set(floors);
+              let nextFloor = 1;
+              while (usedFloors.has(nextFloor)) nextFloor++;
+              setBulkFloor(String(nextFloor));
+              setBulkCount('');
+              setAddDialogOpen(true);
+            }}
+            className="px-3 py-2 rounded-lg border-2 border-dashed border-gray-300 text-sm font-medium text-gray-400 hover:border-cyan-400 hover:text-cyan-500 hover:bg-cyan-50/50 transition-all cursor-pointer flex items-center gap-1.5"
+            title="Add a new floor with cabins"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Floor
+          </button>
+        )}
       </div>
 
       {/* Floor Stats Cards (when a specific floor is selected) */}
@@ -722,21 +745,23 @@ export default function CabinsView() {
                 <p className="text-xs text-gray-500 font-medium">Inactive</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 shrink-0"
-              onClick={() => {
-                setDeleteFloorNum(fs.floor);
-                setDeleteFloorConfirm('');
-                setDeleteFloorDialogOpen(true);
-              }}
-              disabled={hasBookings}
-              title={hasBookings ? 'Cannot delete floor with active bookings' : 'Delete this entire floor'}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
-              Remove Floor
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 shrink-0"
+                onClick={() => {
+                  setDeleteFloorNum(fs.floor);
+                  setDeleteFloorConfirm('');
+                  setDeleteFloorDialogOpen(true);
+                }}
+                disabled={hasBookings}
+                title={hasBookings ? 'Cannot delete floor with active bookings' : 'Delete this entire floor'}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Remove Floor
+              </Button>
+            )}
           </div>
         );
       })()}
@@ -790,10 +815,12 @@ export default function CabinsView() {
           </div>
         </div>
 
-        <Button onClick={() => setAddDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600 text-white shrink-0">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Cabin
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setAddDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600 text-white shrink-0">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Cabin
+          </Button>
+        )}
       </div>
 
       {/* Cabin Grid — Grouped by Floor when showing all floors */}
@@ -993,8 +1020,8 @@ export default function CabinsView() {
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Floor</Label>
-                <Select value={editFloor} onValueChange={setEditFloor}>
+                <Label>Floor {!isAdmin && <span className="text-xs text-gray-400 font-normal">(Admin only)</span>}</Label>
+                <Select value={editFloor} onValueChange={setEditFloor} disabled={!isAdmin}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1008,13 +1035,14 @@ export default function CabinsView() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editCabinNum">Cabin Number</Label>
+                <Label htmlFor="editCabinNum">Cabin Number {!isAdmin && <span className="text-xs text-gray-400 font-normal">(Admin only)</span>}</Label>
                 <Input
                   id="editCabinNum"
                   type="number"
                   value={editCabinNum}
                   onChange={(e) => setEditCabinNum(e.target.value)}
                   min={1}
+                  disabled={!isAdmin}
                 />
               </div>
             </div>
@@ -1053,15 +1081,20 @@ export default function CabinsView() {
             )}
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            {selectedCabin && selectedCabin.bookings.length === 0 && (
+            {selectedCabin && selectedCabin.status === 'inactive' && isAdmin && (
               <Button
                 variant="destructive"
-                onClick={handleDeleteCabin}
+                onClick={() => {
+                  setCabinToDelete(selectedCabin);
+                  setDeleteCabinStep(1);
+                  setDeleteCabinInput('');
+                  setDeleteCabinDialogOpen(true);
+                }}
                 disabled={submitting}
                 className="sm:mr-auto"
               >
-                <X className="h-4 w-4 mr-1" />
-                Delete
+                <Trash2 className="h-4 w-4 mr-1" />
+                Permanently Delete
               </Button>
             )}
             <div className="flex gap-2 sm:ml-auto">
@@ -1488,6 +1521,110 @@ export default function CabinsView() {
               {submitting ? 'Deleting...' : 'Delete Floor'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2-Step Persistent Cabin Deletion Dialog (Admin Only) */}
+      <Dialog open={deleteCabinDialogOpen} onOpenChange={setDeleteCabinDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              {deleteCabinStep === 1 ? 'Permanent Deletion Warning (Step 1 of 2)' : 'Final Confirmation (Step 2 of 2)'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {deleteCabinStep === 1 ? (
+            <div className="space-y-3 py-2 text-sm text-gray-600">
+              <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-red-900 space-y-1.5">
+                <p className="font-semibold flex items-center gap-1.5 text-red-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  High-Impact Administrative Action
+                </p>
+                <p>
+                  You are about to permanently delete <strong>Cabin #{cabinToDelete?.cabinNum}</strong> on <strong>{cabinToDelete ? formatFloorLabel(cabinToDelete.floor) : ''}</strong> from the database.
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-slate-50 p-3 text-xs space-y-1.5 border border-slate-200">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Cabin Number:</span>
+                  <span className="font-semibold text-gray-800">#{cabinToDelete?.cabinNum}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Floor Location:</span>
+                  <span className="font-semibold text-gray-800">{cabinToDelete ? formatFloorLabel(cabinToDelete.floor) : ''}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Status:</span>
+                  <Badge variant="outline" className="text-[10px] capitalize bg-gray-100 text-gray-700">{cabinToDelete?.status}</Badge>
+                </div>
+                {cabinToDelete?.notes && (
+                  <div className="pt-1 border-t border-slate-200 text-gray-500">
+                    <span className="font-medium">Notes:</span> {cabinToDelete.notes}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-500">
+                Permanent deletion will completely erase this cabin record. This action cannot be reversed.
+              </p>
+
+              <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                <Button variant="outline" onClick={() => setDeleteCabinDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => setDeleteCabinStep(2)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Proceed to Final Step <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2 text-sm text-gray-600">
+              <div className="p-3 bg-red-100/70 rounded-xl border border-red-300 text-xs text-red-950 space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-red-800">
+                  <AlertTriangle className="h-4 w-4" />
+                  Final Confirmation Required
+                </p>
+                <p>
+                  To permanently erase <strong>Cabin #{cabinToDelete?.cabinNum}</strong>, please type <strong className="font-mono bg-red-200/80 px-1.5 py-0.5 rounded text-red-900">DELETE</strong> into the field below.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Confirmation Phrase</Label>
+                <Input
+                  placeholder="Type DELETE to confirm"
+                  value={deleteCabinInput}
+                  onChange={(e) => setDeleteCabinInput(e.target.value)}
+                  className="font-mono text-sm bg-white"
+                  autoFocus
+                />
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteCabinStep(1)}
+                  disabled={submitting}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={executeDeleteCabin}
+                  disabled={submitting || deleteCabinInput.trim() !== 'DELETE'}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {submitting ? 'Deleting...' : 'Permanently Delete Cabin'}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

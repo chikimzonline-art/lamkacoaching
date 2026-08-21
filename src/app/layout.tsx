@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/public/theme-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { SettingsProvider } from "@/components/providers/settings-provider";
+import { CapacitorProvider } from "@/components/providers/capacitor-provider";
 import { db } from "@/lib/db";
 
 const geistSans = Geist({
@@ -16,6 +17,15 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#050B44",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -58,8 +68,10 @@ export default async function RootLayout({
         <SessionProvider>
           <ThemeProvider>
             <SettingsProvider settings={settingsMap}>
-              {children}
-              <Toaster richColors position="top-center" />
+              <CapacitorProvider>
+                {children}
+                <Toaster richColors position="top-center" />
+              </CapacitorProvider>
             </SettingsProvider>
           </ThemeProvider>
         </SessionProvider>
@@ -67,3 +79,4 @@ export default async function RootLayout({
     </html>
   );
 }
+

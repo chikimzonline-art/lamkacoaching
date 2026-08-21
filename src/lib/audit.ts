@@ -34,7 +34,11 @@ export type AuditAction =
   | 'SUPPORT_TICKET_DELETED'
   | 'SETTINGS_UPDATED'
   | 'ASSET_UPLOADED'
-  | 'ASSET_DELETED';
+  | 'ASSET_DELETED'
+  | 'CABIN_CREATED'
+  | 'CABIN_UPDATED'
+  | 'CABIN_DELETED'
+  | 'FLOOR_DELETED';
 
 export type AuditEntityType =
   | 'Payment'
@@ -48,7 +52,9 @@ export type AuditEntityType =
   | 'Notice'
   | 'SupportTicket'
   | 'Setting'
-  | 'Asset';
+  | 'Asset'
+  | 'Cabin'
+  | 'Floor';
 
 export interface LogAuditParams {
   user?: AuthUser | null;

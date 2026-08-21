@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAllActiveCabinsWithBookings } from '@/lib/db/queries/cabins';
+import { getAllCabinsForAdmin } from '@/lib/db/queries/cabins';
 import { requireStaffOrAdmin } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
-// GET /api/cabins - List all cabins, grouped by floor (staff/admin)
+// GET /api/cabins - List all cabins (active, inactive, maintenance), grouped by floor (staff/admin)
 export async function GET() {
   try {
     const auth = await requireStaffOrAdmin();
     if (auth.errorResponse) return auth.errorResponse;
 
-    const cabins = await getAllActiveCabinsWithBookings();
+    const cabins = await getAllCabinsForAdmin();
 
     // Get unique floor numbers
     const floors = [...new Set(cabins.map((c) => c.floor))].sort((a, b) => a - b);
@@ -31,6 +32,10 @@ export async function POST(request: Request) {
     const { action, cabinNum, floor, count, notes, status, id } = body;
 
     if (action === 'add') {
+      if (auth.user.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Only administrators can create cabins' }, { status: 403 });
+      }
+
       if (!cabinNum) {
         return NextResponse.json({ error: 'Cabin number is required' }, { status: 400 });
       }
@@ -52,9 +57,24 @@ export async function POST(request: Request) {
           status: status || 'active',
         },
       });
+
+      await logAudit({
+        user: auth.user,
+        action: 'CABIN_CREATED',
+        entityType: 'Cabin',
+        entityId: cabin.id,
+        description: `Created Cabin #${cabin.cabinNum} on Floor ${cabin.floor}`,
+        details: { floor: cabin.floor, cabinNum: cabin.cabinNum, status: cabin.status },
+        req: request,
+      });
+
       return NextResponse.json({ cabin });
 
     } else if (action === 'add-bulk') {
+      if (auth.user.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Only administrators can create cabins' }, { status: 403 });
+      }
+
       const num = count || 1;
       const cabinFloor = floor ?? 3;
 
@@ -75,12 +95,31 @@ export async function POST(request: Request) {
       const cabins = await db.cabin.findMany({
         where: { floor: cabinFloor, cabinNum: { gte: startNum, lt: startNum + num } }
       });
+
+      await logAudit({
+        user: auth.user,
+        action: 'CABIN_CREATED',
+        entityType: 'Cabin',
+        description: `Bulk created ${num} cabins (#${startNum} to #${startNum + num - 1}) on Floor ${cabinFloor}`,
+        details: { floor: cabinFloor, count: num, startNum },
+        req: request,
+      });
+
       return NextResponse.json({ cabins, count: num, floor: cabinFloor });
 
     } else if (action === 'update') {
       if (!id) {
         return NextResponse.json({ error: 'Cabin ID is required' }, { status: 400 });
       }
+
+      // Restrict changing floor or cabin number to admin
+      if ((floor !== undefined || cabinNum !== undefined) && auth.user.role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Forbidden: Only administrators can change cabin floor or number' },
+          { status: 403 }
+        );
+      }
+
       const updateData: Record<string, unknown> = {};
       if (status) updateData.status = status;
       if (notes !== undefined) updateData.notes = notes;
@@ -110,6 +149,17 @@ export async function POST(request: Request) {
         where: { id },
         data: updateData,
       });
+
+      await logAudit({
+        user: auth.user,
+        action: 'CABIN_UPDATED',
+        entityType: 'Cabin',
+        entityId: cabin.id,
+        description: `Updated Cabin #${cabin.cabinNum} (Floor ${cabin.floor}, Status: ${cabin.status})`,
+        details: updateData,
+        req: request,
+      });
+
       return NextResponse.json({ cabin });
 
     } else if (action === 'delete') {
@@ -120,13 +170,30 @@ export async function POST(request: Request) {
       if (!id) {
         return NextResponse.json({ error: 'Cabin ID is required' }, { status: 400 });
       }
+      const cabinToDelete = await db.cabin.findUnique({ where: { id } });
+      if (!cabinToDelete) {
+        return NextResponse.json({ error: 'Cabin not found' }, { status: 404 });
+      }
+
       const activeBookings = await db.booking.count({
         where: { cabinId: id, status: 'active' },
       });
       if (activeBookings > 0) {
         return NextResponse.json({ error: 'Cannot delete cabin with active bookings' }, { status: 400 });
       }
+
       await db.cabin.delete({ where: { id } });
+
+      await logAudit({
+        user: auth.user,
+        action: 'CABIN_DELETED',
+        entityType: 'Cabin',
+        entityId: id,
+        description: `Permanently deleted Cabin #${cabinToDelete.cabinNum} on Floor ${cabinToDelete.floor}`,
+        details: { cabinNum: cabinToDelete.cabinNum, floor: cabinToDelete.floor },
+        req: request,
+      });
+
       return NextResponse.json({ success: true });
     }
 

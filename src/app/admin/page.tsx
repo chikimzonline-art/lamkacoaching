@@ -370,12 +370,15 @@ function BottomNav({ pendingCount }: { pendingCount?: number }) {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))]">
         <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
           {primaryNavItems.map((item) => (
             <button
               key={item.view}
-              onClick={() => setActiveView(item.view)}
+              onClick={() => {
+                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
+                setActiveView(item.view);
+              }}
               className={cn(
                 'relative flex flex-col items-center justify-center flex-1 py-1 transition-colors min-h-[44px]',
                 activeView === item.view
@@ -388,7 +391,10 @@ function BottomNav({ pendingCount }: { pendingCount?: number }) {
             </button>
           ))}
           <button
-            onClick={() => setMoreOpen(true)}
+            onClick={() => {
+              import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
+              setMoreOpen(true);
+            }}
             className={cn(
               'flex flex-col items-center justify-center flex-1 py-1 transition-colors min-h-[44px]',
               moreNavItems.some((item) => item.view === activeView)

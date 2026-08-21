@@ -183,7 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
 
         {/* Mobile Fixed Bottom Navigation Bar ("4 + More" Pattern) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-around">
             {mobileCoreNavItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -192,6 +192,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link
                   key={item.title}
                   href={item.href}
+                  onClick={() => {
+                    import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
+                  }}
                   className={cn(
                     "flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 relative min-w-[58px]",
                     isActive 
@@ -211,7 +214,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* 5th "More" Tab Trigger */}
             <button
               type="button"
-              onClick={() => setMoreMenuOpen(true)}
+              onClick={() => {
+                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
+                setMoreMenuOpen(true);
+              }}
               className={cn(
                 "flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 relative min-w-[58px] cursor-pointer",
                 isMoreActive 
