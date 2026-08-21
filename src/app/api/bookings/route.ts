@@ -551,6 +551,113 @@ export async function POST(request: Request) {
         paidAmount: bookingPaidAmount / 100,
         dueAmount: (bookingTotalAmount - bookingPaidAmount) / 100,
       });
+
+    } else if (action === 'transfer_cabin') {
+      const { id, newCabinId, notes } = body;
+
+      if (!id || !newCabinId) {
+        return NextResponse.json({ error: 'Booking ID and destination Cabin ID are required' }, { status: 400 });
+      }
+
+      // Fetch existing booking
+      const existing = await db.booking.findUnique({
+        where: { id },
+        include: {
+          student: { select: { id: true, name: true, phone: true } },
+          cabin: { select: { id: true, cabinNum: true, floor: true } },
+        },
+      });
+
+      if (!existing) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+      }
+      if (existing.status !== 'active') {
+        return NextResponse.json({ error: 'Only active bookings can be transferred to a new cabin' }, { status: 400 });
+      }
+      if (existing.cabinId === newCabinId) {
+        return NextResponse.json({ error: 'Student is already assigned to this cabin' }, { status: 400 });
+      }
+
+      const targetCabin = await db.cabin.findUnique({
+        where: { id: newCabinId },
+      });
+      if (!targetCabin) {
+        return NextResponse.json({ error: 'Destination cabin not found' }, { status: 404 });
+      }
+      if (targetCabin.status !== 'active') {
+        return NextResponse.json({ error: 'Destination cabin is not active (under maintenance or inactive)' }, { status: 400 });
+      }
+
+      // Check collision on destination cabin across the booking period
+      const start = new Date(existing.startDate);
+      const end = existing.endDate ? new Date(existing.endDate) : new Date(start);
+      if (!existing.endDate) {
+        end.setMonth(end.getMonth() + 1);
+      }
+
+      const overlappingBookings = await getOverlappingBookings(newCabinId, start, end, id);
+
+      for (const overlap of overlappingBookings) {
+        if (overlap.type === 'reserved') {
+          return NextResponse.json({
+            error: `Cannot transfer: Cabin #${targetCabin.cabinNum} has an active reserved booking during this period.`,
+          }, { status: 409 });
+        }
+        if (existing.type === 'reserved') {
+          return NextResponse.json({
+            error: `Cannot transfer reserved booking: Cabin #${targetCabin.cabinNum} has active shift bookings during this period.`,
+          }, { status: 409 });
+        }
+        if (overlap.type === existing.type) {
+          return NextResponse.json({
+            error: `Cannot transfer: Cabin #${targetCabin.cabinNum} is already booked for ${existing.type.replace('_', ' ')} during this period.`,
+          }, { status: 409 });
+        }
+      }
+
+      const updatedNotes = existing.notes 
+        ? `${existing.notes} | [Transferred from Cabin #${existing.cabin.cabinNum} to Cabin #${targetCabin.cabinNum} on ${new Date().toLocaleDateString('en-IN')}${notes ? `: ${notes}` : ''}]`
+        : `[Transferred from Cabin #${existing.cabin.cabinNum} to Cabin #${targetCabin.cabinNum} on ${new Date().toLocaleDateString('en-IN')}${notes ? `: ${notes}` : ''}]`;
+
+      const updatedBooking = await db.booking.update({
+        where: { id },
+        data: {
+          cabinId: newCabinId,
+          notes: updatedNotes,
+        },
+        include: {
+          student: { select: { id: true, name: true, phone: true } },
+          cabin: { select: { id: true, cabinNum: true, floor: true } },
+          payments: { select: { id: true, amount: true, mode: true, receivedAt: true } },
+        },
+      });
+
+      revalidatePath('/dashboard/history');
+      revalidatePath('/dashboard/cabins');
+      revalidatePath('/dashboard/students');
+      revalidatePath('/admin');
+
+      await logAudit({
+        user: auth.user,
+        action: 'BOOKING_UPDATED',
+        entityType: 'Booking',
+        entityId: id,
+        description: `Transferred desk booking #${id} for student '${existing.student?.name || existing.studentId}' from Cabin #${existing.cabin?.cabinNum} to Cabin #${targetCabin.cabinNum}`,
+        details: {
+          bookingId: id,
+          studentId: existing.studentId,
+          oldCabinId: existing.cabinId,
+          oldCabinNum: existing.cabin?.cabinNum,
+          newCabinId,
+          newCabinNum: targetCabin.cabinNum,
+        },
+        req: request,
+      });
+
+      return NextResponse.json({
+        booking: updatedBooking,
+        message: `Successfully transferred student to Cabin #${targetCabin.cabinNum}`,
+      });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
