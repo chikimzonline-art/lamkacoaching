@@ -78,13 +78,7 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        // 3. Splash Screen Hide (Graceful transition after initial hydration)
-        const { SplashScreen } = await import('@capacitor/splash-screen');
-        setTimeout(async () => {
-          try {
-            await SplashScreen.hide();
-          } catch {}
-        }, 800);
+        // 3. Splash Screen is handled natively by Capacitor via launchAutoHide: true
       } catch (err) {
         console.warn('[CapacitorProvider] Failed to hide SplashScreen', err);
       }
