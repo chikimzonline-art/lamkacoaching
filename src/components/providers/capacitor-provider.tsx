@@ -78,9 +78,13 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        // 3. Splash Screen Hide
+        // 3. Splash Screen Hide (Graceful transition after initial hydration)
         const { SplashScreen } = await import('@capacitor/splash-screen');
-        await SplashScreen.hide({ fadeOutDuration: 400 });
+        setTimeout(async () => {
+          try {
+            await SplashScreen.hide({ fadeOutDuration: 500 });
+          } catch {}
+        }, 800);
       } catch (err) {
         console.warn('[CapacitorProvider] Failed to hide SplashScreen', err);
       }

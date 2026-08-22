@@ -222,11 +222,17 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
         <div className="relative z-20 flex flex-col items-center text-center p-12 max-w-lg">
           <div className="bg-white/10 p-6 rounded-full backdrop-blur-md border border-white/20 mb-8 shadow-2xl">
             <img 
-              src={logoUrl || "/logo.svg"}
+              src={logoUrl || "/logo.png"}
               alt="Lamka Coaching Center Logo" 
               width={80} 
               height={80} 
-              className="drop-shadow-lg"
+              className="drop-shadow-lg object-contain"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('/logo.png')) {
+                  target.src = '/logo.png';
+                }
+              }}
             />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight tracking-tight">
@@ -248,8 +254,20 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
       <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 lg:p-24 relative">
         {/* Mobile Logo */}
         <div className="md:hidden flex flex-col items-center mb-8">
-          <img src={logoUrl || "/logo.svg"} alt="Lamka Coaching Center" width={60} height={60} className="mb-4" />
-          <h1 className="text-2xl font-bold">Lamka Coaching Center</h1>
+          <img 
+            src={logoUrl || "/logo.png"} 
+            alt="Lamka Coaching Center" 
+            width={72} 
+            height={72} 
+            className="mb-4 object-contain drop-shadow-md" 
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.endsWith('/logo.png')) {
+                target.src = '/logo.png';
+              }
+            }}
+          />
+          <h1 className="text-2xl font-bold text-slate-900">Lamka Coaching Center</h1>
         </div>
 
         <div className="w-full max-w-md space-y-8 relative z-10">
