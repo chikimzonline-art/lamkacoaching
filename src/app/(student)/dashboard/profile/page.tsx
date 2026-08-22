@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AvatarUpload } from "@/components/profile/avatar-upload"
+import { BiometricToggle } from "@/components/profile/biometric-toggle"
+import DigitalIdCard from "@/components/profile/digital-id-card"
 
 export default async function DashboardProfilePage() {
   const { student } = await requireStudent()
@@ -14,6 +16,22 @@ export default async function DashboardProfilePage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
         <p className="text-muted-foreground mt-2">Manage your personal information and account settings.</p>
+      </div>
+
+      {/* Digital Student ID Badge */}
+      <div>
+        <h2 className="text-base font-semibold text-gray-700 mb-3">🪪 Digital Student ID</h2>
+        <DigitalIdCard
+          student={{
+            id: student.id,
+            name: student.name,
+            phone: student.phone,
+            email: student.email,
+            address: student.address,
+            avatar: student.avatar,
+            username: student.username,
+          }}
+        />
       </div>
 
       <div className="grid gap-8 md:grid-cols-3">
@@ -95,6 +113,9 @@ export default async function DashboardProfilePage() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Biometric Fingerprint / Face Unlock Settings for Android */}
+          <BiometricToggle userIdentifier={student.username || student.phone} />
         </div>
       </div>
     </div>

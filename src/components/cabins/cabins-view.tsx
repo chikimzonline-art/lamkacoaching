@@ -37,12 +37,17 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight, History } from 'lucide-react';
+import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight, History, ScanLine, QrCode, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatTime, formatCurrency } from '@/lib/helpers';
 import { generateSecurePassword } from '@/lib/email';
 import { cn } from '@/lib/utils';
 import { HistoricalBookingDialog } from './historical-booking-dialog';
+import dynamic from 'next/dynamic';
+
+const StaffScannerDialog = dynamic(() => import('@/components/attendance/staff-scanner-dialog'), { ssr: false });
+const AdminQrGeneratorDialog = dynamic(() => import('./admin-qr-generator-dialog'), { ssr: false });
+const CabinAttendanceTracker = dynamic(() => import('./cabin-attendance-tracker'), { ssr: false });
 
 interface CabinBooking {
   id: string;
@@ -186,6 +191,11 @@ export default function CabinsView() {
   // Historical Multi-Month Onboarding state
   const [historicalDialogOpen, setHistoricalDialogOpen] = useState(false);
   const [historicalCabin, setHistoricalCabin] = useState<Cabin | null>(null);
+
+  // Phase 3: Attendance & QR states
+  const [staffScannerOpen, setStaffScannerOpen] = useState(false);
+  const [qrGeneratorOpen, setQrGeneratorOpen] = useState(false);
+  const [attendanceTrackerOpen, setAttendanceTrackerOpen] = useState(false);
 
   const [bookType, setBookType] = useState('morning_shift');
   const [bookStartDate, setBookStartDate] = useState(() => {
@@ -821,6 +831,44 @@ export default function CabinsView() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Phase 3: Scan Student ID */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 shrink-0 text-xs h-9"
+            onClick={() => setStaffScannerOpen(true)}
+            title="Scan a student's Digital ID to check them in"
+          >
+            <ScanLine className="h-4 w-4 mr-1.5" />
+            Scan Student ID
+          </Button>
+
+          {/* Phase 3: Live Attendance Tracker */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 shrink-0 text-xs h-9"
+            onClick={() => setAttendanceTrackerOpen(true)}
+            title="View live cabin occupancy and today's attendance"
+          >
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Live Tracker
+          </Button>
+
+          {/* Phase 3: Print Desk QR Codes */}
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 shrink-0 text-xs h-9"
+              onClick={() => setQrGeneratorOpen(true)}
+              title="Generate printable QR code stickers for all cabin desks"
+            >
+              <QrCode className="h-4 w-4 mr-1.5" />
+              Print QR Codes
+            </Button>
+          )}
+
           {isAdmin && (
             <Button
               onClick={() => {
@@ -1676,6 +1724,45 @@ export default function CabinsView() {
           setEditDialogOpen(false);
         }}
       />
+
+      {/* Phase 3: Staff Reception Scanner */}
+      <StaffScannerDialog
+        open={staffScannerOpen}
+        onClose={() => setStaffScannerOpen(false)}
+      />
+
+      {/* Phase 3: Admin Printable Desk QR Code Generator */}
+      <AdminQrGeneratorDialog
+        open={qrGeneratorOpen}
+        onClose={() => setQrGeneratorOpen(false)}
+        cabins={cabins}
+      />
+
+      {/* Phase 3: Live Cabin Attendance Tracker Dialog */}
+      {attendanceTrackerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setAttendanceTrackerOpen(false); }}
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b">
+              <div>
+                <h2 className="font-semibold text-gray-900">Live Cabin Attendance</h2>
+                <p className="text-xs text-gray-500">Real-time occupancy tracker</p>
+              </div>
+              <button
+                onClick={() => setAttendanceTrackerOpen(false)}
+                className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+            </div>
+            <div className="p-5">
+              <CabinAttendanceTracker />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

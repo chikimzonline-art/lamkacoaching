@@ -193,20 +193,25 @@ function LoadingScreen() {
 function PageHeader() {
   const { activeView } = useAppStore();
   const { data: session } = useSession();
-  
+  const router = useRouter();
+
   const user = session?.user ? {
     name: session.user.name || 'User',
     username: (session.user as any).username || '',
     role: (session.user as any).role as string
   } : null;
 
-  const currentDate = useMemo(() =>
-    new Date().toLocaleDateString('en-IN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }), []);
+  const currentDate = new Date().toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.replace('/login');
+  };
 
   const viewTitles: Record<ViewType, string> = {
     dashboard: 'Dashboard',
@@ -258,7 +263,7 @@ function PageHeader() {
                   <p className="text-xs text-gray-500">@{user.username}</p>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => signOut()}>
+                <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign out
                 </DropdownMenuItem>
@@ -440,6 +445,7 @@ function BottomNav({ pendingCount }: { pendingCount?: number }) {
 }
 
 function AuthenticatedApp() {
+  const router = useRouter();
   const { activeView, sidebarOpen } = useAppStore();
   const { data: session } = useSession();
   const role = (session?.user as any)?.role;
@@ -523,7 +529,13 @@ function AuthenticatedApp() {
                   <p className="text-xs text-gray-500">@{topBarUser.username}</p>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => signOut()}>
+                <DropdownMenuItem
+                  className="text-red-600 cursor-pointer"
+                  onClick={async () => {
+                    await signOut({ redirect: false });
+                    router.replace('/login');
+                  }}
+                >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign out
                 </DropdownMenuItem>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
   Home,
@@ -71,8 +71,14 @@ function ThemeToggle() {
 
 export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: session } = useSession();
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.replace('/login');
+  };
 
   const userRole = (session?.user as any)?.role;
   const isAdminOrStaff = userRole === 'admin' || userRole === 'staff';
@@ -147,7 +153,7 @@ export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => voi
                     {dashboardLabel}
                   </Button>
                 </Link>
-                <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-900 dark:hover:text-white" onClick={() => signOut()}>
+                <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-900 dark:hover:text-white" onClick={handleLogout}>
                   Logout
                 </Button>
               </div>
@@ -372,7 +378,7 @@ export default function PublicHeader({ onSearchOpen }: { onSearchOpen: () => voi
                       <Button
                         variant="outline"
                         className="w-full gap-2 border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
-                        onClick={() => { setMobileOpen(false); signOut(); }}
+                        onClick={() => { setMobileOpen(false); handleLogout(); }}
                       >
                         <LogOut className="h-4 w-4" />
                         Sign Out

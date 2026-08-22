@@ -9,16 +9,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, Fingerprint } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { isNativePlatform } from "@/lib/capacitor/bridge";
+import {
+  getBiometricStatus,
+  getBiometricCredentials,
+  saveBiometricCredentials,
+  type BiometricStatus,
+} from "@/lib/capacitor/biometrics";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
   const [isNative, setIsNative] = useState(false);
+  const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
+
+  // Proactive Biometric Prompt State
+  const [showBioPrompt, setShowBioPrompt] = useState(false);
+  const [pendingBioCreds, setPendingBioCreds] = useState<{ identifier: string; password: string; role?: string } | null>(null);
 
   // Login state
   const [identifier, setIdentifier] = useState("");
@@ -31,11 +52,79 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
   const [regPassword, setRegPassword] = useState("");
 
   useEffect(() => {
-    setIsNative(isNativePlatform());
+    const native = isNativePlatform();
+    setIsNative(native);
     if (searchParams.get("tab") === "register") {
       setIsLogin(false);
     }
+    if (native) {
+      getBiometricStatus().then((status) => {
+        setBiometricStatus(status);
+      });
+    }
   }, [searchParams]);
+
+  const proceedToApp = () => {
+    router.refresh();
+    const callbackUrl = searchParams.get("callbackUrl");
+    if (callbackUrl && callbackUrl.startsWith("/")) {
+      router.push(callbackUrl);
+    } else {
+      router.push("/dashboard");
+    }
+  };
+
+  const handleEnableBiometrics = async () => {
+    if (pendingBioCreds) {
+      await saveBiometricCredentials(pendingBioCreds.identifier, pendingBioCreds.password, pendingBioCreds.role || "student");
+      toast.success("Fingerprint 1-tap sign-in enabled!");
+    }
+    setShowBioPrompt(false);
+    proceedToApp();
+  };
+
+  const handleSkipBiometrics = () => {
+    setShowBioPrompt(false);
+    toast.success("Welcome back!");
+    proceedToApp();
+  };
+
+  const handleBiometricLogin = async () => {
+    setBiometricLoading(true);
+    try {
+      const creds = await getBiometricCredentials();
+      if (!creds) {
+        setBiometricLoading(false);
+        return;
+      }
+      setLoading(true);
+      const result = await signIn("credentials", {
+        redirect: false,
+        username: creds.identifier,
+        password: creds.password,
+      });
+
+      if (result?.error) {
+        toast.error("Biometric authentication expired. Please enter password.");
+      } else {
+        toast.success("Signed in with Biometrics!");
+        router.refresh();
+        const callbackUrl = searchParams.get("callbackUrl");
+        if (callbackUrl && callbackUrl.startsWith("/")) {
+          router.push(callbackUrl);
+        } else if (creds.role === "admin" || creds.role === "staff") {
+          router.push("/admin");
+        } else {
+          router.push("/dashboard");
+        }
+      }
+    } catch {
+      toast.error("Biometric sign-in failed.");
+    } finally {
+      setLoading(false);
+      setBiometricLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,13 +140,13 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
       if (result?.error) {
         toast.error("Invalid credentials. Please try again.");
       } else {
-        toast.success("Welcome back!");
-        router.refresh();
-        const callbackUrl = searchParams.get("callbackUrl");
-        if (callbackUrl && callbackUrl.startsWith("/")) {
-          router.push(callbackUrl);
+        // Proactively ask to enable biometrics if available and not yet configured
+        if (isNative && biometricStatus?.isAvailable && !biometricStatus?.hasStoredCredentials) {
+          setPendingBioCreds({ identifier, password, role: "student" });
+          setShowBioPrompt(true);
         } else {
-          router.push("/dashboard");
+          toast.success("Welcome back!");
+          proceedToApp();
         }
       }
     } catch (error) {
@@ -104,12 +193,11 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
         toast.error("Account created, but automatic login failed. Please sign in.");
         setIsLogin(true);
       } else {
-        router.refresh();
-        const callbackUrl = searchParams.get("callbackUrl");
-        if (callbackUrl && callbackUrl.startsWith("/")) {
-          router.push(callbackUrl);
+        if (isNative && biometricStatus?.isAvailable && !biometricStatus?.hasStoredCredentials) {
+          setPendingBioCreds({ identifier: regPhone, password: regPassword, role: "student" });
+          setShowBioPrompt(true);
         } else {
-          router.push("/dashboard");
+          proceedToApp();
         }
       }
     } catch (error) {
@@ -177,6 +265,31 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
           </div>
 
           <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-2xl p-6 md:p-8 shadow-xl shadow-cyan-900/5">
+            {/* Quick 1-Tap Biometric Fingerprint Button on Native Android */}
+            {isLogin && isNative && biometricStatus?.hasStoredCredentials && (
+              <div className="mb-6 pb-6 border-b border-border/50">
+                <Button
+                  type="button"
+                  onClick={handleBiometricLogin}
+                  disabled={loading || biometricLoading}
+                  variant="outline"
+                  className="w-full h-14 border-cyan-500/50 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-semibold gap-3 rounded-2xl shadow-xs transition-all flex items-center justify-center text-sm"
+                >
+                  {biometricLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-cyan-600" />
+                  ) : (
+                    <Fingerprint className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                  )}
+                  <span>Sign In with Fingerprint</span>
+                </Button>
+                <div className="relative flex py-3 items-center">
+                  <div className="flex-grow border-t border-border/60"></div>
+                  <span className="flex-shrink mx-3 text-xs text-muted-foreground uppercase font-medium">Or with password</span>
+                  <div className="flex-grow border-t border-border/60"></div>
+                </div>
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
               {isLogin ? (
                 <motion.form 
@@ -325,6 +438,41 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
           )}
         </div>
       </div>
+
+      {/* Proactive 1-Tap Biometric Prompt Modal */}
+      <Dialog open={showBioPrompt} onOpenChange={(open) => { if (!open) handleSkipBiometrics(); }}>
+        <DialogContent className="sm:max-w-sm rounded-3xl p-6 text-center border border-border/80 bg-background/95 backdrop-blur-xl shadow-2xl">
+          <div className="mx-auto my-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 shadow-inner">
+            <Fingerprint className="h-9 w-9" />
+          </div>
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-center text-xl font-bold text-foreground">
+              Enable Fingerprint Sign-In?
+            </DialogTitle>
+            <DialogDescription className="text-center text-xs text-muted-foreground leading-relaxed px-2">
+              Use your fingerprint sensor for instant, secure 1-tap sign-in next time you open the Lamka Coaching app.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex flex-col gap-2 sm:flex-col">
+            <Button
+              type="button"
+              onClick={handleEnableBiometrics}
+              className="w-full h-12 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/25 transition-all text-sm"
+            >
+              <Fingerprint className="h-4 w-4 mr-2" />
+              Enable Fingerprint
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleSkipBiometrics}
+              className="w-full h-10 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+            >
+              Maybe Later
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

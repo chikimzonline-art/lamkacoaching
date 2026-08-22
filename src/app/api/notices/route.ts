@@ -46,6 +46,19 @@ export async function POST(request: Request) {
           status: status || 'published',
         },
       });
+
+      // Broadcast push notification to all student devices
+      if (notice.status === 'published') {
+        import('@/lib/fcm-server').then((fcm) => {
+          fcm.broadcastNoticeNotification({
+            title: `📢 ${notice.pinned ? 'Urgent Notice' : 'Notice'}: ${notice.title}`,
+            body: notice.content.length > 120 ? `${notice.content.slice(0, 117)}...` : notice.content,
+            link: '/dashboard/notices',
+            data: { noticeId: notice.id },
+          }).catch((e) => console.error('Failed to broadcast push notification', e));
+        });
+      }
+
       return NextResponse.json({ notice });
 
     } else if (action === 'update') {

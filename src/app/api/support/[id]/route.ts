@@ -18,6 +18,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       },
     });
 
+    if (adminReply && ticket.studentId) {
+      import('@/lib/fcm-server').then((fcm) => {
+        fcm.sendPushNotificationToStudent({
+          studentId: ticket.studentId,
+          title: `💬 Support Reply: ${ticket.subject}`,
+          body: adminReply.length > 120 ? `${adminReply.slice(0, 117)}...` : adminReply,
+          channelId: 'channel_support',
+          link: '/dashboard/support',
+        }).catch((e) => console.error('Failed to send support ticket reply push', e));
+      });
+    }
+
     return NextResponse.json({ ticket });
   } catch (error) {
     console.error('Error updating support ticket:', error);

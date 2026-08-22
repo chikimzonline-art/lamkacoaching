@@ -17,10 +17,16 @@ import {
   Calendar, 
   HelpCircle, 
   GraduationCap, 
-  Grid
+  Grid,
+  Clock,
+  ScanLine,
+  QrCode
 } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const QuickScanPassModal = dynamic(() => import("@/components/attendance/quick-scan-pass-modal"), { ssr: false });
 import { signOut, useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -56,20 +62,16 @@ const desktopNavItems = [
   { title: "My Enrollment & Booking", href: "/dashboard/my-learning", icon: BookOpen },
   { title: "Explore Courses", href: "/dashboard/courses", icon: GraduationCap },
   { title: "Explore Study Cabin", href: "/dashboard/cabins", icon: Building2 },
+  { title: "Attendance Log", href: "/dashboard/attendance", icon: Clock },
   { title: "History & Billing", href: "/dashboard/history", icon: CreditCard },
   { title: "Notices", href: "/dashboard/notices", icon: Bell },
   { title: "Schedule", href: "/dashboard/schedule", icon: Calendar },
   { title: "Support", href: "/dashboard/support", icon: HelpCircle },
 ];
 
-const mobileCoreNavItems = [
-  { title: "Home", href: "/dashboard", icon: Home },
-  { title: "My Learning", href: "/dashboard/my-learning", icon: BookOpen },
-  { title: "Courses", href: "/dashboard/courses", icon: GraduationCap },
-  { title: "Cabins", href: "/dashboard/cabins", icon: Building2 },
-];
-
 const mobileMoreNavItems = [
+  { title: "My Learning", href: "/dashboard/my-learning", icon: BookOpen, description: "Your active enrollments & cabin bookings" },
+  { title: "Attendance Log", href: "/dashboard/attendance", icon: Clock, description: "Check-in logs and total study hours" },
   { title: "Schedule", href: "/dashboard/schedule", icon: Calendar, description: "Upcoming classes and test timings" },
   { title: "History & Billing", href: "/dashboard/history", icon: CreditCard, description: "Payment history and pending dues" },
   { title: "Notices", href: "/dashboard/notices", icon: Bell, description: "Announcements and official updates" },
@@ -77,9 +79,16 @@ const mobileMoreNavItems = [
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useSession();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [quickPassOpen, setQuickPassOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.replace('/login');
+  };
 
   const isMoreActive = mobileMoreNavItems.some(
     item => pathname === item.href || pathname.startsWith(item.href + '/')
@@ -131,7 +140,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Quick 1-Tap Header Button for Desk Scan / Digital ID Pass */}
+            <button
+              type="button"
+              onClick={() => {
+                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
+                setQuickPassOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 transition-colors text-xs font-semibold shadow-2xs cursor-pointer"
+              title="Instant Desk QR Scanner & Student ID Pass"
+            >
+              <ScanLine className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Scan / Pass</span>
+            </button>
+
             <NotificationBell />
             
             <DropdownMenu>
@@ -163,8 +186,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <span>Billing & Dues</span>
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/attendance" className="w-full cursor-pointer flex items-center">
+                    <Clock className="mr-2 h-4 w-4" />
+                    <span>Attendance Log</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()} className="text-red-600 cursor-pointer flex items-center focus:text-red-600 focus:bg-red-50">
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer flex items-center focus:text-red-600 focus:bg-red-50">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
@@ -182,36 +211,85 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </main>
 
-        {/* Mobile Fixed Bottom Navigation Bar ("4 + More" Pattern) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+        {/* Mobile Fixed Bottom Navigation Bar (Home - Courses - Center Scan/Pass - Cabins - Menu) */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 pt-1 pb-[calc(0.375rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-around">
-            {mobileCoreNavItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.title}
-                  href={item.href}
-                  onClick={() => {
-                    import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
-                  }}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 relative min-w-[58px]",
-                    isActive 
-                      ? "text-primary font-semibold" 
-                      : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  <Icon className={cn("h-5 w-5 transition-transform", isActive ? "scale-110 stroke-[2.25]" : "stroke-[1.75]")} />
-                  <span className="text-[10px] mt-1 tracking-tight leading-none">{item.title}</span>
-                  {isActive && (
-                    <span className="h-1 w-1 rounded-full bg-primary mt-1" />
-                  )}
-                </Link>
-              );
-            })}
+            {/* 1. Home */}
+            <Link
+              href="/dashboard"
+              onClick={() => {
+                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
+              }}
+              className={cn(
+                "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-200 relative min-w-[54px]",
+                pathname === "/dashboard" 
+                  ? "text-primary font-semibold" 
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <Home className={cn("h-5 w-5 transition-transform", pathname === "/dashboard" ? "scale-110 stroke-[2.25]" : "stroke-[1.75]")} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Home</span>
+              {pathname === "/dashboard" && (
+                <span className="h-1 w-1 rounded-full bg-primary mt-1" />
+              )}
+            </Link>
 
-            {/* 5th "More" Tab Trigger */}
+            {/* 2. Courses */}
+            <Link
+              href="/dashboard/courses"
+              onClick={() => {
+                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
+              }}
+              className={cn(
+                "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-200 relative min-w-[54px]",
+                pathname.startsWith("/dashboard/courses") 
+                  ? "text-primary font-semibold" 
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <GraduationCap className={cn("h-5 w-5 transition-transform", pathname.startsWith("/dashboard/courses") ? "scale-110 stroke-[2.25]" : "stroke-[1.75]")} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Courses</span>
+              {pathname.startsWith("/dashboard/courses") && (
+                <span className="h-1 w-1 rounded-full bg-primary mt-1" />
+              )}
+            </Link>
+
+            {/* 3. Center Elevated Action Button: Scan / Pass */}
+            <button
+              type="button"
+              onClick={() => {
+                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.medium());
+                setQuickPassOpen(true);
+              }}
+              className="flex flex-col items-center justify-center -mt-4 relative group cursor-pointer"
+            >
+              <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-cyan-600 to-sky-500 text-white flex items-center justify-center shadow-md shadow-cyan-500/30 group-active:scale-95 transition-transform border-2 border-white">
+                <ScanLine className="h-5 w-5 stroke-[2.25]" />
+              </div>
+              <span className="text-[9px] font-semibold text-cyan-700 mt-0.5 tracking-tight">Scan/Pass</span>
+            </button>
+
+            {/* 4. Cabins */}
+            <Link
+              href="/dashboard/cabins"
+              onClick={() => {
+                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
+              }}
+              className={cn(
+                "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-200 relative min-w-[54px]",
+                pathname.startsWith("/dashboard/cabins") 
+                  ? "text-primary font-semibold" 
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              <Building2 className={cn("h-5 w-5 transition-transform", pathname.startsWith("/dashboard/cabins") ? "scale-110 stroke-[2.25]" : "stroke-[1.75]")} />
+              <span className="text-[10px] mt-1 tracking-tight leading-none">Cabins</span>
+              {pathname.startsWith("/dashboard/cabins") && (
+                <span className="h-1 w-1 rounded-full bg-primary mt-1" />
+              )}
+            </Link>
+
+            {/* 5. More Menu Sheet */}
             <button
               type="button"
               onClick={() => {
@@ -219,7 +297,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 setMoreMenuOpen(true);
               }}
               className={cn(
-                "flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 relative min-w-[58px] cursor-pointer",
+                "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-200 relative min-w-[54px] cursor-pointer",
                 isMoreActive 
                   ? "text-primary font-semibold" 
                   : "text-slate-500 hover:text-slate-800"
@@ -296,7 +374,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button
                 onClick={() => {
                   setMoreMenuOpen(false);
-                  signOut();
+                  handleLogout();
                 }}
                 className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition-colors cursor-pointer"
               >
@@ -309,6 +387,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* First Login Password Prompt Dialog */}
         <FirstLoginPasswordDialog />
+
+        {/* Global Quick Scan & Student Pass Modal */}
+        <QuickScanPassModal open={quickPassOpen} onClose={() => setQuickPassOpen(false)} />
       </SidebarInset>
     </SidebarProvider>
   );

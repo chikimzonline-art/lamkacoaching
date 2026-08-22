@@ -1,21 +1,28 @@
 # Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# For more details, see: http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve Capacitor core and plugins
+-keep public class com.getcapacitor.** { *; }
+-keep public class * extends com.getcapacitor.Plugin { *; }
+-keepclassmembers class * extends com.getcapacitor.Plugin {
+    public *;
+}
+-keepclassmembers class com.getcapacitor.Bridge {
+    public *;
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Preserve App Plugins in MainActivity
+-keep class com.lamkacoaching.app.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Preserve Google MLKit Barcode Scanning
+-keep class com.google.mlkit.vision.barcode.** { *; }
+-keep class com.google.android.gms.vision.** { *; }
+
+# Preserve Biometric Authentication
+-keep class androidx.biometric.** { *; }
+
+# Preserve AndroidX Core and Splash Screen
+-keep class androidx.core.splashscreen.** { *; }
+
+# Preserve line numbers for stack traces in Sentry / Crashlytics
+-keepattributes SourceFile,LineNumberTable,*Annotation*

@@ -17,7 +17,11 @@ import {
   ShieldCheck,
   Building2,
   Loader2,
+  ScanLine,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const QrScannerModal = dynamic(() => import('@/components/attendance/qr-scanner-modal'), { ssr: false });
 import { cn } from '@/lib/utils';
 import { bookCabin, cancelCabinBooking } from './actions';
 import { useRouter } from 'next/navigation';
@@ -98,7 +102,30 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
   const [activeFloor, setActiveFloor] = useState<number | 'all'>('all');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [scanModalOpen, setScanModalOpen] = useState(false);
+
+  const handleDeskQrScan = async (scannedValue: string) => {
+    try {
+      const res = await fetch('/api/attendance/self', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'checkin',
+          deskQrPayload: scannedValue,
+        }),
+      });
+      const resData = await res.json();
+      if (!res.ok) {
+        toast.error(resData.error || 'Check-in failed');
+        return;
+      }
+      toast.success(resData.message || 'Checked in successfully!');
+      router.refresh();
+    } catch {
+      toast.error('Failed to log attendance');
+    }
+  };
   const router = useRouter();
 
   // Close mobile drawer on desktop resize
@@ -435,9 +462,18 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
         </div>
       )}
 
-      <div className={cn("transition-opacity", data.pendingCheckout && "opacity-40 pointer-events-none")}>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Study Cabins</h1>
-        <p className="text-slate-500 text-sm sm:text-base mt-1.5">Book a quiet, personal study space with high-speed Wi-Fi and AC.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className={cn("transition-opacity", data.pendingCheckout && "opacity-40 pointer-events-none")}>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Study Cabins</h1>
+          <p className="text-slate-500 text-sm sm:text-base mt-1.5">Book a quiet, personal study space with high-speed Wi-Fi and AC.</p>
+        </div>
+        <Button
+          onClick={() => setScanModalOpen(true)}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium gap-2 shadow-sm rounded-xl h-10 shrink-0 cursor-pointer self-start sm:self-auto"
+        >
+          <ScanLine className="h-4 w-4" />
+          Scan Desk QR to Check In
+        </Button>
       </div>
 
       {/* Pricing overview */}
@@ -600,6 +636,15 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
           {selectedCabinInfo && renderBookingFormContent()}
         </SheetContent>
       </Sheet>
+
+      {/* Desk QR Check-In Scanner Modal */}
+      <QrScannerModal
+        open={scanModalOpen}
+        onClose={() => setScanModalOpen(false)}
+        onScan={handleDeskQrScan}
+        title="Scan Cabin Desk QR"
+        hint="Point camera at the QR code sticker on your cabin desk"
+      />
     </div>
   );
 }

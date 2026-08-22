@@ -37,6 +37,7 @@ import {
   Banknote,
   Key,
   Copy,
+  Bell,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateSecurePassword, generateUsernameSlug } from '@/lib/email';
@@ -133,6 +134,7 @@ export default function StudentsView() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [form, setForm] = useState<StudentFormData>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
   const [quickPayStudent, setQuickPayStudent] = useState<{
     id: string;
     name: string;
@@ -140,6 +142,27 @@ export default function StudentsView() {
   } | null>(null);
   const [quickPayOpen, setQuickPayOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleSendReminder = async (student: any) => {
+    setRemindingId(student.id);
+    try {
+      const res = await fetch('/api/notifications/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: student.id,
+          amount: student.totalDue,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to send reminder');
+      toast.success(`Fee due reminder sent to ${student.name}!`);
+    } catch {
+      toast.error('Failed to send fee reminder');
+    } finally {
+      setRemindingId(null);
+    }
+  };
 
 
 
@@ -431,14 +454,30 @@ export default function StudentsView() {
                 </div>
 
                 {student.totalDue > 0 && (
-                  <Button
-                    size="sm"
-                    className="mt-3 w-full bg-cyan-500 hover:bg-cyan-600 text-white"
-                    onClick={() => openQuickPay(student)}
-                  >
-                    <Banknote className="h-4 w-4 mr-2" />
-                    Quick Pay
-                  </Button>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-white"
+                      onClick={() => openQuickPay(student)}
+                    >
+                      <Banknote className="h-4 w-4 mr-2" />
+                      Quick Pay
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-sky-300 text-sky-700 hover:bg-sky-50"
+                      onClick={() => handleSendReminder(student)}
+                      disabled={remindingId === student.id}
+                      title="Send Push Notification Reminder"
+                    >
+                      {remindingId === student.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Bell className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -538,15 +577,31 @@ export default function StudentsView() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       {student.totalDue > 0 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-cyan-300 text-cyan-600 hover:bg-cyan-50"
-                          onClick={() => openQuickPay(student)}
-                        >
-                          <Banknote className="h-3.5 w-3.5 mr-1" />
-                          Pay
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-sky-300 text-sky-700 hover:bg-sky-50 h-8 px-2"
+                            onClick={() => handleSendReminder(student)}
+                            disabled={remindingId === student.id}
+                            title="Send Fee Due Push Notification"
+                          >
+                            {remindingId === student.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Bell className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-cyan-300 text-cyan-600 hover:bg-cyan-50"
+                            onClick={() => openQuickPay(student)}
+                          >
+                            <Banknote className="h-3.5 w-3.5 mr-1" />
+                            Pay
+                          </Button>
+                        </>
                       )}
                       <Button
                         variant="ghost"

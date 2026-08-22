@@ -4,12 +4,13 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * Capacitor Configuration for Lamka Coaching Center
  * 
  * Model A (Live Web Bridge):
- * - In local development, server points to http://10.0.2.2:3000 (standard Android emulator loopback to host) or LAN IP.
- * - For production release, server points to your hosted domain (e.g. https://lamkacoaching.com).
+ * - In local development (dev mode): server points to http://localhost:3000/login (or LAN IP)
+ * - In production release: server points to https://lamkacoaching.in/login
  */
-// For real physical phones on USB/Wi-Fi, use your PC's IP: http://192.168.1.3:3000/login
-// For production releases, replace with your domain: https://lamkacoaching.in/login
-const serverUrl = process.env.CAPACITOR_SERVER_URL || 'http://192.168.1.3:3000/login';
+const isProd = process.env.CAP_ENV === 'production';
+const serverUrl =
+  process.env.CAPACITOR_SERVER_URL ||
+  (isProd ? 'https://lamkacoaching.in/login' : 'http://localhost:3000/login');
 
 const config: CapacitorConfig = {
   appId: 'com.lamkacoaching.app',
@@ -32,8 +33,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
-      launchAutoHide: false,
+      launchShowDuration: 3000,
+      launchAutoHide: true,
       backgroundColor: '#050B44',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
@@ -49,7 +50,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: process.env.NODE_ENV !== 'production',
+    webContentsDebuggingEnabled: !isProd,
   },
 };
 

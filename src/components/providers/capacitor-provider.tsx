@@ -5,6 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { isNativePlatform } from '@/lib/capacitor/bridge';
+import { syncBadgeFromUnreadCount } from '@/lib/capacitor/badge-manager';
+import NetworkStatusProvider from './network-status-provider';
 
 export function CapacitorProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -52,6 +54,9 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
     if (!isNativePlatform()) return;
 
     let isMounted = true;
+    let appUrlSub: any = null;
+    let backButtonSub: any = null;
+    let appStateSub: any = null;
 
     async function initNativePlugins() {
       try {
@@ -81,11 +86,11 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        // 4. Hardware Back Button & Deep Linking
+        // 4. Hardware Back Button, Deep Linking & App Lifecycle
         const { App } = await import('@capacitor/app');
 
         // Deep link listener (App Links & custom scheme)
-        const appUrlSub = await App.addListener('appUrlOpen', (data) => {
+        appUrlSub = await App.addListener('appUrlOpen', (data) => {
           try {
             const url = new URL(data.url);
             const pathWithQuery = url.pathname + url.search + url.hash;
@@ -93,7 +98,6 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
               router.push(pathWithQuery);
             }
           } catch {
-            // If custom scheme without standard host (e.g. lamkacoaching://dashboard/cabins)
             const schemeMatch = data.url.replace(/^[a-zA-Z0-9_-]+:\/\//, '/');
             if (schemeMatch.startsWith('/')) {
               router.push(schemeMatch);
@@ -101,15 +105,32 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
           }
         });
 
+        // App Lifecycle: Foreground / Background sync
+        appStateSub = await App.addListener('appStateChange', async (state) => {
+          if (state.isActive) {
+            // App came to foreground: sync unread notifications & badge
+            try {
+              const res = await fetch('/api/notifications');
+              if (res.ok) {
+                const data = await res.json();
+                if (typeof data.unreadCount === 'number') {
+                  await syncBadgeFromUnreadCount(data.unreadCount);
+                }
+              }
+            } catch {
+              // Ignore network errors in background
+            }
+          }
+        });
+
         // Hardware Back Button listener
-        const backButtonSub = await App.addListener('backButton', () => {
+        backButtonSub = await App.addListener('backButton', () => {
           // Check A: Dismiss open Radix / Shadcn dialogs, sheets, dropdowns first
           const openOverlay = document.querySelector(
             '[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"], [data-radix-popper-content-wrapper]'
           );
 
           if (openOverlay) {
-            // Trigger Escape key to close open Radix primitives cleanly
             const escEvent = new KeyboardEvent('keydown', {
               key: 'Escape',
               code: 'Escape',
@@ -145,13 +166,20 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
             router.back();
           }
         });
-
-        return () => {
-          appUrlSub.remove();
-          backButtonSub.remove();
-        };
       } catch (err) {
         console.warn('[CapacitorProvider] Failed to configure App listeners', err);
+      }
+
+      try {
+        // 5. Initialize Push Notifications & Channels
+        const { initPushNotifications } = await import('@/lib/capacitor/push-notifications');
+        await initPushNotifications((url) => {
+          if (url && isMounted) {
+            router.push(url);
+          }
+        });
+      } catch (err) {
+        console.warn('[CapacitorProvider] Failed to init PushNotifications', err);
       }
     }
 
@@ -159,8 +187,41 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
+      if (appUrlSub) appUrlSub.remove();
+      if (backButtonSub) backButtonSub.remove();
+      if (appStateSub) appStateSub.remove();
     };
   }, [pathname, router]);
 
-  return <>{children}</>;
+  // Sync offline timetable alarms & badge when student is logged in
+  useEffect(() => {
+    if (!isNativePlatform() || status !== 'authenticated') return;
+
+    const userRole = (session?.user as any)?.role;
+    if (userRole !== 'admin' && userRole !== 'staff') {
+      // 1. Sync Timetable Alarms
+      fetch('/api/student/enrollments')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.enrollments) {
+            import('@/lib/capacitor/local-alarms').then((m) => {
+              m.syncTimetableAlarms(data.enrollments);
+            });
+          }
+        })
+        .catch(() => {});
+
+      // 2. Sync Launcher Badge
+      fetch('/api/notifications')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (typeof data?.unreadCount === 'number') {
+            syncBadgeFromUnreadCount(data.unreadCount);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [status, session, pathname]);
+
+  return <NetworkStatusProvider>{children}</NetworkStatusProvider>;
 }
