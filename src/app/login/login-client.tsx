@@ -58,9 +58,11 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
       setIsLogin(false);
     }
     if (native) {
-      getBiometricStatus().then((status) => {
-        setBiometricStatus(status);
-      });
+      setTimeout(() => {
+        getBiometricStatus().then((status) => {
+          setBiometricStatus(status);
+        });
+      }, 1000);
     }
   }, [searchParams]);
 

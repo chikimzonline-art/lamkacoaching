@@ -51,35 +51,37 @@ export default function NetworkStatusProvider({ children }: { children: React.Re
         };
       }
 
-      try {
-        const { Network } = await import('@capacitor/network');
+      setTimeout(async () => {
+        try {
+          const { Network } = await import('@capacitor/network');
 
-        // Check initial status
-        const status = await Network.getStatus();
-        setIsOnline(status.connected);
-        setConnectionType(status.connectionType || 'unknown');
-        if (!status.connected) setVisible(true);
-
-        // Listen for changes
-        const handle = await Network.addListener('networkStatusChange', (status) => {
+          // Check initial status
+          const status = await Network.getStatus();
           setIsOnline(status.connected);
           setConnectionType(status.connectionType || 'unknown');
-          if (status.connected) {
-            setJustReconnected(true);
-            setVisible(true);
-            setTimeout(() => {
-              setJustReconnected(false);
-              setVisible(false);
-            }, 2500);
-          } else {
-            setVisible(true);
-          }
-        });
+          if (!status.connected) setVisible(true);
 
-        unlistenFn = () => handle.remove();
-      } catch {
-        // Network plugin not available, ignore
-      }
+          // Listen for changes
+          const handle = await Network.addListener('networkStatusChange', (status) => {
+            setIsOnline(status.connected);
+            setConnectionType(status.connectionType || 'unknown');
+            if (status.connected) {
+              setJustReconnected(true);
+              setVisible(true);
+              setTimeout(() => {
+                setJustReconnected(false);
+                setVisible(false);
+              }, 2500);
+            } else {
+              setVisible(true);
+            }
+          });
+
+          unlistenFn = () => handle.remove();
+        } catch {
+          // Network plugin not available, ignore
+        }
+      }, 1000);
     };
 
     setupNativeListener();
