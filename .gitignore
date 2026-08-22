@@ -40,7 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-local-*
+/local-*
+!src/lib/capacitor/local-alarms.ts
 .claude
 .z-ai-config
 *.log
@@ -58,3 +59,12 @@ server.log
 # Scratch & temporary test scripts
 scratch.*
 scratch/
+
+# Android / Kotlin build cache & release binaries
+.kotlin/
+android/.kotlin/
+android/app/release/
+*.apk
+*.aab
+*.jks
+*.keystore
