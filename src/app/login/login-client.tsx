@@ -238,7 +238,7 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
             />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight tracking-tight">
-            Unlock Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-sky-300 animate-gradient-text">True Potential</span>
+            Unlock Your <span className={`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-sky-300 ${isNative ? '' : 'animate-gradient-text'}`}>True Potential</span>
           </h1>
           <p className="text-slate-300 text-lg leading-relaxed mb-8">
             Join the most trusted coaching center. Master your subjects, access premium study cabins, and achieve your goals with expert guidance.
@@ -349,7 +349,7 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
                   
                   <Button 
                     type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white shadow-lg shadow-cyan-500/25 transition-all mt-4 cta-shimmer"
+                    className={`w-full h-12 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white shadow-lg shadow-cyan-500/25 transition-all mt-4 ${isNative ? '' : 'cta-shimmer'}`}
                     disabled={loading}
                   >
                     {loading ? (
@@ -420,7 +420,7 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
 
                   <Button 
                     type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white shadow-lg shadow-cyan-500/25 transition-all mt-6 cta-shimmer"
+                    className={`w-full h-12 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white shadow-lg shadow-cyan-500/25 transition-all mt-6 ${isNative ? '' : 'cta-shimmer'}`}
                     disabled={loading}
                   >
                     {loading ? (
