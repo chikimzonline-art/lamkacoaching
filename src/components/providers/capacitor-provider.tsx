@@ -82,7 +82,7 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
         const { SplashScreen } = await import('@capacitor/splash-screen');
         setTimeout(async () => {
           try {
-            await SplashScreen.hide({ fadeOutDuration: 500 });
+            await SplashScreen.hide();
           } catch {}
         }, 800);
       } catch (err) {
