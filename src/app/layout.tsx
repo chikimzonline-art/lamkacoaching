@@ -66,7 +66,8 @@ export default async function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if (window.Capacitor) {
+              const isAndroidWebView = navigator.userAgent.includes('wv') || navigator.userAgent.includes('Android');
+              if (window.Capacitor || isAndroidWebView) {
                 document.documentElement.classList.add('is-native-app');
               }
             `,
