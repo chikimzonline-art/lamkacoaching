@@ -181,10 +181,15 @@ export function CapacitorProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    initNativePlugins();
+    // Delay native plugin initialization to allow React to render and UI thread to settle
+    // This prevents Android WebView deadlocks and ANR crashes during startup
+    const timer = setTimeout(() => {
+      initNativePlugins();
+    }, 1000);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (appUrlSub) appUrlSub.remove();
       if (backButtonSub) backButtonSub.remove();
       if (appStateSub) appStateSub.remove();

@@ -220,7 +220,7 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
         <div className="absolute inset-0 z-10 bg-gradient-to-br from-cyan-950/80 via-slate-900/80 to-slate-950/90" />
         
         <div className="relative z-20 flex flex-col items-center text-center p-12 max-w-lg">
-          <div className="bg-white/10 p-6 rounded-full backdrop-blur-md border border-white/20 mb-8 shadow-2xl">
+          <div className={`bg-white/10 p-6 rounded-full border border-white/20 mb-8 shadow-2xl ${isNative ? '' : 'backdrop-blur-md'}`}>
             <img 
               src={logoUrl || "/logo.png"}
               alt="Lamka Coaching Center Logo" 
@@ -282,7 +282,7 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
             </p>
           </div>
 
-          <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-2xl p-6 md:p-8 shadow-xl shadow-cyan-900/5">
+          <div className={`border border-border/50 rounded-2xl p-6 md:p-8 shadow-xl shadow-cyan-900/5 ${isNative ? 'bg-card/95' : 'bg-card/50 backdrop-blur-xl'}`}>
             {/* Quick 1-Tap Biometric Fingerprint Button on Native Android */}
             {isLogin && isNative && biometricStatus?.hasStoredCredentials && (
               <div className="mb-6 pb-6 border-b border-border/50">
@@ -459,7 +459,7 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
 
       {/* Proactive 1-Tap Biometric Prompt Modal */}
       <Dialog open={showBioPrompt} onOpenChange={(open) => { if (!open) handleSkipBiometrics(); }}>
-        <DialogContent className="sm:max-w-sm rounded-3xl p-6 text-center border border-border/80 bg-background/95 backdrop-blur-xl shadow-2xl">
+        <DialogContent className={`sm:max-w-sm rounded-3xl p-6 text-center border border-border/80 shadow-2xl ${isNative ? 'bg-background' : 'bg-background/95 backdrop-blur-xl'}`}>
           <div className="mx-auto my-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 shadow-inner">
             <Fingerprint className="h-9 w-9" />
           </div>
