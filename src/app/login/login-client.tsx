@@ -229,8 +229,8 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
               className="drop-shadow-lg object-contain"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.endsWith('/logo.png')) {
-                  target.src = '/logo.png';
+                if (!target.src.includes('?fallback=true')) {
+                  target.src = '/logo.png?fallback=true';
                 }
               }}
             />
@@ -262,8 +262,8 @@ export function AuthPageContent({ logoUrl }: { logoUrl: string | null }) {
             className="mb-4 object-contain drop-shadow-md" 
             onError={(e) => {
               const target = e.currentTarget;
-              if (!target.src.endsWith('/logo.png')) {
-                target.src = '/logo.png';
+              if (!target.src.includes('?fallback=true')) {
+                target.src = '/logo.png?fallback=true';
               }
             }}
           />
