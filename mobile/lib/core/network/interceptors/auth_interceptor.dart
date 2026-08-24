@@ -17,6 +17,8 @@ class AuthInterceptor extends Interceptor {
       final token = await _storageService.getAuthToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
+        options.headers['Cookie'] =
+            'next-auth.session-token=$token; __Secure-next-auth.session-token=$token';
       }
     } catch (_) {
       // Continue without token if read fails

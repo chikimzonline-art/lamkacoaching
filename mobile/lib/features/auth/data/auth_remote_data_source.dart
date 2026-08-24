@@ -16,6 +16,7 @@ final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
 /// Remote data source communicating directly with NextAuth API endpoints.
 class AuthRemoteDataSource {
   final DioClient _dioClient;
+  String? _csrfCookie;
 
   AuthRemoteDataSource(this._dioClient);
 
@@ -25,6 +26,11 @@ class AuthRemoteDataSource {
       final response = await _dioClient.get<Map<String, dynamic>>(
         ApiConstants.csrfEndpoint,
       );
+
+      final setCookies = response.headers['set-cookie'];
+      if (setCookies != null && setCookies.isNotEmpty) {
+        _csrfCookie = setCookies.map((c) => c.split(';').first).join('; ');
+      }
 
       final data = response.data;
       if (data != null && data['csrfToken'] != null) {
@@ -70,6 +76,10 @@ class AuthRemoteDataSource {
         data: payload,
         options: Options(
           contentType: Headers.formUrlEncodedContentType,
+          headers: {
+            if (_csrfCookie != null && _csrfCookie!.isNotEmpty)
+              'Cookie': _csrfCookie,
+          },
           validateStatus: (status) => status != null && status < 500,
         ),
       );
@@ -106,6 +116,13 @@ class AuthRemoteDataSource {
           if (cookie.contains('next-auth.session-token=')) {
             final match = RegExp(
               r'next-auth\.session-token=([^;]+)',
+            ).firstMatch(cookie);
+            if (match != null) {
+              sessionToken = match.group(1);
+            }
+          } else if (cookie.contains('__Secure-next-auth.session-token=')) {
+            final match = RegExp(
+              r'__Secure-next-auth\.session-token=([^;]+)',
             ).firstMatch(cookie);
             if (match != null) {
               sessionToken = match.group(1);
@@ -153,7 +170,13 @@ class AuthRemoteDataSource {
     try {
       final options =
           overrideToken != null
-              ? Options(headers: {'Authorization': 'Bearer $overrideToken'})
+              ? Options(
+                headers: {
+                  'Authorization': 'Bearer $overrideToken',
+                  'Cookie':
+                      'next-auth.session-token=$overrideToken; __Secure-next-auth.session-token=$overrideToken',
+                },
+              )
               : null;
 
       final response = await _dioClient.get<dynamic>(
