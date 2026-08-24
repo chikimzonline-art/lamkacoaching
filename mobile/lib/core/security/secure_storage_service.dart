@@ -73,24 +73,52 @@ class SecureStorageService {
     return await read(StorageKeys.refreshToken);
   }
 
+  Future<void> saveCsrfToken(String token) async {
+    await write(StorageKeys.csrfToken, token);
+  }
+
+  Future<String?> getCsrfToken() async {
+    return await read(StorageKeys.csrfToken);
+  }
+
   Future<void> saveUserData({
     required String id,
-    required String email,
+    String? email,
     required String role,
     String? name,
+    String? username,
+    String? phone,
   }) async {
     await write(StorageKeys.userId, id);
-    await write(StorageKeys.userEmail, email);
     await write(StorageKeys.userRole, role);
+    if (email != null) {
+      await write(StorageKeys.userEmail, email);
+    }
     if (name != null) {
       await write(StorageKeys.userName, name);
     }
+    if (username != null) {
+      await write(StorageKeys.userUsername, username);
+    }
+    if (phone != null) {
+      await write(StorageKeys.userPhone, phone);
+    }
+  }
+
+  Future<void> saveUserProfileJson(String jsonStr) async {
+    await write(StorageKeys.userProfile, jsonStr);
+  }
+
+  Future<String?> getUserProfileJson() async {
+    return await read(StorageKeys.userProfile);
   }
 
   Future<String?> getUserId() async => await read(StorageKeys.userId);
   Future<String?> getUserRole() async => await read(StorageKeys.userRole);
   Future<String?> getUserEmail() async => await read(StorageKeys.userEmail);
   Future<String?> getUserName() async => await read(StorageKeys.userName);
+  Future<String?> getUserUsername() async => await read(StorageKeys.userUsername);
+  Future<String?> getUserPhone() async => await read(StorageKeys.userPhone);
 
   // ----------------------------------------------------
   // Biometric & Preference Helpers
@@ -110,10 +138,13 @@ class SecureStorageService {
   Future<void> clearSession() async {
     await delete(StorageKeys.authToken);
     await delete(StorageKeys.refreshToken);
+    await delete(StorageKeys.csrfToken);
     await delete(StorageKeys.userId);
     await delete(StorageKeys.userEmail);
     await delete(StorageKeys.userRole);
     await delete(StorageKeys.userName);
+    await delete(StorageKeys.userUsername);
+    await delete(StorageKeys.userPhone);
     await delete(StorageKeys.userProfile);
   }
 }

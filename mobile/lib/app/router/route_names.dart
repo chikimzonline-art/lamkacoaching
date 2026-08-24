@@ -5,6 +5,7 @@ class AppRoutes {
   static const String initial = '/';
   static const String login = '/login';
   static const String dashboard = '/dashboard';
+  static const String adminOverview = '/admin-overview';
   static const String cabins = '/cabins';
   static const String courses = '/courses';
   static const String notifications = '/notifications';

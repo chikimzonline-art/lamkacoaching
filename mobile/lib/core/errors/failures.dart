@@ -53,10 +53,18 @@ class NotFoundFailure extends Failure {
   });
 }
 
-/// Cache or local storage read/write failure.
+/// Cache or local offline data failure.
 class CacheFailure extends Failure {
   const CacheFailure({
     super.message = 'Failed to read or write local offline data.',
+    super.statusCode,
+  });
+}
+
+/// Secure storage read/write failure.
+class StorageFailure extends Failure {
+  const StorageFailure({
+    super.message = 'Failed to access or update secure storage.',
     super.statusCode,
   });
 }

@@ -4,10 +4,13 @@ class StorageKeys {
 
   static const String authToken = 'auth_token';
   static const String refreshToken = 'refresh_token';
+  static const String csrfToken = 'csrf_token';
   static const String userId = 'user_id';
   static const String userRole = 'user_role';
   static const String userEmail = 'user_email';
   static const String userName = 'user_name';
+  static const String userUsername = 'user_username';
+  static const String userPhone = 'user_phone';
   static const String userProfile = 'user_profile_json';
 
   static const String isBiometricsEnabled = 'is_biometrics_enabled';
