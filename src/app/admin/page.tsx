@@ -381,7 +381,6 @@ function BottomNav({ pendingCount }: { pendingCount?: number }) {
             <button
               key={item.view}
               onClick={() => {
-                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
                 setActiveView(item.view);
               }}
               className={cn(
@@ -397,7 +396,6 @@ function BottomNav({ pendingCount }: { pendingCount?: number }) {
           ))}
           <button
             onClick={() => {
-              import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
               setMoreOpen(true);
             }}
             className={cn(

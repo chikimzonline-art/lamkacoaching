@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/public/theme-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { SettingsProvider } from "@/components/providers/settings-provider";
-import { CapacitorProvider } from "@/components/providers/capacitor-provider";
 import { db } from "@/lib/db";
 
 const geistSans = Geist({
@@ -62,28 +61,14 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              const isAndroidWebView = navigator.userAgent.includes('wv') || navigator.userAgent.includes('Android');
-              if (window.Capacitor || isAndroidWebView) {
-                document.documentElement.classList.add('is-native-app');
-              }
-            `,
-          }}
-        />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <SessionProvider>
           <ThemeProvider>
             <SettingsProvider settings={settingsMap}>
-              <CapacitorProvider>
-                {children}
-                <Toaster richColors position="top-center" />
-              </CapacitorProvider>
+              {children}
+              <Toaster richColors position="top-center" />
             </SettingsProvider>
           </ThemeProvider>
         </SessionProvider>

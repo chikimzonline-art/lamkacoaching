@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AvatarUpload } from "@/components/profile/avatar-upload"
-import { BiometricToggle } from "@/components/profile/biometric-toggle"
 import DigitalIdCard from "@/components/profile/digital-id-card"
 
 export default async function DashboardProfilePage() {
@@ -113,9 +112,6 @@ export default async function DashboardProfilePage() {
               </form>
             </CardContent>
           </Card>
-
-          {/* Biometric Fingerprint / Face Unlock Settings for Android */}
-          <BiometricToggle userIdentifier={student.username || student.phone} />
         </div>
       </div>
     </div>

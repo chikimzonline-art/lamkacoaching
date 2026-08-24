@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Wifi, WifiOff } from 'lucide-react';
-import { isNativePlatform } from '@/lib/capacitor/bridge';
 import { cn } from '@/lib/utils';
 
 interface NetworkStatusContextType {
@@ -21,73 +20,36 @@ export function useNetworkStatus(): NetworkStatusContextType {
 
 export default function NetworkStatusProvider({ children }: { children: React.ReactNode }) {
   const [isOnline, setIsOnline] = useState(true);
-  const [connectionType, setConnectionType] = useState<string>('unknown');
+  const [connectionType] = useState<string>('unknown');
   const [justReconnected, setJustReconnected] = useState(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    let unlistenFn: (() => void) | null = null;
+    if (typeof window === 'undefined') return;
 
-    const setupNativeListener = async () => {
-      if (!isNativePlatform()) {
-        // Web fallback — listen to browser online/offline events
-        const handleOnline = () => {
-          setIsOnline(true);
-          setJustReconnected(true);
-          setTimeout(() => {
-            setJustReconnected(false);
-            setVisible(false);
-          }, 2500);
-        };
-        const handleOffline = () => {
-          setIsOnline(false);
-          setVisible(true);
-        };
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-        return () => {
-          window.removeEventListener('online', handleOnline);
-          window.removeEventListener('offline', handleOffline);
-        };
-      }
+    setIsOnline(navigator.onLine);
 
-      setTimeout(async () => {
-        try {
-          const { Network } = await import('@capacitor/network');
-
-          // Check initial status
-          const status = await Network.getStatus();
-          setIsOnline(status.connected);
-          setConnectionType(status.connectionType || 'unknown');
-          if (!status.connected) setVisible(true);
-
-          // Listen for changes
-          const handle = await Network.addListener('networkStatusChange', (status) => {
-            setIsOnline(status.connected);
-            setConnectionType(status.connectionType || 'unknown');
-            if (status.connected) {
-              setJustReconnected(true);
-              setVisible(true);
-              setTimeout(() => {
-                setJustReconnected(false);
-                setVisible(false);
-              }, 2500);
-            } else {
-              setVisible(true);
-            }
-          });
-
-          unlistenFn = () => handle.remove();
-        } catch {
-          // Network plugin not available, ignore
-        }
-      }, 1000);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setJustReconnected(true);
+      setVisible(true);
+      setTimeout(() => {
+        setJustReconnected(false);
+        setVisible(false);
+      }, 2500);
     };
 
-    setupNativeListener();
+    const handleOffline = () => {
+      setIsOnline(false);
+      setVisible(true);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      if (unlistenFn) unlistenFn();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 

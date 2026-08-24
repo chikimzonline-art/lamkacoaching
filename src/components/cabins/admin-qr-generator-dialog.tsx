@@ -101,17 +101,9 @@ export default function AdminQrGeneratorDialog({ open, onClose, cabins }: AdminQ
         }
       }
 
-      const pdfBase64 = doc.output('datauristring').split(',')[1];
-
-      // Save to device (native) or browser download (web)
-      const { savePdfToDevice } = await import('@/lib/capacitor/file-manager');
-      const saved = await savePdfToDevice('Lamka_Cabin_QR_Codes.pdf', pdfBase64);
-
-      if (saved) {
-        toast.success('QR code sheet saved to Downloads!');
-      } else {
-        toast.error('Failed to save. Try again.');
-      }
+      // Save PDF via browser download
+      doc.save('Lamka_Cabin_QR_Codes.pdf');
+      toast.success('QR code sheet downloaded!');
     } catch (err) {
       console.error('[AdminQrGenerator] PDF generation failed', err);
       toast.error('Failed to generate PDF');

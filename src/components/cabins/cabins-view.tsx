@@ -45,7 +45,6 @@ import { cn } from '@/lib/utils';
 import { HistoricalBookingDialog } from './historical-booking-dialog';
 import dynamic from 'next/dynamic';
 
-const StaffScannerDialog = dynamic(() => import('@/components/attendance/staff-scanner-dialog'), { ssr: false });
 const AdminQrGeneratorDialog = dynamic(() => import('./admin-qr-generator-dialog'), { ssr: false });
 const CabinAttendanceTracker = dynamic(() => import('./cabin-attendance-tracker'), { ssr: false });
 
@@ -192,8 +191,7 @@ export default function CabinsView() {
   const [historicalDialogOpen, setHistoricalDialogOpen] = useState(false);
   const [historicalCabin, setHistoricalCabin] = useState<Cabin | null>(null);
 
-  // Phase 3: Attendance & QR states
-  const [staffScannerOpen, setStaffScannerOpen] = useState(false);
+  // Attendance & QR states
   const [qrGeneratorOpen, setQrGeneratorOpen] = useState(false);
   const [attendanceTrackerOpen, setAttendanceTrackerOpen] = useState(false);
 
@@ -831,17 +829,6 @@ export default function CabinsView() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Phase 3: Scan Student ID */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 shrink-0 text-xs h-9"
-            onClick={() => setStaffScannerOpen(true)}
-            title="Scan a student's Digital ID to check them in"
-          >
-            <ScanLine className="h-4 w-4 mr-1.5" />
-            Scan Student ID
-          </Button>
 
           {/* Phase 3: Live Attendance Tracker */}
           <Button
@@ -1725,11 +1712,7 @@ export default function CabinsView() {
         }}
       />
 
-      {/* Phase 3: Staff Reception Scanner */}
-      <StaffScannerDialog
-        open={staffScannerOpen}
-        onClose={() => setStaffScannerOpen(false)}
-      />
+
 
       {/* Phase 3: Admin Printable Desk QR Code Generator */}
       <AdminQrGeneratorDialog

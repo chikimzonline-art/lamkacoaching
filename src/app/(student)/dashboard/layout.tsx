@@ -145,7 +145,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => {
-                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
                 setQuickPassOpen(true);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 transition-colors text-xs font-semibold shadow-2xs cursor-pointer"
@@ -217,9 +216,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* 1. Home */}
             <Link
               href="/dashboard"
-              onClick={() => {
-                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
-              }}
               className={cn(
                 "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-200 relative min-w-[54px]",
                 pathname === "/dashboard" 
@@ -237,9 +233,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* 2. Courses */}
             <Link
               href="/dashboard/courses"
-              onClick={() => {
-                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
-              }}
               className={cn(
                 "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-200 relative min-w-[54px]",
                 pathname.startsWith("/dashboard/courses") 
@@ -258,7 +251,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => {
-                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.medium());
                 setQuickPassOpen(true);
               }}
               className="flex flex-col items-center justify-center -mt-4 relative group cursor-pointer"
@@ -272,9 +264,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* 4. Cabins */}
             <Link
               href="/dashboard/cabins"
-              onClick={() => {
-                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
-              }}
               className={cn(
                 "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-200 relative min-w-[54px]",
                 pathname.startsWith("/dashboard/cabins") 
@@ -293,7 +282,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => {
-                import('@/lib/capacitor/haptics').then(m => m.hapticFeedback.light());
                 setMoreMenuOpen(true);
               }}
               className={cn(
