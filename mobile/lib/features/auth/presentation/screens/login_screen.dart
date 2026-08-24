@@ -35,11 +35,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) {
-      HapticService.lightImpact();
+      await HapticService.lightImpact();
       return;
     }
 
-    HapticService.selectionClick();
+    await HapticService.selectionClick();
     final identifier = _identifierController.text.trim();
     final password = _passwordController.text;
 
@@ -53,7 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleBiometricLogin() async {
-    HapticService.selectionClick();
+    await HapticService.selectionClick();
     await ref.read(authNotifierProvider.notifier).authenticateWithBiometrics();
   }
 
@@ -354,6 +354,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                           // Identifier Field (Phone / Email / Username)
                           AppTextField(
+                            key: const Key('login_identifier_field'),
                             controller: _identifierController,
                             label: 'Email, Phone or Username',
                             hint: 'student@lamkacoaching.com',
@@ -373,6 +374,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                           // Password Field
                           AppTextField(
+                            key: const Key('login_password_field'),
                             controller: _passwordController,
                             label: 'Password',
                             hint: '••••••••',
@@ -447,6 +449,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                           // Primary Sign In Button
                           AppButton(
+                            key: const Key('login_submit_button'),
                             text: 'Sign In',
                             onPressed: _handleLogin,
                             isLoading: isLoading,
@@ -458,7 +461,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(height: AppDimensions.space12),
                             AppButton(
                               text: 'Unlock with Biometrics',
-                              icon: Icons.fingerprint_rounded,
+                              icon: const Icon(Icons.fingerprint_rounded),
                               variant: AppButtonVariant.secondary,
                               onPressed:
                                   isLoading ? null : _handleBiometricLogin,

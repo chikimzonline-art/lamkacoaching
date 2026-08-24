@@ -6,6 +6,11 @@ sealed class AuthState {
 
   bool get isAuthenticated => this is Authenticated;
   bool get isLoading => this is Authenticating;
+  bool get canUseBiometrics => this is Unauthenticated
+      ? (this as Unauthenticated).canUseBiometrics
+      : this is AuthFailureState
+          ? (this as AuthFailureState).canUseBiometrics
+          : false;
   UserEntity? get user => this is Authenticated ? (this as Authenticated).user : null;
 }
 
@@ -26,6 +31,7 @@ class Unauthenticated extends AuthState {
     this.biometricsEnrolled = false,
   });
 
+  @override
   bool get canUseBiometrics => biometricsAvailable && biometricsEnrolled;
 
   @override
@@ -98,6 +104,9 @@ class AuthFailureState extends AuthState {
     this.biometricsAvailable = false,
     this.biometricsEnrolled = false,
   });
+
+  @override
+  bool get canUseBiometrics => biometricsAvailable && biometricsEnrolled;
 
   @override
   bool operator ==(Object other) =>

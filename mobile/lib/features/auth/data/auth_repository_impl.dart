@@ -26,17 +26,15 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 /// Concrete implementation of [AuthRepository].
 class AuthRepositoryImpl implements AuthRepository {
-  final AuthRemoteDataSource _remoteDataSource;
-  final SecureStorageService _storageService;
-  final LocalAuthService _localAuthService;
+  final AuthRemoteDataSource remoteDataSource;
+  final SecureStorageService storageService;
+  final LocalAuthService localAuthService;
 
   AuthRepositoryImpl({
-    required AuthRemoteDataSource remoteDataSource,
-    required SecureStorageService storageService,
-    required LocalAuthService localAuthService,
-  })  : _remoteDataSource = remoteDataSource,
-        _storageService = storageService,
-        _localAuthService = localAuthService;
+    required this.remoteDataSource,
+    required this.storageService,
+    required this.localAuthService,
+  });
 
   @override
   Future<Either<Failure, UserEntity>> login({
@@ -45,11 +43,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     try {
       // Step 1: Obtain fresh CSRF token from NextAuth
-      final csrfToken = await _remoteDataSource.fetchCsrfToken();
-      await _storageService.saveCsrfToken(csrfToken);
+      final csrfToken = await remoteDataSource.fetchCsrfToken();
+      await storageService.saveCsrfToken(csrfToken);
 
       // Step 2: Authenticate credentials against NextAuth callback
-      final authResult = await _remoteDataSource.authenticateCredentials(
+      final authResult = await remoteDataSource.authenticateCredentials(
         identifier: identifier,
         password: password,
         csrfToken: csrfToken,
@@ -59,8 +57,8 @@ class AuthRepositoryImpl implements AuthRepository {
       final sessionToken = authResult.sessionToken ?? 'session_${userModel.id}';
 
       // Step 3: Persist session token and user profile securely
-      await _storageService.saveAuthToken(sessionToken);
-      await _storageService.saveUserData(
+      await storageService.saveAuthToken(sessionToken);
+      await storageService.saveUserData(
         id: userModel.id,
         email: userModel.email,
         role: userModel.role,
@@ -68,7 +66,7 @@ class AuthRepositoryImpl implements AuthRepository {
         username: userModel.username,
         phone: userModel.phone,
       );
-      await _storageService.saveUserProfileJson(jsonEncode(userModel.toJson()));
+      await storageService.saveUserProfileJson(jsonEncode(userModel.toJson()));
 
       return Right(userModel.toEntity());
     } on AuthException catch (e) {
@@ -91,7 +89,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, UserEntity>> loginWithBiometrics() async {
     try {
-      final isAvailable = await _localAuthService.isBiometricsAvailable();
+      final isAvailable = await localAuthService.isBiometricsAvailable();
       if (!isAvailable) {
         return const Left(
           AuthFailure(
@@ -100,7 +98,7 @@ class AuthRepositoryImpl implements AuthRepository {
         );
       }
 
-      final isEnrolled = await _storageService.isBiometricsEnabled();
+      final isEnrolled = await storageService.isBiometricsEnabled();
       if (!isEnrolled) {
         return const Left(
           AuthFailure(
@@ -109,7 +107,7 @@ class AuthRepositoryImpl implements AuthRepository {
         );
       }
 
-      final hasToken = await _storageService.getAuthToken();
+      final hasToken = await storageService.getAuthToken();
       if (hasToken == null || hasToken.isEmpty) {
         return const Left(
           AuthFailure(
@@ -118,7 +116,7 @@ class AuthRepositoryImpl implements AuthRepository {
         );
       }
 
-      final authenticated = await _localAuthService.authenticate(
+      final authenticated = await localAuthService.authenticate(
         localizedReason: 'Scan fingerprint or Face ID to access Lamka Coaching Center',
       );
 
@@ -148,7 +146,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> logout() async {
     try {
-      await _storageService.clearSession();
+      await storageService.clearSession();
       return const Right(null);
     } catch (e) {
       return Left(StorageFailure(message: 'Failed to clear session: $e'));
@@ -159,7 +157,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, UserEntity?>> getCachedUser() async {
     try {
       // 1. Try reading complete JSON string
-      final jsonStr = await _storageService.getUserProfileJson();
+      final jsonStr = await storageService.getUserProfileJson();
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final map = jsonDecode(jsonStr) as Map<String, dynamic>;
         final model = UserModel.fromJson(map);
@@ -167,13 +165,13 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       // 2. Fallback to individual fields
-      final userId = await _storageService.getUserId();
-      final userRole = await _storageService.getUserRole();
+      final userId = await storageService.getUserId();
+      final userRole = await storageService.getUserRole();
       if (userId != null && userRole != null) {
-        final name = await _storageService.getUserName() ?? 'Student';
-        final email = await _storageService.getUserEmail();
-        final username = await _storageService.getUserUsername();
-        final phone = await _storageService.getUserPhone();
+        final name = await storageService.getUserName() ?? 'Student';
+        final email = await storageService.getUserEmail();
+        final username = await storageService.getUserUsername();
+        final phone = await storageService.getUserPhone();
 
         final entity = UserEntity(
           id: userId,
@@ -194,16 +192,16 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<bool> isBiometricsAvailable() async {
-    return await _localAuthService.isBiometricsAvailable();
+    return await localAuthService.isBiometricsAvailable();
   }
 
   @override
   Future<bool> isBiometricsEnrolled() async {
-    return await _storageService.isBiometricsEnabled();
+    return await storageService.isBiometricsEnabled();
   }
 
   @override
   Future<void> setBiometricsEnrolled(bool enabled) async {
-    await _storageService.setBiometricsEnabled(enabled);
+    await storageService.setBiometricsEnabled(enabled);
   }
 }

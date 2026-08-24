@@ -1,4 +1,4 @@
-/// Functional Either<L, R> type representing either a failure [Left] or a success [Right].
+/// Functional `Either<L, R>` type representing either a failure [Left] or a success [Right].
 sealed class Either<L, R> {
   const Either();
 

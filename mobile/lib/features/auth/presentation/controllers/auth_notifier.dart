@@ -55,23 +55,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
       password: password,
     );
 
-    return result.fold(
-      (failure) async {
-        final isBioAvailable = await _authRepository.isBiometricsAvailable();
-        final isBioEnrolled = await _authRepository.isBiometricsEnrolled();
+    if (result.isLeft) {
+      final failure = result.leftOrNull!;
+      final isBioAvailable = await _authRepository.isBiometricsAvailable();
+      final isBioEnrolled = await _authRepository.isBiometricsEnrolled();
 
-        state = AuthFailureState(
-          message: failure.message,
-          biometricsAvailable: isBioAvailable,
-          biometricsEnrolled: isBioEnrolled,
-        );
-        return false;
-      },
-      (user) {
-        state = Authenticated(user, justLoggedIn: true);
-        return true;
-      },
-    );
+      state = AuthFailureState(
+        message: failure.message,
+        biometricsAvailable: isBioAvailable,
+        biometricsEnrolled: isBioEnrolled,
+      );
+      return false;
+    }
+
+    final user = result.rightOrNull!;
+    state = Authenticated(user, justLoggedIn: true);
+    return true;
   }
 
   /// Authenticates using native device biometrics (Fingerprint / Face ID).
@@ -80,23 +79,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final result = await _authRepository.loginWithBiometrics();
 
-    return result.fold(
-      (failure) async {
-        final isBioAvailable = await _authRepository.isBiometricsAvailable();
-        final isBioEnrolled = await _authRepository.isBiometricsEnrolled();
+    if (result.isLeft) {
+      final failure = result.leftOrNull!;
+      final isBioAvailable = await _authRepository.isBiometricsAvailable();
+      final isBioEnrolled = await _authRepository.isBiometricsEnrolled();
 
-        state = AuthFailureState(
-          message: failure.message,
-          biometricsAvailable: isBioAvailable,
-          biometricsEnrolled: isBioEnrolled,
-        );
-        return false;
-      },
-      (user) {
-        state = Authenticated(user);
-        return true;
-      },
-    );
+      state = AuthFailureState(
+        message: failure.message,
+        biometricsAvailable: isBioAvailable,
+        biometricsEnrolled: isBioEnrolled,
+      );
+      return false;
+    }
+
+    final user = result.rightOrNull!;
+    state = Authenticated(user);
+    return true;
   }
 
   /// Updates user preference for 1-tap biometric unlock.
