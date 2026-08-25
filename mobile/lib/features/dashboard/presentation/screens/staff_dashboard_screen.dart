@@ -10,8 +10,8 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../auth/presentation/controllers/auth_notifier.dart';
 
 /// Hub screen for Administrators and Staff members.
-class AdminOverviewStub extends ConsumerWidget {
-  const AdminOverviewStub({super.key});
+class StaffDashboardScreen extends ConsumerWidget {
+  const StaffDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,7 +24,7 @@ class AdminOverviewStub extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Admin & Staff Hub',
+          'Staff Hub',
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -56,6 +56,12 @@ class AdminOverviewStub extends ConsumerWidget {
           ),
           const SizedBox(width: AppDimensions.space8),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push(AppRoutes.qrScanner),
+        backgroundColor: AppColors.roleAdmin,
+        icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
+        label: const Text('Scan Pass', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -107,6 +113,39 @@ class AdminOverviewStub extends ConsumerWidget {
 
               // Overview Section Title
               Text(
+                'Live Metrics',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space12),
+
+              const Row(
+                children: [
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Active Cabins',
+                      value: '14/30',
+                      icon: Icons.chair_alt_rounded,
+                      color: AppColors.roleStudent,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Center Check-ins',
+                      value: '42',
+                      icon: Icons.how_to_reg_rounded,
+                      color: AppColors.success,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppDimensions.space24),
+
+              // Action grid for admin
+              Text(
                 'Management Consoles',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w600,
@@ -114,7 +153,6 @@ class AdminOverviewStub extends ConsumerWidget {
               ),
               const SizedBox(height: AppDimensions.space12),
 
-              // Action grid for admin
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -123,13 +161,6 @@ class AdminOverviewStub extends ConsumerWidget {
                 crossAxisSpacing: 12.0,
                 childAspectRatio: 1.15,
                 children: [
-                  _AdminCard(
-                    title: 'Desk Check-In',
-                    subtitle: 'Scan Student Passes',
-                    icon: Icons.qr_code_scanner_rounded,
-                    iconColor: AppColors.roleAdmin,
-                    onTap: () => context.push(AppRoutes.cabins),
-                  ),
                   _AdminCard(
                     title: 'Cabin Bookings',
                     subtitle: 'Real-time Occupancy',
@@ -160,6 +191,54 @@ class AdminOverviewStub extends ConsumerWidget {
     );
   }
 }
+
+class _MetricCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 class _AdminCard extends StatelessWidget {
   final String title;

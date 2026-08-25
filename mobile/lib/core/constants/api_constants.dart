@@ -16,13 +16,13 @@ class ApiConstants {
       return 'http://10.0.2.2:3000';
     }
     // iOS simulator / macOS / Windows desktop
-    return 'http://localhost:3000';
+    return 'http://127.0.0.1:3000';
   }
 
   // Network Timeouts
-  static const Duration connectTimeout = Duration(seconds: 15);
-  static const Duration receiveTimeout = Duration(seconds: 15);
-  static const Duration sendTimeout = Duration(seconds: 15);
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 30);
+  static const Duration sendTimeout = Duration(seconds: 30);
 
   // Authentication & NextAuth Session Endpoints
   static const String csrfEndpoint = '/api/auth/csrf';
@@ -36,10 +36,19 @@ class ApiConstants {
   // Feature Endpoints
   static const String adminOverviewEndpoint = '/api/admin/overview';
   static const String cabinsEndpoint = '/api/cabins';
+  static const String publicCabinsEndpoint = '/api/public/cabins';
+  static const String studentCabinsEndpoint = '/api/student/cabins';
   static const String cabinBookingsEndpoint = '/api/cabins/bookings';
+  static const String bookingsEndpoint = '/api/bookings';
+  static const String createPaymentOrderEndpoint = '/api/payments/create-order';
+  static const String renewBookingOrderEndpoint = '/api/student/bookings/renew-order';
   static const String coursesEndpoint = '/api/courses';
+  static const String publicCoursesEndpoint = '/api/public/courses';
+  static const String publicNoticesEndpoint = '/api/public/notices';
+  static const String studentEnrollmentsEndpoint = '/api/student/enrollments';
   static const String notificationsEndpoint = '/api/notifications';
   static const String attendanceEndpoint = '/api/attendance';
+  static const String attendanceSelfEndpoint = '/api/attendance/self';
   static const String studyMaterialsEndpoint = '/api/study-materials';
   static const String verifyQrEndpoint = '/api/cabins/verify-qr';
 }

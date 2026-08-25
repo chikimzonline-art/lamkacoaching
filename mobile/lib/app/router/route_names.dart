@@ -10,6 +10,8 @@ class AppRoutes {
   static const String courses = '/courses';
   static const String notifications = '/notifications';
   static const String profile = '/profile';
+  static const String more = '/more';
   static const String qrScanner = '/qr-scanner';
   static const String studyMaterials = '/study-materials';
+  static const String paymentHistory = '/payment-history';
 }

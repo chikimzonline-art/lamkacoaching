@@ -6,6 +6,16 @@ sealed class AuthState {
 
   bool get isAuthenticated => this is Authenticated;
   bool get isLoading => this is Authenticating;
+  bool get biometricsAvailable => this is Unauthenticated
+      ? (this as Unauthenticated).biometricsAvailable
+      : this is AuthFailureState
+          ? (this as AuthFailureState).biometricsAvailable
+          : false;
+  bool get biometricsEnrolled => this is Unauthenticated
+      ? (this as Unauthenticated).biometricsEnrolled
+      : this is AuthFailureState
+          ? (this as AuthFailureState).biometricsEnrolled
+          : false;
   bool get canUseBiometrics => this is Unauthenticated
       ? (this as Unauthenticated).canUseBiometrics
       : this is AuthFailureState
@@ -22,7 +32,9 @@ class AuthInitial extends AuthState {
 /// State when no active session is authenticated.
 class Unauthenticated extends AuthState {
   final String? message;
+  @override
   final bool biometricsAvailable;
+  @override
   final bool biometricsEnrolled;
 
   const Unauthenticated({
@@ -96,7 +108,9 @@ class Authenticated extends AuthState {
 /// State when an authentication attempt fails.
 class AuthFailureState extends AuthState {
   final String message;
+  @override
   final bool biometricsAvailable;
+  @override
   final bool biometricsEnrolled;
 
   const AuthFailureState({
@@ -125,3 +139,4 @@ class AuthFailureState extends AuthState {
   @override
   String toString() => 'AuthFailureState(message: $message)';
 }
+

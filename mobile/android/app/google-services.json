@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "460520027914",
+    "project_id": "lamka-coaching",
+    "storage_bucket": "lamka-coaching.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:460520027914:android:93a38f9b3d875bd2f7ecf3",
+        "android_client_info": {
+          "package_name": "com.lamkacoaching.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFgUtfsAnY2cWZNlXGMzfMhuSk_4Y2iTA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

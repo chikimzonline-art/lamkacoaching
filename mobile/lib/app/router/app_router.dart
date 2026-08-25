@@ -5,17 +5,21 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/controllers/auth_notifier.dart';
 import '../../features/auth/presentation/controllers/auth_state.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/cabins/presentation/screens/cabin_hub_stub.dart';
-import '../../features/courses/presentation/screens/courses_hub_stub.dart';
-import '../../features/dashboard/presentation/screens/admin_overview_stub.dart';
+import '../../features/cabins/presentation/screens/cabins_screen.dart';
+import '../../features/courses/presentation/screens/courses_screen.dart';
+import '../../features/dashboard/presentation/screens/staff_dashboard_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
-import '../../features/notifications/presentation/screens/notifications_hub_stub.dart';
+import '../../features/dashboard/presentation/screens/scanner_screen.dart';
+import '../../features/notifications/presentation/screens/notifications_hub_screen.dart';
+import '../../features/profile/presentation/screens/more_screen.dart';
+import '../../features/payments/presentation/screens/payment_history_screen.dart';
+import 'app_navigation_shell.dart';
 import 'route_names.dart';
 
 /// Global navigation key for root overlays and dialogs
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// Riverpod provider for GoRouter configuration with role-based auth guards.
+/// Riverpod provider for GoRouter configuration with role-based auth guards and shell navigation.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(routerNotifierProvider);
 
@@ -32,29 +36,80 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        path: AppRoutes.dashboard,
-        name: 'dashboard',
-        builder: (context, state) => const DashboardScreen(),
-      ),
-      GoRoute(
         path: AppRoutes.adminOverview,
         name: 'admin-overview',
-        builder: (context, state) => const AdminOverviewStub(),
+        builder: (context, state) => const StaffDashboardScreen(),
       ),
       GoRoute(
-        path: AppRoutes.cabins,
-        name: 'cabins',
-        builder: (context, state) => const CabinHubStub(),
-      ),
-      GoRoute(
-        path: AppRoutes.courses,
-        name: 'courses',
-        builder: (context, state) => const CoursesHubStub(),
+        path: AppRoutes.qrScanner,
+        name: 'qr-scanner',
+        builder: (context, state) => const ScannerScreen(),
       ),
       GoRoute(
         path: AppRoutes.notifications,
         name: 'notifications',
-        builder: (context, state) => const NotificationsHubStub(),
+        builder: (context, state) => const NotificationsHubScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        redirect: (_, __) => AppRoutes.more,
+      ),
+      GoRoute(
+        path: AppRoutes.paymentHistory,
+        name: 'payment-history',
+        builder: (context, state) => const PaymentHistoryScreen(),
+      ),
+
+      // 4-Tab Student Shell Route
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AppNavigationShell(navigationShell: navigationShell);
+        },
+        branches: [
+          // Branch 0: Dashboard / Student Home
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.dashboard,
+                name: 'dashboard',
+                builder: (context, state) => const DashboardScreen(),
+              ),
+            ],
+          ),
+
+          // Branch 1: Course Explorer
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.courses,
+                name: 'courses',
+                builder: (context, state) => const CoursesScreen(),
+              ),
+            ],
+          ),
+
+          // Branch 2: Study Cabins
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.cabins,
+                name: 'cabins',
+                builder: (context, state) => const CabinsScreen(),
+              ),
+            ],
+          ),
+
+          // Branch 3: More / Settings / Profile
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.more,
+                name: 'more',
+                builder: (context, state) => const MoreScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
