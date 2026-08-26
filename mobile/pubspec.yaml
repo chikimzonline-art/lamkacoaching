@@ -23,7 +23,7 @@ dependencies:
   dio: ^5.8.0+1
 
   # Local Encrypted & Offline Storage
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^11.0.0
   isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
   path_provider: ^2.1.5

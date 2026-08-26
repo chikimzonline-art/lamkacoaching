@@ -7,7 +7,7 @@ import '../errors/exceptions.dart';
 /// Riverpod provider for the global SecureStorageService instance.
 final secureStorageServiceProvider = Provider<SecureStorageService>((ref) {
   const storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
   return SecureStorageService(storage);
