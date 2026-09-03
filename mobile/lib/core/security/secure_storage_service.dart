@@ -132,6 +132,27 @@ class SecureStorageService {
     return val == 'true';
   }
 
+  Future<void> saveBiometricSession({
+    required String token,
+    required String userProfileJson,
+  }) async {
+    await write(StorageKeys.biometricToken, token);
+    await write(StorageKeys.biometricUserProfile, userProfileJson);
+    await setBiometricsEnabled(true);
+  }
+
+  Future<String?> getBiometricToken() async =>
+      await read(StorageKeys.biometricToken);
+
+  Future<String?> getBiometricUserProfile() async =>
+      await read(StorageKeys.biometricUserProfile);
+
+  Future<void> clearBiometricSession() async {
+    await delete(StorageKeys.biometricToken);
+    await delete(StorageKeys.biometricUserProfile);
+    await setBiometricsEnabled(false);
+  }
+
   // ----------------------------------------------------
   // Session Clear
   // ----------------------------------------------------

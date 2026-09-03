@@ -66,7 +66,17 @@ class AuthRepositoryImpl implements AuthRepository {
         username: userModel.username,
         phone: userModel.phone,
       );
-      await storageService.saveUserProfileJson(jsonEncode(userModel.toJson()));
+      final profileJson = jsonEncode(userModel.toJson());
+      await storageService.saveUserProfileJson(profileJson);
+
+      // Refresh biometric session vault if biometrics is enabled
+      final isBioEnrolled = await storageService.isBiometricsEnabled();
+      if (isBioEnrolled) {
+        await storageService.saveBiometricSession(
+          token: sessionToken,
+          userProfileJson: profileJson,
+        );
+      }
 
       return Right(userModel.toEntity());
     } on AuthException catch (e) {
@@ -107,8 +117,16 @@ class AuthRepositoryImpl implements AuthRepository {
         );
       }
 
-      final hasToken = await storageService.getAuthToken();
-      if (hasToken == null || hasToken.isEmpty) {
+      String? token = await storageService.getAuthToken();
+      String? profileJson = await storageService.getUserProfileJson();
+
+      // If active token is cleared (e.g. after sign out), retrieve from biometric vault
+      if (token == null || token.isEmpty || profileJson == null || profileJson.isEmpty) {
+        token = await storageService.getBiometricToken();
+        profileJson = await storageService.getBiometricUserProfile();
+      }
+
+      if (token == null || token.isEmpty || profileJson == null || profileJson.isEmpty) {
         return const Left(
           AuthFailure(
             message: 'No saved session found. Please log in with password first.',
@@ -126,18 +144,21 @@ class AuthRepositoryImpl implements AuthRepository {
         );
       }
 
-      // Restore cached user profile
-      final cachedResult = await getCachedUser();
-      final user = cachedResult.rightOrNull;
-      if (user != null) {
-        return Right(user);
-      }
-
-      return const Left(
-        AuthFailure(
-          message: 'Saved session profile could not be loaded. Please log in with your password.',
-        ),
+      // Restore active session into storage
+      await storageService.saveAuthToken(token);
+      await storageService.saveUserProfileJson(profileJson);
+      final map = jsonDecode(profileJson) as Map<String, dynamic>;
+      final userModel = UserModel.fromJson(map);
+      await storageService.saveUserData(
+        id: userModel.id,
+        email: userModel.email,
+        role: userModel.role,
+        name: userModel.name,
+        username: userModel.username,
+        phone: userModel.phone,
       );
+
+      return Right(userModel.toEntity());
     } catch (e) {
       return Left(UnknownFailure(message: 'Biometric authentication error: $e'));
     }
@@ -203,5 +224,17 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> setBiometricsEnrolled(bool enabled) async {
     await storageService.setBiometricsEnabled(enabled);
+    if (enabled) {
+      final token = await storageService.getAuthToken();
+      final profileJson = await storageService.getUserProfileJson();
+      if (token != null && profileJson != null) {
+        await storageService.saveBiometricSession(
+          token: token,
+          userProfileJson: profileJson,
+        );
+      }
+    } else {
+      await storageService.clearBiometricSession();
+    }
   }
 }

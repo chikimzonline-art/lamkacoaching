@@ -14,6 +14,8 @@ class StorageKeys {
   static const String userProfile = 'user_profile_json';
 
   static const String isBiometricsEnabled = 'is_biometrics_enabled';
+  static const String biometricToken = 'biometric_session_token';
+  static const String biometricUserProfile = 'biometric_user_profile_json';
   static const String rememberMe = 'remember_me';
   static const String themeMode = 'app_theme_mode';
   static const String pushToken = 'fcm_push_token';

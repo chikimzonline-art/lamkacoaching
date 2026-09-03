@@ -6,21 +6,27 @@ sealed class AuthState {
 
   bool get isAuthenticated => this is Authenticated;
   bool get isLoading => this is Authenticating;
-  bool get biometricsAvailable => this is Unauthenticated
-      ? (this as Unauthenticated).biometricsAvailable
-      : this is AuthFailureState
-          ? (this as AuthFailureState).biometricsAvailable
-          : false;
-  bool get biometricsEnrolled => this is Unauthenticated
-      ? (this as Unauthenticated).biometricsEnrolled
-      : this is AuthFailureState
-          ? (this as AuthFailureState).biometricsEnrolled
-          : false;
-  bool get canUseBiometrics => this is Unauthenticated
-      ? (this as Unauthenticated).canUseBiometrics
-      : this is AuthFailureState
-          ? (this as AuthFailureState).canUseBiometrics
-          : false;
+  bool get biometricsAvailable => this is Authenticated
+      ? (this as Authenticated).biometricsAvailable
+      : this is Unauthenticated
+          ? (this as Unauthenticated).biometricsAvailable
+          : this is AuthFailureState
+              ? (this as AuthFailureState).biometricsAvailable
+              : false;
+  bool get biometricsEnrolled => this is Authenticated
+      ? (this as Authenticated).biometricsEnrolled
+      : this is Unauthenticated
+          ? (this as Unauthenticated).biometricsEnrolled
+          : this is AuthFailureState
+              ? (this as AuthFailureState).biometricsEnrolled
+              : false;
+  bool get canUseBiometrics => this is Authenticated
+      ? (this as Authenticated).canUseBiometrics
+      : this is Unauthenticated
+          ? (this as Unauthenticated).canUseBiometrics
+          : this is AuthFailureState
+              ? (this as AuthFailureState).canUseBiometrics
+              : false;
   UserEntity? get user => this is Authenticated ? (this as Authenticated).user : null;
 }
 
@@ -88,21 +94,40 @@ class Authenticated extends AuthState {
   @override
   final UserEntity user;
   final bool justLoggedIn;
+  @override
+  final bool biometricsAvailable;
+  @override
+  final bool biometricsEnrolled;
 
-  const Authenticated(this.user, {this.justLoggedIn = false});
+  const Authenticated(
+    this.user, {
+    this.justLoggedIn = false,
+    this.biometricsAvailable = false,
+    this.biometricsEnrolled = false,
+  });
+
+  @override
+  bool get canUseBiometrics => biometricsAvailable && biometricsEnrolled;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Authenticated &&
           other.user == user &&
-          other.justLoggedIn == justLoggedIn);
+          other.justLoggedIn == justLoggedIn &&
+          other.biometricsAvailable == biometricsAvailable &&
+          other.biometricsEnrolled == biometricsEnrolled);
 
   @override
-  int get hashCode => user.hashCode ^ justLoggedIn.hashCode;
+  int get hashCode =>
+      user.hashCode ^
+      justLoggedIn.hashCode ^
+      biometricsAvailable.hashCode ^
+      biometricsEnrolled.hashCode;
 
   @override
-  String toString() => 'Authenticated(user: ${user.name}, role: ${user.role.name})';
+  String toString() =>
+      'Authenticated(user: ${user.name}, role: ${user.role.name}, biometricsEnrolled: $biometricsEnrolled)';
 }
 
 /// State when an authentication attempt fails.

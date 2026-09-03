@@ -164,53 +164,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Sign In',
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (canUseBiometrics)
-                                Tooltip(
-                                  message: '1-Tap Biometric Unlock',
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(20),
-                                      onTap:
-                                          isLoading ? null : _handleBiometricLogin,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? AppColors.darkAccentTeal
-                                                  .withValues(alpha: 0.15)
-                                              : AppColors.lightAccentSky
-                                                  .withValues(alpha: 0.15),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isDark
-                                                ? AppColors.darkAccentTeal
-                                                    .withValues(alpha: 0.3)
-                                                : AppColors.lightAccentSky
-                                                    .withValues(alpha: 0.3),
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.fingerprint_rounded,
-                                          size: 24,
-                                          color: isDark
-                                              ? AppColors.darkAccentTeal
-                                              : AppColors.lightAccentSky,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                          Text(
+                            'Sign In',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: AppDimensions.space4),
                           Text(
@@ -441,19 +399,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             isLoading: isLoading,
                             size: AppButtonSize.large,
                           ),
-
-                          // 1-Tap Biometric Unlock Secondary Button
-                          if (canUseBiometrics) ...[
-                            const SizedBox(height: AppDimensions.space12),
-                            AppButton(
-                              text: 'Unlock with Biometrics',
-                              icon: const Icon(Icons.fingerprint_rounded),
-                              variant: AppButtonVariant.secondary,
-                              onPressed:
-                                  isLoading ? null : _handleBiometricLogin,
-                              size: AppButtonSize.large,
-                            ),
-                          ],
                         ],
                       ),
                     ),

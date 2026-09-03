@@ -20,6 +20,7 @@ import '../widgets/digital_id_pass_modal.dart';
 import '../controllers/dismissed_notices_provider.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../notifications/presentation/controllers/notifications_controller.dart';
+import '../../../notifications/application/notification_service.dart';
 
 /// Main student experience hub with live timelines, desk widgets, and announcements.
 class DashboardScreen extends ConsumerWidget {
@@ -38,6 +39,11 @@ class DashboardScreen extends ConsumerWidget {
     
     final notificationsState = ref.watch(notificationsControllerProvider);
     final unreadCount = notificationsState.valueOrNull?.where((n) => !n.read).length ?? 0;
+
+    // Initialize push notifications on dashboard load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(notificationServiceProvider).init();
+    });
 
     // Prompt user to enable 1-Tap Biometrics after first successful login
     if (authState is Authenticated && authState.justLoggedIn) {

@@ -30,7 +30,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (cachedUser != null) {
         // Active session exists; restore authenticated state
-        state = Authenticated(cachedUser);
+        state = Authenticated(
+          cachedUser,
+          biometricsAvailable: isBioAvailable,
+          biometricsEnrolled: isBioEnrolled,
+        );
         return;
       }
 
@@ -55,10 +59,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       password: password,
     );
 
+    final isBioAvailable = await _authRepository.isBiometricsAvailable();
+    final isBioEnrolled = await _authRepository.isBiometricsEnrolled();
+
     if (result.isLeft) {
       final failure = result.leftOrNull!;
-      final isBioAvailable = await _authRepository.isBiometricsAvailable();
-      final isBioEnrolled = await _authRepository.isBiometricsEnrolled();
 
       state = AuthFailureState(
         message: failure.message,
@@ -69,7 +74,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     final user = result.rightOrNull!;
-    state = Authenticated(user, justLoggedIn: true);
+    state = Authenticated(
+      user,
+      justLoggedIn: true,
+      biometricsAvailable: isBioAvailable,
+      biometricsEnrolled: isBioEnrolled,
+    );
     return true;
   }
 
@@ -78,7 +88,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (state is Authenticated) {
       final current = state as Authenticated;
       if (current.justLoggedIn) {
-        state = Authenticated(current.user, justLoggedIn: false);
+        state = Authenticated(
+          current.user,
+          justLoggedIn: false,
+          biometricsAvailable: current.biometricsAvailable,
+          biometricsEnrolled: current.biometricsEnrolled,
+        );
       }
     }
   }
@@ -88,11 +103,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const Authenticating(statusMessage: 'Scanning biometrics...');
 
     final result = await _authRepository.loginWithBiometrics();
+    final isBioAvailable = await _authRepository.isBiometricsAvailable();
+    final isBioEnrolled = await _authRepository.isBiometricsEnrolled();
 
     if (result.isLeft) {
       final failure = result.leftOrNull!;
-      final isBioAvailable = await _authRepository.isBiometricsAvailable();
-      final isBioEnrolled = await _authRepository.isBiometricsEnrolled();
 
       state = AuthFailureState(
         message: failure.message,
@@ -103,7 +118,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     final user = result.rightOrNull!;
-    state = Authenticated(user);
+    state = Authenticated(
+      user,
+      biometricsAvailable: isBioAvailable,
+      biometricsEnrolled: isBioEnrolled,
+    );
     return true;
   }
 
@@ -112,7 +131,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _authRepository.setBiometricsEnrolled(enabled);
     final isBioAvailable = await _authRepository.isBiometricsAvailable();
 
-    if (state is Unauthenticated) {
+    if (state is Authenticated) {
+      final current = state as Authenticated;
+      state = Authenticated(
+        current.user,
+        justLoggedIn: current.justLoggedIn,
+        biometricsAvailable: isBioAvailable,
+        biometricsEnrolled: enabled,
+      );
+    } else if (state is Unauthenticated) {
       final current = state as Unauthenticated;
       state = Unauthenticated(
         message: current.message,
