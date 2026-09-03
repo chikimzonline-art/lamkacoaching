@@ -4,11 +4,13 @@ class RazorpayOrderEntity {
   final String orderId;
   final int amount; // in paise
   final String currency;
+  final String? keyId;
 
   const RazorpayOrderEntity({
     required this.orderId,
     required this.amount,
     this.currency = 'INR',
+    this.keyId,
   });
 
   factory RazorpayOrderEntity.fromJson(Map<String, dynamic> json) {
@@ -16,6 +18,7 @@ class RazorpayOrderEntity {
       orderId: json['orderId'] as String? ?? '',
       amount: json['amount'] as int? ?? 0,
       currency: json['currency'] as String? ?? 'INR',
+      keyId: json['keyId'] as String?,
     );
   }
 }
@@ -40,4 +43,17 @@ class PaymentFailureResult {
     required this.code,
     required this.message,
   });
+}
+
+class PaymentException implements Exception {
+  final int code;
+  final String message;
+
+  const PaymentException({
+    required this.code,
+    required this.message,
+  });
+
+  @override
+  String toString() => message;
 }

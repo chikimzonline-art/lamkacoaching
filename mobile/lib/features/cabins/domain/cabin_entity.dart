@@ -1,4 +1,5 @@
 // Domain entities for the Study Cabins Seat Matrix & Slot Reservation Engine.
+import '../../../../core/utils/formatters.dart';
 
 class CabinShiftInfo {
   final String type;
@@ -134,18 +135,18 @@ class FloorGroupEntity {
 }
 
 class CabinPricingEntity {
-  final int registrationFee; // in INR
-  final int reservedRate;     // in INR / month
-  final int morningShiftRate; // in INR / month
-  final int dayShiftRate;     // in INR / month
-  final int nightShiftRate;   // in INR / month
+  final int registrationFee; // in paise
+  final int reservedRate;     // in paise / month
+  final int morningShiftRate; // in paise / month
+  final int dayShiftRate;     // in paise / month
+  final int nightShiftRate;   // in paise / month
 
   const CabinPricingEntity({
-    this.registrationFee = 500,
-    this.reservedRate = 1100,
-    this.morningShiftRate = 500,
-    this.dayShiftRate = 800,
-    this.nightShiftRate = 800,
+    this.registrationFee = 50000,
+    this.reservedRate = 110000,
+    this.morningShiftRate = 50000,
+    this.dayShiftRate = 80000,
+    this.nightShiftRate = 80000,
   });
 
   int rateForShift(String shiftType) {
@@ -159,17 +160,17 @@ class CabinPricingEntity {
       case 'night_shift':
         return nightShiftRate;
       default:
-        return reservedRate;
+        return 0;
     }
   }
 
   factory CabinPricingEntity.fromJson(Map<String, dynamic> json) {
     return CabinPricingEntity(
-      registrationFee: json['registrationFee'] as int? ?? 500,
-      reservedRate: json['reservedRate'] as int? ?? 1100,
-      morningShiftRate: json['morningShiftRate'] as int? ?? 500,
-      dayShiftRate: json['dayShiftRate'] as int? ?? 800,
-      nightShiftRate: json['nightShiftRate'] as int? ?? 800,
+      registrationFee: (json['registrationFee'] as int? ?? 500) * 100,
+      reservedRate: (json['reservedRate'] as int? ?? 1100) * 100,
+      morningShiftRate: (json['morningShiftRate'] as int? ?? 500) * 100,
+      dayShiftRate: (json['dayShiftRate'] as int? ?? 800) * 100,
+      nightShiftRate: (json['nightShiftRate'] as int? ?? 800) * 100,
     );
   }
 }
@@ -195,7 +196,7 @@ class PendingCheckoutEntity {
     required this.floor,
   });
 
-  String get formattedTotalAmount => '₹${(totalAmount / 100).toStringAsFixed(0)}';
+  String get formattedTotalAmount => Formatters.formatPaiseToRupees(totalAmount);
 
   String get formattedType {
     switch (type) {

@@ -1,7 +1,7 @@
-
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../../../../core/utils/formatters.dart';
 import 'package:intl/intl.dart';
 
 class ReceiptGeneratorService {
@@ -123,7 +123,7 @@ class ReceiptGeneratorService {
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8.0),
-                        child: pw.Text('₹${amount.toStringAsFixed(2)}', textAlign: pw.TextAlign.right),
+                        child: pw.Text(Formatters.formatPaiseToRupees(amount), textAlign: pw.TextAlign.right),
                       ),
                     ],
                   ),
@@ -136,7 +136,7 @@ class ReceiptGeneratorService {
                 mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
                   pw.Text(
-                    'Total Paid: ₹${amount.toStringAsFixed(2)}',
+                    'Total Paid: ${Formatters.formatPaiseToRupees(amount)}',
                     style: const pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
                   ),
                 ],

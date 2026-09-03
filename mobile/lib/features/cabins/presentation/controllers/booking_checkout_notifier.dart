@@ -131,7 +131,7 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
     if (isFirstBooking) {
       fee += pricing.registrationFee;
     }
-    return fee * 100; // to paise
+    return fee; // already in paise
   }
 
   /// Complete Checkout Pipeline:
@@ -193,6 +193,7 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
         customerName: studentName,
         customerPhone: studentPhone,
         customerEmail: studentEmail,
+        keyId: order.keyId,
       );
 
       state = state.copyWith(

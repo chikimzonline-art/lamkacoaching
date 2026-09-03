@@ -14,4 +14,5 @@ class AppRoutes {
   static const String qrScanner = '/qr-scanner';
   static const String studyMaterials = '/study-materials';
   static const String paymentHistory = '/payment-history';
+  static const String notices = '/notices';
 }

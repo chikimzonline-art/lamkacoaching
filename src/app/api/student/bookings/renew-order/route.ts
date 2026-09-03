@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import { createRazorpayOrder } from '@/lib/razorpay-server';
 import { getOverlappingBookings } from '@/lib/db/queries/bookings';
+import { env } from '@/env';
 
 export async function POST(request: Request) {
   try {
@@ -110,6 +111,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       orderId: order.id, 
       amount: renewAmount,
+      currency: order.currency,
+      keyId: env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       newEndDate: newEnd.toISOString()
     }, { status: 200 });
 

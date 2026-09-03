@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../data/cabins_repository_impl.dart';
 import '../../domain/cabin_entity.dart';
 import '../controllers/cabins_notifier.dart';
+import '../../../auth/presentation/controllers/auth_notifier.dart';
+import '../../../auth/presentation/controllers/auth_state.dart';
+import '../../../payments/data/payments_repository.dart';
+import '../../../payments/services/razorpay_service.dart';
 
 class MyCabinsTab extends ConsumerWidget {
   final List<MyCabinBookingEntity> bookings;
@@ -213,13 +216,38 @@ class _MyBookingCardState extends ConsumerState<_MyBookingCard> {
                           final messenger = ScaffoldMessenger.of(context);
                           setState(() => _isRenewing = true);
                           try {
-                            await ref.read(cabinsRepositoryProvider).renewBooking(b.id);
+                            final authState = ref.read(authNotifierProvider);
+                            final user = (authState is Authenticated) ? authState.user : null;
+
+                            final paymentsRepo = ref.read(paymentsRepositoryProvider);
+                            final razorpay = ref.read(razorpayServiceProvider);
+
+                            final order = await paymentsRepo.createRenewalOrder(bookingId: b.id);
+
+                            final result = await razorpay.openCheckout(
+                              orderId: order.orderId,
+                              amountInPaise: order.amount,
+                              name: 'Lamka Coaching Center',
+                              description: 'Renewal for Cabin ${b.cabinNum} (${b.type.replaceAll('_', ' ')})',
+                              notes: {
+                                'studentId': user?.id ?? '',
+                                'type': 'cabin_renewal',
+                                'bookingId': b.id,
+                              },
+                              customerName: user?.name ?? 'Student',
+                              customerPhone: user?.phone ?? '',
+                              customerEmail: user?.email,
+                              keyId: order.keyId,
+                            );
+
                             await ref.read(cabinsNotifierProvider.notifier).loadCabins();
+
                             if (mounted) {
                               messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Cabin renewed successfully for next month!'),
-                                  backgroundColor: Color(0xFF059669),
+                                SnackBar(
+                                  content: Text('Cabin renewed successfully! Ref: ${result.paymentId}'),
+                                  backgroundColor: const Color(0xFF059669),
+                                  behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             }
@@ -229,6 +257,7 @@ class _MyBookingCardState extends ConsumerState<_MyBookingCard> {
                                 SnackBar(
                                   content: Text(e.toString().replaceAll('Exception: ', '')),
                                   backgroundColor: const Color(0xFFDC2626),
+                                  behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             }

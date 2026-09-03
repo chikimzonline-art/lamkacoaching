@@ -109,7 +109,7 @@ class CourseDetailSheet extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          Formatters.formatCurrency(course.totalFee),
+                          Formatters.formatPaiseToRupees(course.totalFee),
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: isDark

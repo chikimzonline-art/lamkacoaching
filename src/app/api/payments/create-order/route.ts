@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
 import { createRazorpayOrder } from '@/lib/razorpay-server';
 import { db } from '@/lib/db';
+import { env } from '@/env';
 
 export async function POST(req: Request) {
   try {
@@ -104,7 +105,10 @@ export async function POST(req: Request) {
     
     const order = await createRazorpayOrder(calculatedAmountPaise, receipt, orderNotes);
 
-    return NextResponse.json({ orderId: order.id }, { status: 200 });
+    return NextResponse.json({ 
+      orderId: order.id,
+      keyId: env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    }, { status: 200 });
   } catch (error) {
     console.error('Error creating Razorpay order:', error);
     return NextResponse.json(

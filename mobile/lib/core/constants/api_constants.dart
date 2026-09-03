@@ -24,6 +24,12 @@ class ApiConstants {
   static const Duration receiveTimeout = Duration(seconds: 30);
   static const Duration sendTimeout = Duration(seconds: 30);
 
+  // Razorpay Public Client Key
+  static const String razorpayKey = String.fromEnvironment(
+    'RAZORPAY_KEY',
+    defaultValue: 'rzp_test_TOLklKfn3cRx4x',
+  );
+
   // Authentication & NextAuth Session Endpoints
   static const String csrfEndpoint = '/api/auth/csrf';
   static const String credentialsCallbackEndpoint = '/api/auth/callback/credentials';
@@ -45,6 +51,7 @@ class ApiConstants {
   static const String coursesEndpoint = '/api/courses';
   static const String publicCoursesEndpoint = '/api/public/courses';
   static const String publicNoticesEndpoint = '/api/public/notices';
+  static const String dailyQuoteEndpoint = '/api/public/daily-quote';
   static const String studentEnrollmentsEndpoint = '/api/student/enrollments';
   static const String notificationsEndpoint = '/api/notifications';
   static const String attendanceEndpoint = '/api/attendance';

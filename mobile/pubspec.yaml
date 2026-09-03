@@ -50,6 +50,9 @@ dependencies:
   pdf: ^3.13.0
   printing: ^5.15.0
 
+  # Payment Gateway
+  razorpay_flutter: ^1.4.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -58,6 +61,7 @@ dev_dependencies:
   riverpod_generator: ^2.6.4
   freezed: ^2.5.7
   json_serializable: ^6.9.4
+  coverage: ^1.15.1
 
 flutter:
   uses-material-design: true

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
 import '../domain/payment_entity.dart';
+import '../domain/billing_entity.dart';
 
 final paymentsRepositoryProvider = Provider<PaymentsRepository>((ref) {
   final client = ref.watch(dioClientProvider);
@@ -41,6 +42,7 @@ class PaymentsRepository {
       return RazorpayOrderEntity(
         orderId: data['orderId'] as String,
         amount: amountInPaise,
+        keyId: data['keyId'] as String?,
       );
     }
 
@@ -61,9 +63,18 @@ class PaymentsRepository {
       return RazorpayOrderEntity(
         orderId: data['orderId'] as String,
         amount: data['amount'] as int? ?? 0,
+        currency: data['currency'] as String? ?? 'INR',
+        keyId: data['keyId'] as String?,
       );
     }
 
     throw Exception(data['error'] ?? 'Failed to generate renewal order ID');
+  }
+
+  /// Fetches the unified billing summary for the student
+  Future<BillingSummaryEntity> getBillingSummary() async {
+    final response = await _client.get('/api/student/payments');
+    final data = response.data as Map<String, dynamic>;
+    return BillingSummaryEntity.fromJson(data);
   }
 }

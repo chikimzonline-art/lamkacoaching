@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/utils/formatters.dart';
 import '../../../auth/presentation/controllers/auth_notifier.dart';
 import '../../../auth/presentation/controllers/auth_state.dart';
 import '../../domain/cabin_entity.dart';
@@ -380,7 +381,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          '₹$monthlyFee',
+                          Formatters.formatPaiseToRupees(monthlyFee),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -402,7 +403,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            '₹$regFee',
+                            Formatters.formatPaiseToRupees(regFee),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -430,7 +431,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          '₹$totalDue',
+                          Formatters.formatPaiseToRupees(totalDue),
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
@@ -550,7 +551,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Proceed to Payment (₹$totalDue)',
+                              'Proceed to Payment (${Formatters.formatPaiseToRupees(totalDue)})',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,

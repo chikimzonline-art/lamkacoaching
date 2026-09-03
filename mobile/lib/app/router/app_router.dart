@@ -11,6 +11,7 @@ import '../../features/dashboard/presentation/screens/staff_dashboard_screen.dar
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/dashboard/presentation/screens/scanner_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_hub_screen.dart';
+import '../../features/dashboard/presentation/screens/notices_screen.dart';
 import '../../features/profile/presentation/screens/more_screen.dart';
 import '../../features/payments/presentation/screens/payment_history_screen.dart';
 import 'app_navigation_shell.dart';
@@ -58,6 +59,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.paymentHistory,
         name: 'payment-history',
         builder: (context, state) => const PaymentHistoryScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.notices,
+        name: 'notices',
+        builder: (context, state) => const NoticesScreen(),
       ),
 
       // 4-Tab Student Shell Route

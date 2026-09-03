@@ -207,12 +207,14 @@ class StudentDashboardSummary {
   final List<StudentScheduleItem> todaySchedule;
   final List<NoticeEntity> notices;
   final ActiveDeskBookingEntity? activeBooking;
+  final String? dailyQuote;
 
   const StudentDashboardSummary({
     this.enrollments = const [],
     this.todaySchedule = const [],
     this.notices = const [],
     this.activeBooking,
+    this.dailyQuote,
   });
 
   bool get hasActiveEnrollments => enrollments.isNotEmpty;
@@ -224,12 +226,14 @@ class StudentDashboardSummary {
     List<StudentScheduleItem>? todaySchedule,
     List<NoticeEntity>? notices,
     ActiveDeskBookingEntity? activeBooking,
+    String? dailyQuote,
   }) {
     return StudentDashboardSummary(
       enrollments: enrollments ?? this.enrollments,
       todaySchedule: todaySchedule ?? this.todaySchedule,
       notices: notices ?? this.notices,
       activeBooking: activeBooking ?? this.activeBooking,
+      dailyQuote: dailyQuote ?? this.dailyQuote,
     );
   }
 }

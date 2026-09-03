@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../domain/cabin_entity.dart';
 
 class PricingOverviewGrid extends StatelessWidget {
@@ -24,7 +25,7 @@ class PricingOverviewGrid extends StatelessWidget {
                 bgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5),
                 borderColor: isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0),
                 title: 'Reserved',
-                price: '₹${pricing.reservedRate}',
+                price: Formatters.formatPaiseToRupees(pricing.reservedRate),
                 subtitle: '24/7 access',
                 highlightPriceColor: const Color(0xFF047857),
               ),
@@ -37,7 +38,7 @@ class PricingOverviewGrid extends StatelessWidget {
                 bgColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                 title: 'Morning Shift',
-                price: '₹${pricing.morningShiftRate}',
+                price: Formatters.formatPaiseToRupees(pricing.morningShiftRate),
                 subtitle: '5am - 10am',
                 highlightPriceColor: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
@@ -54,7 +55,7 @@ class PricingOverviewGrid extends StatelessWidget {
                 bgColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                 title: 'Day Shift',
-                price: '₹${pricing.dayShiftRate}',
+                price: Formatters.formatPaiseToRupees(pricing.dayShiftRate),
                 subtitle: '10am - 5pm',
                 highlightPriceColor: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
@@ -67,7 +68,7 @@ class PricingOverviewGrid extends StatelessWidget {
                 bgColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                 title: 'Night Shift',
-                price: '₹${pricing.nightShiftRate}',
+                price: Formatters.formatPaiseToRupees(pricing.nightShiftRate),
                 subtitle: '5pm - 12am',
                 highlightPriceColor: isDark ? Colors.white : const Color(0xFF0F172A),
               ),

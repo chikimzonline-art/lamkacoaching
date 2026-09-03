@@ -16,6 +16,7 @@ abstract class DashboardRemoteDataSource {
   Future<List<EnrollmentEntity>> fetchStudentEnrollments();
   Future<List<NoticeEntity>> fetchPublicNotices();
   Future<ActiveDeskBookingEntity?> fetchActiveDeskBooking(String studentId);
+  Future<String?> fetchDailyQuote();
   Future<StudentDashboardSummary> getDashboardSummary(String studentId);
 }
 
@@ -29,7 +30,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   Future<List<EnrollmentEntity>> fetchStudentEnrollments() async {
     try {
       final response = await _dio.get(ApiConstants.studentEnrollmentsEndpoint);
-      if (response.data == null) return [];
+      if (response.data == null) return <EnrollmentEntity>[];
 
       final data = response.data as Map<String, dynamic>;
       final rawList = data['enrollments'] as List<dynamic>? ?? [];
@@ -37,7 +38,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
           .map((e) => EnrollmentEntity.fromJson(e as Map<String, dynamic>))
           .toList();
     } catch (_) {
-      return [];
+      return <EnrollmentEntity>[];
     }
   }
 
@@ -45,7 +46,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   Future<List<NoticeEntity>> fetchPublicNotices() async {
     try {
       final response = await _dio.get(ApiConstants.publicNoticesEndpoint);
-      if (response.data == null) return [];
+      if (response.data == null) return <NoticeEntity>[];
 
       final data = response.data as Map<String, dynamic>;
       final rawList = data['notices'] as List<dynamic>? ?? [];
@@ -53,24 +54,49 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
           .map((n) => NoticeEntity.fromJson(n as Map<String, dynamic>))
           .toList();
     } catch (_) {
-      return [];
+      return <NoticeEntity>[];
     }
   }
 
   @override
   Future<ActiveDeskBookingEntity?> fetchActiveDeskBooking(String studentId) async {
     try {
-      final response = await _dio.get(
-        ApiConstants.bookingsEndpoint,
-        queryParameters: {'studentId': studentId, 'status': 'active'},
-      );
+      final response = await _dio.get(ApiConstants.studentCabinsEndpoint);
       if (response.data == null) return null;
 
       final data = response.data as Map<String, dynamic>;
-      final rawList = data['bookings'] as List<dynamic>? ?? [];
-      if (rawList.isEmpty) return null;
+      final myBookings = data['myBookings'] as List<dynamic>? ?? [];
+      
+      // Find the first active booking
+      final activeBookings = myBookings.where((b) {
+        final status = (b as Map<String, dynamic>)['status'] as String?;
+        return status == 'active';
+      }).toList();
 
-      return ActiveDeskBookingEntity.fromJson(rawList.first as Map<String, dynamic>);
+      if (activeBookings.isEmpty) return null;
+
+      return ActiveDeskBookingEntity.fromJson(activeBookings.first as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<String?> fetchDailyQuote() async {
+    try {
+      final response = await _dio.get(ApiConstants.dailyQuoteEndpoint);
+      if (response.data == null) return null;
+
+      final data = response.data as Map<String, dynamic>;
+      final quote = data['quote'] as Map<String, dynamic>?;
+      if (quote != null) {
+        final text = quote['text'] as String?;
+        final author = quote['author'] as String?;
+        if (text != null && text.isNotEmpty) {
+          return author != null && author.isNotEmpty ? '"$text" — $author' : '"$text"';
+        }
+      }
+      return null;
     } catch (_) {
       return null;
     }
@@ -82,11 +108,13 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       fetchStudentEnrollments(),
       fetchPublicNotices(),
       fetchActiveDeskBooking(studentId),
+      fetchDailyQuote(),
     ]);
 
     final enrollments = results[0] as List<EnrollmentEntity>;
     final notices = results[1] as List<NoticeEntity>;
     final activeBooking = results[2] as ActiveDeskBookingEntity?;
+    final dailyQuote = results[3] as String?;
 
     final scheduleItems = _deriveTodaySchedule(enrollments);
 
@@ -95,6 +123,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       todaySchedule: scheduleItems,
       notices: notices,
       activeBooking: activeBooking,
+      dailyQuote: dailyQuote,
     );
   }
 

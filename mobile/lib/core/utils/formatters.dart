@@ -44,6 +44,19 @@ class Formatters {
     return _currencyFormat.format(amount);
   }
 
+  /// Converts an amount in Paise to Rupees and formats it (e.g. 150000 -> ₹1,500.00)
+  static String formatPaiseToRupees(num? paiseAmount) {
+    if (paiseAmount == null) return '₹0.00';
+    
+    final rupeeFormat = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 2,
+    );
+    
+    return rupeeFormat.format(paiseAmount / 100);
+  }
+
   /// Format duration in minutes into "2h 30m" or "45m"
   static String formatDurationMinutes(int totalMinutes) {
     final hours = totalMinutes ~/ 60;
