@@ -9,7 +9,7 @@ class ApiConstants {
   // Determine local vs staging vs production environment
   static String get baseUrl {
     if (kReleaseMode) {
-      return 'https://lamkacoaching.com';
+      return 'https://www.lamkacoaching.in';
     }
     // Android emulator cannot access localhost directly; it uses 10.0.2.2
     if (!kIsWeb && Platform.isAndroid) {

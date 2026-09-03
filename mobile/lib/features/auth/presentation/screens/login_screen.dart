@@ -343,7 +343,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             key: const Key('login_identifier_field'),
                             controller: _identifierController,
                             label: 'Email, Phone or Username',
-                            hint: 'student@lamkacoaching.com',
+                            hint: 'student@lamkacoaching.in',
                             keyboardType: TextInputType.emailAddress,
                             prefixIcon: const Icon(
                               Icons.person_outline_rounded,

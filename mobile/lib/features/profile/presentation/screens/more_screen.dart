@@ -381,7 +381,7 @@ class MoreScreen extends ConsumerWidget {
                         style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => _launchWebUrl(context, 'https://lamkacoaching.com/privacy'),
+                      onTap: () => _launchWebUrl(context, 'https://www.lamkacoaching.in/privacy'),
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -396,7 +396,7 @@ class MoreScreen extends ConsumerWidget {
                         style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => _launchWebUrl(context, 'https://lamkacoaching.com/terms'),
+                      onTap: () => _launchWebUrl(context, 'https://www.lamkacoaching.in/terms'),
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -521,7 +521,7 @@ class MoreScreen extends ConsumerWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              _launchWebUrl(context, 'https://lamkacoaching.com/delete-account');
+              _launchWebUrl(context, 'https://www.lamkacoaching.in/delete-account');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,

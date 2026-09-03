@@ -43,7 +43,7 @@ class ReceiptGeneratorService {
                       pw.SizedBox(height: 4),
                       pw.Text('IB Road, Churachandpur'),
                       pw.Text('Manipur, India'),
-                      pw.Text('Website: lamkacoaching.com'),
+                      pw.Text('Website: lamkacoaching.in'),
                     ],
                   ),
                   pw.Container(
