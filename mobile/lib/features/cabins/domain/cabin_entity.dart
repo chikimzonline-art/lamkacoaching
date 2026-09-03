@@ -77,6 +77,28 @@ class CabinEntity {
     return bookedShifts.contains(shiftType);
   }
 
+  bool get isFullyBooked {
+    if (isOccupied) return true;
+    if (bookedShifts.contains('reserved')) return true;
+    return bookedShifts.length >= 3;
+  }
+
+  bool get hasAvailableShift => !isFullyBooked;
+
+  bool isShiftAvailable(String shiftType) {
+    if (isFullyBooked) return false;
+    return !isShiftBooked(shiftType);
+  }
+
+  int get freeShiftsCount {
+    if (isFullyBooked) return 0;
+    int count = 0;
+    if (!isShiftBooked('morning_shift')) count++;
+    if (!isShiftBooked('day_shift')) count++;
+    if (!isShiftBooked('night_shift')) count++;
+    return count;
+  }
+
   factory CabinEntity.fromJson(Map<String, dynamic> json) {
     final rawShifts = json['activeShiftsToday'] as List<dynamic>? ?? [];
     final rawBookedShifts = json['bookedShifts'] as List<dynamic>? ?? [];
@@ -277,6 +299,12 @@ class MyCabinBookingEntity {
       default:
         return type.replaceAll('_', ' ');
     }
+  }
+
+  int? get daysRemaining {
+    if (endDate == null) return null;
+    final diff = endDate!.difference(DateTime.now()).inDays;
+    return diff >= 0 ? diff : 0;
   }
 
   factory MyCabinBookingEntity.fromJson(Map<String, dynamic> json) {

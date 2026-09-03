@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/controllers/auth_notifier.dart';
 import '../../features/auth/presentation/controllers/auth_state.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/cabins/presentation/screens/cabins_screen.dart';
 import '../../features/courses/presentation/screens/courses_screen.dart';
 import '../../features/dashboard/presentation/screens/staff_dashboard_screen.dart';
@@ -12,6 +13,7 @@ import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/dashboard/presentation/screens/scanner_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_hub_screen.dart';
 import '../../features/dashboard/presentation/screens/notices_screen.dart';
+import '../../features/dashboard/presentation/screens/schedule_attendance_screen.dart';
 import '../../features/profile/presentation/screens/more_screen.dart';
 import '../../features/payments/presentation/screens/payment_history_screen.dart';
 import 'app_navigation_shell.dart';
@@ -26,11 +28,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: AppRoutes.login,
+    initialLocation: AppRoutes.splash,
     debugLogDiagnostics: false,
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(
+        path: AppRoutes.splash,
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: AppRoutes.login,
         name: 'login',
@@ -65,6 +72,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'notices',
         builder: (context, state) => const NoticesScreen(),
       ),
+      GoRoute(
+        path: AppRoutes.scheduleAttendance,
+        name: 'schedule-attendance',
+        builder: (context, state) => const ScheduleAttendanceScreen(),
+      ),
 
       // 4-Tab Student Shell Route
       StatefulShellRoute.indexedStack(
@@ -89,7 +101,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.courses,
                 name: 'courses',
-                builder: (context, state) => const CoursesScreen(),
+                builder: (context, state) {
+                  final tab = state.uri.queryParameters['tab'];
+                  return CoursesScreen(initialTab: tab);
+                },
               ),
             ],
           ),
@@ -100,7 +115,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.cabins,
                 name: 'cabins',
-                builder: (context, state) => const CabinsScreen(),
+                builder: (context, state) {
+                  final tab = state.uri.queryParameters['tab'];
+                  return CabinsScreen(initialTab: tab);
+                },
               ),
             ],
           ),
@@ -144,6 +162,11 @@ class RouterNotifier extends ChangeNotifier {
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authNotifierProvider);
     final isLoggingIn = state.matchedLocation == AppRoutes.login;
+
+    final isSplash = state.matchedLocation == AppRoutes.splash;
+    if (isSplash) {
+      return null;
+    }
 
     // While initializing or actively authenticating, do not force redirects
     if (authState is AuthInitial || authState is Authenticating) {

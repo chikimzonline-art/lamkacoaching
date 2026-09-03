@@ -37,17 +37,48 @@ class CoursesState {
       courses.addAll(dept.courses);
     }
 
-    if (searchQuery.trim().isEmpty) {
-      return courses;
+    if (searchQuery.trim().isNotEmpty) {
+      final query = searchQuery.trim().toLowerCase();
+      courses = courses.where((c) {
+        final nameMatches = c.name.toLowerCase().contains(query);
+        final deptMatches = c.departmentName.toLowerCase().contains(query);
+        final descMatches = c.description?.toLowerCase().contains(query) ?? false;
+        return nameMatches || deptMatches || descMatches;
+      }).toList();
     }
 
-    final query = searchQuery.trim().toLowerCase();
-    return courses.where((c) {
-      final nameMatches = c.name.toLowerCase().contains(query);
-      final deptMatches = c.departmentName.toLowerCase().contains(query);
-      final descMatches = c.description?.toLowerCase().contains(query) ?? false;
-      return nameMatches || deptMatches || descMatches;
-    }).toList();
+    // Intelligent multi-tier sorting:
+    // Tier 3 (top): Open batches with available seats
+    // Tier 2: Upcoming / scheduled batches
+    // Tier 1 (bottom): No open batches or all batches full
+    courses.sort((a, b) {
+      int getAvailabilityScore(CourseEntity c) {
+        final hasSeatsAvailable = c.batches.any((batch) => batch.hasSeats);
+        if (hasSeatsAvailable) return 3;
+        if (c.batches.isNotEmpty) return 2;
+        return 1;
+      }
+
+      final scoreDiff = getAvailabilityScore(b).compareTo(getAvailabilityScore(a));
+      if (scoreDiff != 0) return scoreDiff;
+
+      // Secondary sort: earliest next batch start date
+      final aDate = a.effectiveNextBatch?.startDate;
+      final bDate = b.effectiveNextBatch?.startDate;
+      if (aDate != null && bDate != null) {
+        return aDate.compareTo(bDate);
+      }
+      return a.name.compareTo(b.name);
+    });
+
+    return courses;
+  }
+
+  /// Courses with high demand, imminent start dates, or fast-filling batches.
+  List<CourseEntity> get trendingCourses {
+    return filteredCourses.where((c) {
+      return c.batches.any((b) => b.hasSeats);
+    }).take(5).toList();
   }
 
   CoursesState copyWith({

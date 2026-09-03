@@ -131,12 +131,18 @@ class _DigitalIdPassModalState extends State<DigitalIdPassModal>
                                     .withValues(alpha: 0.15),
                                 borderRadius: AppDimensions.borderRadiusSm,
                               ),
-                              child: Icon(
-                                Icons.verified_rounded,
-                                size: 18,
-                                color: isDark
-                                    ? AppColors.darkAccentTeal
-                                    : AppColors.lightAccentSky,
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                width: 20,
+                                height: 20,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  Icons.school_rounded,
+                                  size: 18,
+                                  color: isDark
+                                      ? AppColors.darkAccentTeal
+                                      : AppColors.lightAccentSky,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),

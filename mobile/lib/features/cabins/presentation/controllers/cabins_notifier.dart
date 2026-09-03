@@ -6,28 +6,38 @@ import '../../domain/cabins_repository.dart';
 class CabinsState {
   final AsyncValue<StudentCabinDashboardData> dashboardData;
   final int? selectedFloor; // null means 'All Floors'
+  final bool showAvailableOnly;
 
   const CabinsState({
     required this.dashboardData,
     this.selectedFloor,
+    this.showAvailableOnly = false,
   });
 
   CabinsState copyWith({
     AsyncValue<StudentCabinDashboardData>? dashboardData,
     int? selectedFloor,
+    bool? showAvailableOnly,
     bool clearFloor = false,
   }) {
     return CabinsState(
       dashboardData: dashboardData ?? this.dashboardData,
       selectedFloor: clearFloor ? null : (selectedFloor ?? this.selectedFloor),
+      showAvailableOnly: showAvailableOnly ?? this.showAvailableOnly,
     );
   }
 
   List<CabinEntity> get filteredCabins {
     final data = dashboardData.valueOrNull;
     if (data == null) return [];
-    if (selectedFloor == null) return data.cabins;
-    return data.cabins.where((c) => c.floor == selectedFloor).toList();
+    var cabins = data.cabins;
+    if (selectedFloor != null) {
+      cabins = cabins.where((c) => c.floor == selectedFloor).toList();
+    }
+    if (showAvailableOnly) {
+      cabins = cabins.where((c) => c.hasAvailableShift).toList();
+    }
+    return cabins;
   }
 }
 
@@ -61,6 +71,10 @@ class CabinsNotifier extends StateNotifier<CabinsState> {
     } else {
       state = state.copyWith(selectedFloor: floor);
     }
+  }
+
+  void toggleAvailableOnly() {
+    state = state.copyWith(showAvailableOnly: !state.showAvailableOnly);
   }
 
   Future<void> cancelPendingCheckout(String bookingId) async {

@@ -3,6 +3,7 @@ class AppRoutes {
   AppRoutes._();
 
   static const String initial = '/';
+  static const String splash = '/splash';
   static const String login = '/login';
   static const String dashboard = '/dashboard';
   static const String adminOverview = '/admin-overview';
@@ -15,4 +16,5 @@ class AppRoutes {
   static const String studyMaterials = '/study-materials';
   static const String paymentHistory = '/payment-history';
   static const String notices = '/notices';
+  static const String scheduleAttendance = '/schedule-attendance';
 }

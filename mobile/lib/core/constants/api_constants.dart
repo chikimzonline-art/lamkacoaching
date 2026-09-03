@@ -53,6 +53,7 @@ class ApiConstants {
   static const String publicNoticesEndpoint = '/api/public/notices';
   static const String dailyQuoteEndpoint = '/api/public/daily-quote';
   static const String studentEnrollmentsEndpoint = '/api/student/enrollments';
+  static const String studentWaitlistEndpoint = '/api/student/waitlist';
   static const String notificationsEndpoint = '/api/notifications';
   static const String attendanceEndpoint = '/api/attendance';
   static const String attendanceSelfEndpoint = '/api/attendance/self';

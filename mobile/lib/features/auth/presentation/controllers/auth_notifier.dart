@@ -73,6 +73,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return true;
   }
 
+  /// Resets the `justLoggedIn` flag once the first-login prompt has been handled.
+  void consumeJustLoggedIn() {
+    if (state is Authenticated) {
+      final current = state as Authenticated;
+      if (current.justLoggedIn) {
+        state = Authenticated(current.user, justLoggedIn: false);
+      }
+    }
+  }
+
   /// Authenticates using native device biometrics (Fingerprint / Face ID).
   Future<bool> authenticateWithBiometrics() async {
     state = const Authenticating(statusMessage: 'Scanning biometrics...');

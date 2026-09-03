@@ -27,4 +27,24 @@ class CoursesRepositoryImpl implements CoursesRepository {
       return Left(UnknownFailure(message: e.toString()));
     }
   }
+
+  @override
+  Future<String> createEnrollmentDraft({required String courseId, required String batchId}) {
+    return _remoteDataSource.createEnrollmentDraft(courseId: courseId, batchId: batchId);
+  }
+
+  @override
+  Future<void> cancelEnrollmentDraft(String enrollmentId) {
+    return _remoteDataSource.cancelEnrollmentDraft(enrollmentId);
+  }
+
+  @override
+  Future<bool> joinCourseWaitlist(String courseId) {
+    return _remoteDataSource.joinCourseWaitlist(courseId);
+  }
+
+  @override
+  Future<bool> checkWaitlistStatus(String courseId) {
+    return _remoteDataSource.checkWaitlistStatus(courseId);
+  }
 }

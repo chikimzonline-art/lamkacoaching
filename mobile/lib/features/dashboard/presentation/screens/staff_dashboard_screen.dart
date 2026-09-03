@@ -23,11 +23,26 @@ class StaffDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Staff Hub',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 26,
+                height: 26,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 24),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Staff Hub',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(

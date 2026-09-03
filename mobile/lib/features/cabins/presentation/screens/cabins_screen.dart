@@ -14,19 +14,34 @@ import '../widgets/pricing_overview_grid.dart';
 import '../widgets/booking_success_dialog.dart';
 
 class CabinsScreen extends ConsumerStatefulWidget {
-  const CabinsScreen({super.key});
+  final String? initialTab;
+
+  const CabinsScreen({super.key, this.initialTab});
 
   @override
   ConsumerState<CabinsScreen> createState() => _CabinsScreenState();
 }
 
-class _CabinsScreenState extends ConsumerState<CabinsScreen> with SingleTickerProviderStateMixin {
+class _CabinsScreenState extends ConsumerState<CabinsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    if (widget.initialTab == 'my-cabins' || widget.initialTab == 'my-desks') {
+      _tabController.index = 1;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CabinsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTab != oldWidget.initialTab &&
+        (widget.initialTab == 'my-cabins' || widget.initialTab == 'my-desks')) {
+      _tabController.animateTo(1);
+    }
   }
 
   @override
@@ -81,9 +96,13 @@ class _CabinsScreenState extends ConsumerState<CabinsScreen> with SingleTickerPr
               unselectedLabelColor: isDark ? Colors.white54 : const Color(0xFF64748B),
               labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-              tabs: const [
-                Tab(text: 'Explore & Book'),
-                Tab(text: 'My Active Desks'),
+              tabs: [
+                const Tab(text: 'Explore & Book'),
+                Tab(
+                  text: (state.dashboardData.valueOrNull?.myBookings.isNotEmpty ?? false)
+                      ? 'My Active Desks (${state.dashboardData.valueOrNull!.myBookings.length})'
+                      : 'My Active Desks',
+                ),
               ],
             ),
           ),
@@ -187,27 +206,32 @@ class _CabinsScreenState extends ConsumerState<CabinsScreen> with SingleTickerPr
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Study Cabins Seat Matrix',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Study Cabins Seat Matrix',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Book a personal study space with AC & Wi-Fi',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Book a personal study space with AC & Wi-Fi',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
@@ -242,7 +266,63 @@ class _CabinsScreenState extends ConsumerState<CabinsScreen> with SingleTickerPr
                       selectedFloor: state.selectedFloor,
                       onFloorSelected: (f) => notifier.selectFloor(f),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
+
+                    // Filter Status Row + Available Only Toggle Chip
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'SHOWING ${state.filteredCabins.length} CABINS',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilterChip(
+                          avatar: Icon(
+                            state.showAvailableOnly
+                                ? Icons.check_circle_rounded
+                                : Icons.filter_alt_outlined,
+                            size: 14,
+                            color: state.showAvailableOnly
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : const Color(0xFF475569)),
+                          ),
+                          label: const Text('Available Only'),
+                          selected: state.showAvailableOnly,
+                          onSelected: (_) => notifier.toggleAvailableOnly(),
+                          selectedColor: const Color(0xFF059669),
+                          labelStyle: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: state.showAvailableOnly
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : const Color(0xFF475569)),
+                          ),
+                          backgroundColor: isDark
+                              ? const Color(0xFF1E293B)
+                              : const Color(0xFFF1F5F9),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          side: BorderSide(
+                            color: state.showAvailableOnly
+                                ? Colors.transparent
+                                : (isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
                     // Cabin List Items
                     ...state.filteredCabins.map((cabin) {
@@ -288,7 +368,10 @@ class _CabinsScreenState extends ConsumerState<CabinsScreen> with SingleTickerPr
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   children: [
-                    MyCabinsTab(bookings: data.myBookings),
+                    MyCabinsTab(
+                      bookings: data.myBookings,
+                      onExploreTap: () => _tabController.animateTo(0),
+                    ),
                   ],
                 ),
               ),

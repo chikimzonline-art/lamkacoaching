@@ -30,6 +30,7 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+/build
 /build/
 /coverage/
 
@@ -46,3 +47,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Android Signing Keys & Credentials
+*.jks
+*.keystore
+**/key.properties

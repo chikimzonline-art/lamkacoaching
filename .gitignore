@@ -47,8 +47,8 @@ next-env.d.ts
 *.log
 dev.log
 dev.out.log
-test
-prompt
+/test
+/prompt
 
 server.log
 # Skills directory
@@ -68,3 +68,10 @@ android/app/release/
 *.aab
 *.jks
 *.keystore
+**/key.properties
+
+# Flutter / Mobile build & ephemeral
+mobile/build
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins*

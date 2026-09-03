@@ -1,54 +1,34 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
 
-/// Riverpod provider for the local Isar database instance.
-final isarDatabaseServiceProvider = Provider<IsarDatabaseService>((ref) {
-  return IsarDatabaseService();
+/// Riverpod provider for local database management.
+final localDatabaseServiceProvider = Provider<LocalDatabaseService>((ref) {
+  return LocalDatabaseService();
 });
 
-/// High-performance local embedded database for offline-first caching.
-class IsarDatabaseService {
-  Isar? _isar;
+/// Backwards-compatibility alias for previous provider name
+final isarDatabaseServiceProvider = localDatabaseServiceProvider;
 
-  Isar get isar {
-    if (_isar == null || !_isar!.isOpen) {
-      throw StateError(
-        'Isar database is not initialized. Call initialize() before accessing.',
-      );
-    }
-    return _isar!;
+/// Lightweight local database stub for offline state caching.
+class LocalDatabaseService {
+  bool _isInitialized = false;
+
+  bool get isInitialized => _isInitialized;
+
+  /// Initialize local database resources.
+  Future<void> initialize() async {
+    _isInitialized = true;
   }
 
-  /// Initialize the local Isar database.
-  Future<void> initialize({
-    List<CollectionSchema<dynamic>> schemas = const [],
-  }) async {
-    if (_isar != null && _isar!.isOpen) return;
-
-    final dir = await getApplicationDocumentsDirectory();
-    _isar = await Isar.open(
-      schemas,
-      directory: dir.path,
-      name: 'lamka_coaching_db',
-      inspector: false,
-    );
-  }
-
-  /// Close and clean up the database instance.
+  /// Close and clean up resources.
   Future<void> close() async {
-    if (_isar != null && _isar!.isOpen) {
-      await _isar!.close();
-      _isar = null;
-    }
+    _isInitialized = false;
   }
 
-  /// Clear all collections for session logout or hard reset.
+  /// Clear stored caches for session logout or hard reset.
   Future<void> clearAll() async {
-    if (_isar != null && _isar!.isOpen) {
-      await _isar!.writeTxn(() async {
-        await _isar!.clear();
-      });
-    }
+    _isInitialized = false;
   }
 }
+
+/// Backwards-compatibility class alias
+typedef IsarDatabaseService = LocalDatabaseService;

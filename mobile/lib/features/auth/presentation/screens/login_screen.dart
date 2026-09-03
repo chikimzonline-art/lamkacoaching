@@ -43,123 +43,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final identifier = _identifierController.text.trim();
     final password = _passwordController.text;
 
-    final success = await ref
+    await ref
         .read(authNotifierProvider.notifier)
         .login(identifier: identifier, password: password);
-
-    if (success && mounted) {
-      _checkBiometricEnrollmentPrompt();
-    }
   }
 
   Future<void> _handleBiometricLogin() async {
     await HapticService.selectionClick();
     await ref.read(authNotifierProvider.notifier).authenticateWithBiometrics();
-  }
-
-  void _checkBiometricEnrollmentPrompt() {
-    final authState = ref.read(authNotifierProvider);
-    if (authState is Authenticated && authState.justLoggedIn) {
-      // Prompt user to enable 1-Tap Biometric login if not yet enabled
-      _showBiometricEnrollmentSheet();
-    }
-  }
-
-  void _showBiometricEnrollmentSheet() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark
-          ? AppColors.darkSurfaceElevated
-          : AppColors.lightSurfaceElevated,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24.0,
-              vertical: 20.0,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.darkAccentTeal.withValues(alpha: 0.15)
-                        : AppColors.lightAccentSky.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.fingerprint_rounded,
-                    size: 40,
-                    color: isDark
-                        ? AppColors.darkAccentTeal
-                        : AppColors.lightAccentSky,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Enable 1-Tap Biometrics?',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Use your fingerprint or Face ID to quickly and securely unlock your account next time.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        text: 'Not Now',
-                        variant: AppButtonVariant.outline,
-                        onPressed: () => Navigator.of(ctx).pop(),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppButton(
-                        text: 'Enable 1-Tap',
-                        onPressed: () async {
-                          await ref
-                              .read(authNotifierProvider.notifier)
-                              .setBiometricsEnrolled(true);
-                          if (ctx.mounted) {
-                            Navigator.of(ctx).pop();
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -211,25 +102,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // App Title / Brand Header
                   Center(
                     child: Container(
-                      width: 56,
-                      height: 56,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
                         color: isDark
                             ? AppColors.darkSurfaceElevated
                             : AppColors.lightSurfaceElevated,
-                        borderRadius: AppDimensions.borderRadiusLg,
+                        shape: BoxShape.circle,
                         border: Border.all(
                           color: isDark
                               ? AppColors.darkBorder
                               : AppColors.lightBorder,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      child: Icon(
-                        Icons.school_rounded,
-                        size: 30,
-                        color: isDark
-                            ? AppColors.darkAccentTeal
-                            : AppColors.lightAccentSky,
+                      padding: const EdgeInsets.all(10),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.school_rounded,
+                          size: 32,
+                          color: isDark
+                              ? AppColors.darkAccentTeal
+                              : AppColors.lightAccentSky,
+                        ),
                       ),
                     ),
                   ),
@@ -350,6 +253,89 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: AppDimensions.space16),
+                          ],
+
+                          // Prominent 1-Tap Biometric Quick Login Card
+                          if (canUseBiometrics) ...[
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isDark
+                                      ? [const Color(0xFF064E3B), const Color(0xFF047857)]
+                                      : [const Color(0xFF059669), const Color(0xFF10B981)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF059669).withValues(alpha: 0.3),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: isLoading ? null : _handleBiometricLogin,
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.fingerprint_rounded, color: Colors.white, size: 28),
+                                        SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '1-Tap Biometric Unlock',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              SizedBox(height: 2),
+                                              Text(
+                                                'Touch sensor to sign in instantly',
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(Icons.chevron_right_rounded, color: Colors.white70),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Row(
+                              children: [
+                                Expanded(child: Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  child: Text(
+                                    'OR SIGN IN WITH PASSWORD',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(child: Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
                           ],
 
                           // Identifier Field (Phone / Email / Username)

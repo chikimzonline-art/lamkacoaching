@@ -9,7 +9,11 @@ import '../../../../app/theme/theme_provider.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_error_view.dart';
 import '../../../../core/widgets/app_loading_view.dart';
+import '../../../auth/data/auth_repository_impl.dart';
 import '../../../auth/presentation/controllers/auth_notifier.dart';
+import '../../../auth/presentation/controllers/auth_state.dart';
+import '../../../auth/presentation/widgets/biometric_enrollment_sheet.dart';
+import '../../../../core/security/local_auth_service.dart';
 import '../../domain/student_dashboard_entity.dart';
 import '../controllers/student_dashboard_controller.dart';
 import '../widgets/digital_id_pass_modal.dart';
@@ -35,14 +39,38 @@ class DashboardScreen extends ConsumerWidget {
     final notificationsState = ref.watch(notificationsControllerProvider);
     final unreadCount = notificationsState.valueOrNull?.where((n) => !n.read).length ?? 0;
 
+    // Prompt user to enable 1-Tap Biometrics after first successful login
+    if (authState is Authenticated && authState.justLoggedIn) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        ref.read(authNotifierProvider.notifier).consumeJustLoggedIn();
+        final localAuth = ref.read(localAuthServiceProvider);
+        final isAvailable = await localAuth.isBiometricsAvailable();
+        final authRepo = ref.read(authRepositoryProvider);
+        final isEnrolled = await authRepo.isBiometricsEnrolled();
+
+        if (isAvailable && !isEnrolled && context.mounted) {
+          await BiometricEnrollmentSheet.show(context);
+        }
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(
-              Icons.school,
-              size: 28,
-              color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.school,
+                  size: 28,
+                  color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
+                ),
+              ),
             ),
             const SizedBox(width: 10),
             Text(
@@ -358,6 +386,12 @@ class DashboardScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final desk = summary.activeBooking;
 
+    final accentColor = isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky;
+
+    void navigateToMyCabins() {
+      context.go('${AppRoutes.cabins}?tab=my-cabins');
+    }
+
     if (desk == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,199 +409,258 @@ class DashboardScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: AppDimensions.space12),
-          Container(
-            padding: const EdgeInsets.all(AppDimensions.space20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark 
-                  ? [const Color(0xFF1A1A1A), const Color(0xFF242424)]
-                  : [const Color(0xFFF0F0F0), const Color(0xFFFAFAFA)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.desk,
-                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                    size: 28,
-                  ),
+          InkWell(
+            onTap: () => context.go(AppRoutes.cabins),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(AppDimensions.space20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark 
+                    ? [const Color(0xFF1A1A1A), const Color(0xFF242424)]
+                    : [const Color(0xFFF0F0F0), const Color(0xFFFAFAFA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                const SizedBox(width: AppDimensions.space16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'No Active Booking',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Book a quiet study space now.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                 ),
-                const SizedBox(width: AppDimensions.space12),
-                ElevatedButton(
-                  onPressed: () => context.go(AppRoutes.cabins),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size.zero,
-                    backgroundColor: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
-                    foregroundColor: AppColors.lightBackground,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Icon(
+                      Icons.desk,
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                      size: 28,
+                    ),
                   ),
-                  child: const Text('Book'),
-                ),
-              ],
+                  const SizedBox(width: AppDimensions.space16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'No Active Booking',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Book a quiet study space now.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppDimensions.space12),
+                  ElevatedButton(
+                    onPressed: () => context.go(AppRoutes.cabins),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size.zero,
+                      backgroundColor: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
+                      foregroundColor: AppColors.lightBackground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    child: const Text('Book'),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.roleStudent.withValues(alpha: 0.15),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 60,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.roleStudent.withValues(alpha: 0.1),
-                    Colors.transparent,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.desk, color: AppColors.roleStudent, size: 24),
+            const SizedBox(width: 8),
+            Text(
+              'My Active Desk',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+              ),
+            ),
+            const Spacer(),
+            InkWell(
+              onTap: navigateToMyCabins,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'My Desks',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: accentColor,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: accentColor,
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        const SizedBox(height: AppDimensions.space12),
+        InkWell(
+          onTap: navigateToMyCabins,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.roleStudent.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
               children: [
-                Expanded(
-                  child: Column(
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 60,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.roleStudent.withValues(alpha: 0.1),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            'Active Study Cabin #${desk.cabinNum}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  'Active Study Cabin #${desk.cabinNum}',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4edea3).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    'RESERVED',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4edea3),
+                                      letterSpacing: 1.1,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4edea3).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(10),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(Icons.location_on, size: 16, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Floor ${desk.floor} • Quiet Study Wing',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                            child: const Text(
-                              'RESERVED',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF4edea3),
-                                letterSpacing: 1.1,
-                              ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.schedule, size: 16, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  desk.formattedType,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 16, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Floor ${desk.floor} • Quiet Study Wing',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.schedule, size: 16, color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
-                          const SizedBox(width: 4),
-                          Text(
-                            desk.formattedType,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                            ),
-                          ),
-                        ],
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.roleStudent.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.roleStudent.withValues(alpha: 0.3)),
+                        ),
+                        child: const Icon(Icons.meeting_room, color: AppColors.roleStudent),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.roleStudent.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.roleStudent.withValues(alpha: 0.3)),
-                  ),
-                  child: const Icon(Icons.meeting_room, color: AppColors.roleStudent),
-                ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildScheduleSection(BuildContext context, StudentDashboardSummary summary) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final accentColor = isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky;
+
+    void navigateToSchedule() {
+      context.push(AppRoutes.scheduleAttendance);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,50 +677,79 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
             const Spacer(),
-            Text(
-              Formatters.formatDate(DateTime.now()),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+            InkWell(
+              onTap: navigateToSchedule,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Full Schedule',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: accentColor,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: accentColor,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: AppDimensions.space12),
 
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: summary.todaySchedule.isEmpty
-              ? Row(
-                  children: [
-                    Icon(
-                      Icons.event_available_rounded,
-                      color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'No live class batches scheduled today. Perfect time for cabin self-study!',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+        InkWell(
+          onTap: navigateToSchedule,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: summary.todaySchedule.isEmpty
+                ? Row(
+                    children: [
+                      Icon(
+                        Icons.event_available_rounded,
+                        color: accentColor,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No live class batches scheduled today. Tap to view your enrolled courses.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                )
-              : Column(
-                  children: summary.todaySchedule.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final item = entry.value;
-                    final isLast = index == summary.todaySchedule.length - 1;
-                    return _TimelineItem(item: item, isLast: isLast);
-                  }).toList(),
-                ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: summary.todaySchedule.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      final isLast = index == summary.todaySchedule.length - 1;
+                      return _TimelineItem(item: item, isLast: isLast);
+                    }).toList(),
+                  ),
+          ),
         ),
       ],
     );

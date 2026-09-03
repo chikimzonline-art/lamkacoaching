@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimensions.dart';
 import '../../../../app/theme/theme_provider.dart';
+import '../../../../core/utils/haptic_service.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../auth/presentation/controllers/auth_notifier.dart';
@@ -173,6 +175,64 @@ class MoreScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
+              // Academic & Attendance Section
+              Text(
+                'Academic & Attendance',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              AppCard(
+                onTap: () {
+                  HapticService.selectionClick();
+                  context.push(AppRoutes.scheduleAttendance);
+                },
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF059669).withValues(alpha: 0.15),
+                        borderRadius: AppDimensions.borderRadiusSm,
+                      ),
+                      child: const Icon(
+                        Icons.calendar_month_rounded,
+                        color: Color(0xFF059669),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Schedule & Attendance Log',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'View class timetable, desk shifts, and study hours',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: isDark
+                                  ? AppColors.darkTextTertiary
+                                  : AppColors.lightTextTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // Preferences & Security Section
               Text(
                 'Security & Preferences',
@@ -296,6 +356,72 @@ class MoreScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
+              // Legal & Data Privacy Section (Google Play Compliance)
+              Text(
+                'Legal & Privacy',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              AppCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Column(
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.privacy_tip_outlined,
+                        color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
+                        size: 22,
+                      ),
+                      title: Text(
+                        'Privacy Policy',
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                      onTap: () => _launchWebUrl(context, 'https://lamkacoaching.com/privacy'),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.description_outlined,
+                        color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
+                        size: 22,
+                      ),
+                      title: Text(
+                        'Terms of Service',
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                      onTap: () => _launchWebUrl(context, 'https://lamkacoaching.com/terms'),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.error,
+                        size: 22,
+                      ),
+                      title: Text(
+                        'Delete Account & Data',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                      onTap: () => _showDeleteAccountDialog(context),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // Institute Info
               Text(
                 'About Center',
@@ -341,6 +467,69 @@ class MoreScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _launchWebUrl(BuildContext context, String urlString) async {
+    final Uri uri = Uri.parse(urlString);
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open $urlString')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening link: $e')),
+        );
+      }
+    }
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: const RoundedRectangleBorder(
+          borderRadius: AppDimensions.borderRadiusMd,
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 26),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Delete Account & Data',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Requesting account deletion will permanently remove your student profile, attendance logs, and personal data from our systems.\n\nTo complete this request, you will be redirected to the secure verification page.',
+          style: TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _launchWebUrl(context, 'https://lamkacoaching.com/delete-account');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Proceed to Delete'),
+          ),
+        ],
       ),
     );
   }
