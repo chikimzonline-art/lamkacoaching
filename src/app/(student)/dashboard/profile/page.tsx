@@ -1,119 +1,86 @@
-import { requireStudent } from "@/lib/student-auth"
-import { User, Phone, Mail, MapPin, Shield } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { AvatarUpload } from "@/components/profile/avatar-upload"
-import DigitalIdCard from "@/components/profile/digital-id-card"
+import { requireStudent } from "@/lib/student-auth";
+import { User, Shield } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProfileHero } from "@/components/profile/profile-hero";
+import { ProfileSummaryCard } from "@/components/profile/profile-summary-card";
+import { PersonalInfoForm } from "@/components/profile/personal-info-form";
+import { ChangePasswordForm } from "@/components/profile/change-password-form";
+import DigitalIdCard from "@/components/profile/digital-id-card";
 
 export default async function DashboardProfilePage() {
-  const { student } = await requireStudent()
+  const { student } = await requireStudent();
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
-        <p className="text-muted-foreground mt-2">Manage your personal information and account settings.</p>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-300">
+      {/* Hero Banner with Avatar Upload & Student Identifiers */}
+      <ProfileHero student={student} />
 
-      {/* Digital Student ID Badge */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-700 mb-3">🪪 Digital Student ID</h2>
-        <DigitalIdCard
-          student={{
-            id: student.id,
-            name: student.name,
-            phone: student.phone,
-            email: student.email,
-            address: student.address,
-            avatar: student.avatar,
-            username: student.username,
-          }}
-        />
-      </div>
-
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-1 space-y-6">
-          <Card className="border-none shadow-sm text-center">
-            <CardContent className="pt-6">
-              <AvatarUpload studentId={student.id} initialAvatar={student.avatar} />
-              <h2 className="text-xl font-bold">{student.name}</h2>
-              <p className="text-sm text-muted-foreground">{student.username || 'Student'}</p>
-              
-              <div className="mt-6 space-y-3 text-sm text-left">
-                <div className="flex items-center text-slate-600">
-                  <Phone className="mr-3 h-4 w-4 opacity-70" />
-                  {student.phone}
-                </div>
-                <div className="flex items-center text-slate-600">
-                  <Mail className="mr-3 h-4 w-4 opacity-70" />
-                  {student.email || 'Not provided'}
-                </div>
-                <div className="flex items-start text-slate-600">
-                  <MapPin className="mr-3 h-4 w-4 opacity-70 mt-0.5 shrink-0" />
-                  <span>{student.address || 'Not provided'}</span>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Digital ID Pass & Account Overview */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Digital Student ID Card Section */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🪪</span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Digital Student ID</h3>
+                  <p className="text-[11px] text-slate-400">Scan attendance pass</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              <span className="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                Tap to flip
+              </span>
+            </div>
+
+            <DigitalIdCard
+              student={{
+                id: student.id,
+                name: student.name,
+                phone: student.phone,
+                email: student.email,
+                address: student.address,
+                avatar: student.avatar,
+                username: student.username,
+              }}
+            />
+          </div>
+
+          {/* Account Overview & Summary Card */}
+          <ProfileSummaryCard student={student} />
         </div>
 
-        <div className="md:col-span-2 space-y-6">
-          <Card className="border-none shadow-sm">
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your contact details.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" defaultValue={student.name} disabled />
-                    <p className="text-xs text-muted-foreground">Contact admin to change your name.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" defaultValue={student.phone} />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" defaultValue={student.email || ''} placeholder="john@example.com" />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="address">Home Address</Label>
-                    <Input id="address" defaultValue={student.address || ''} placeholder="123 Main St" />
-                  </div>
-                </div>
-                <Button className="mt-4">Save Changes</Button>
-              </form>
-            </CardContent>
-          </Card>
+        {/* Right Column: Interactive Management Tabs */}
+        <div className="lg:col-span-7">
+          <Tabs defaultValue="personal" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 p-1.5 h-12 bg-slate-100/90 rounded-2xl mb-6 border border-slate-200/60">
+              <TabsTrigger
+                value="personal"
+                className="rounded-xl font-semibold text-xs sm:text-sm py-2 data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-xs flex items-center justify-center gap-2 transition-all"
+              >
+                <User className="h-4 w-4" />
+                <span>Personal Details</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="security"
+                className="rounded-xl font-semibold text-xs sm:text-sm py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-xs flex items-center justify-center gap-2 transition-all"
+              >
+                <Shield className="h-4 w-4" />
+                <span>Security & Password</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <Card className="border-none shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-slate-500" /> Security
-              </CardTitle>
-              <CardDescription>Change your account password.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="current_password">Current Password</Label>
-                    <Input id="current_password" type="password" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new_password">New Password</Label>
-                    <Input id="new_password" type="password" />
-                  </div>
-                  <Button variant="outline" className="mt-2">Update Password</Button>
-              </form>
-            </CardContent>
-          </Card>
+            <TabsContent value="personal" className="space-y-6 focus-visible:outline-none">
+              <PersonalInfoForm student={student} />
+            </TabsContent>
+
+            <TabsContent value="security" className="space-y-6 focus-visible:outline-none">
+              <ChangePasswordForm />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -55,7 +55,7 @@ async function handleUpdateProfile(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { phone, email, address } = body;
+    const { phone, email, address, avatar } = body;
 
     const currentStudent = await db.student.findUnique({
       where: { id: user.id },
@@ -101,6 +101,11 @@ async function handleUpdateProfile(req: NextRequest) {
     if (address !== undefined) {
       const trimmedAddress = String(address).trim();
       updateData.address = trimmedAddress || null;
+    }
+
+    // Prepare avatar update
+    if (avatar !== undefined) {
+      updateData.avatar = avatar ? String(avatar).trim() : null;
     }
 
     if (Object.keys(updateData).length === 0) {
