@@ -370,7 +370,7 @@ class MoreScreen extends ConsumerWidget {
               AppCard(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: Material(
-                  color: Colors.transparent,
+                  type: MaterialType.transparency,
                   child: Column(
                     children: [
                       ListTile(
