@@ -130,8 +130,52 @@ function getDisplayStyles(state: CabinDisplayState) {
   }
 }
 
-function getStatusBadge(state: CabinDisplayState) {
-  const baseBadgeStyle = "whitespace-normal text-center leading-tight py-0.5 px-2 max-w-[125px] text-[10px] sm:text-xs font-semibold shrink-0";
+function isCabinPartiallyBooked(cabin: Cabin): boolean {
+  if (cabin.status === 'maintenance' || cabin.status === 'inactive') return false;
+  const activeBookings = cabin.bookings.filter(
+    (b) => b.status === 'active' || b.status === 'pending_payment'
+  );
+  if (activeBookings.some((b) => b.type === 'reserved')) return false;
+  const shifts = new Set(
+    activeBookings
+      .filter((b) => ['morning_shift', 'day_shift', 'night_shift'].includes(b.type))
+      .map((b) => b.type)
+  );
+  return shifts.size > 0 && shifts.size < 3;
+}
+
+function isCabinInGracePeriod(cabin: Cabin): boolean {
+  if (cabin.status === 'maintenance' || cabin.status === 'inactive') return false;
+  const activeBookings = cabin.bookings.filter(
+    (b) => b.status === 'active' || b.status === 'pending_payment'
+  );
+  return activeBookings.some((b) => isBookingInGracePeriod(b.endDate));
+}
+
+function isCabinNeedsCycleUpdate(cabin: Cabin): boolean {
+  if (cabin.status === 'maintenance' || cabin.status === 'inactive') return false;
+  const activeBookings = cabin.bookings.filter(
+    (b) => b.status === 'active' || b.status === 'pending_payment'
+  );
+  return activeBookings.some((b) => isBookingPastGracePeriod(b.endDate));
+}
+
+function isCabinAvailable(cabin: Cabin): boolean {
+  if (cabin.status === 'maintenance' || cabin.status === 'inactive') return false;
+  const activeBookings = cabin.bookings.filter(
+    (b) => b.status === 'active' || b.status === 'pending_payment'
+  );
+  return activeBookings.length === 0;
+}
+
+function getStatusBadge(state: CabinDisplayState, isPartial?: boolean) {
+  const baseBadgeStyle = "whitespace-normal text-center leading-tight py-0.5 px-2 max-w-[130px] text-[10px] sm:text-xs font-semibold shrink-0";
+  if (state === 'in_grace_period' && isPartial) {
+    return <Badge className={cn("bg-amber-100 text-amber-900 border-amber-300", baseBadgeStyle)}>Grace · Partial</Badge>;
+  }
+  if (state === 'needs_cycle_update' && isPartial) {
+    return <Badge className={cn("bg-orange-100 text-orange-900 border-orange-300", baseBadgeStyle)}>Update · Partial</Badge>;
+  }
   switch (state) {
     case 'available':
       return <Badge className={cn("bg-emerald-100 text-emerald-800 border-emerald-200", baseBadgeStyle)}>Available</Badge>;
@@ -768,14 +812,14 @@ export default function CabinsView() {
     state: getCabinDisplayState(c),
   }));
 
-  const availableCount = cabinStates.filter((c) => c.state === 'available').length;
+  const availableCount = cabins.filter(isCabinAvailable).length;
   const reservedCount = cabinStates.filter((c) => c.state === 'reserved').length;
-  const partiallyBookedCount = cabinStates.filter((c) => c.state === 'partially_booked').length;
+  const partiallyBookedCount = cabins.filter(isCabinPartiallyBooked).length;
   const fullyBookedCount = cabinStates.filter((c) => c.state === 'fully_booked').length;
-  const maintenanceCount = cabinStates.filter((c) => c.state === 'maintenance').length;
-  const inactiveCount = cabinStates.filter((c) => c.state === 'inactive').length;
-  const needsUpdateCount = cabinStates.filter((c) => c.state === 'needs_cycle_update').length;
-  const inGraceCount = cabinStates.filter((c) => c.state === 'in_grace_period').length;
+  const maintenanceCount = cabins.filter((c) => c.status === 'maintenance').length;
+  const inactiveCount = cabins.filter((c) => c.status === 'inactive').length;
+  const needsUpdateCount = cabins.filter(isCabinNeedsCycleUpdate).length;
+  const inGraceCount = cabins.filter(isCabinInGracePeriod).length;
 
   // Filter cabins by floor and status
   const floorFilteredCabins = activeFloor === 'all'
@@ -784,7 +828,16 @@ export default function CabinsView() {
 
   const statusFilteredCabins = filterState === 'all'
     ? floorFilteredCabins
-    : floorFilteredCabins.filter((c) => c.state === filterState);
+    : floorFilteredCabins.filter(({ cabin, state }) => {
+        if (filterState === 'available') return isCabinAvailable(cabin);
+        if (filterState === 'partially_booked') return isCabinPartiallyBooked(cabin);
+        if (filterState === 'in_grace_period') return isCabinInGracePeriod(cabin);
+        if (filterState === 'needs_cycle_update') return isCabinNeedsCycleUpdate(cabin);
+        if (filterState === 'reserved') {
+          return cabin.bookings.some((b) => b.type === 'reserved' && (b.status === 'active' || b.status === 'pending_payment'));
+        }
+        return state === filterState;
+      });
 
   const cleanCabinSearch = cabinSearch.replace(/[#\s]/g, '').toLowerCase();
   const filteredCabins = cleanCabinSearch
@@ -793,16 +846,16 @@ export default function CabinsView() {
 
   // Floor stats
   const floorStats = floors.map((f) => {
-    const floorCabins = cabinStates.filter((c) => c.cabin.floor === f);
+    const floorCabins = cabins.filter((c) => c.floor === f);
     return {
       floor: f,
       label: formatFloorLabel(f),
       total: floorCabins.length,
-      available: floorCabins.filter((c) => c.state === 'available').length,
-      occupied: floorCabins.filter((c) => c.state === 'reserved' || c.state === 'needs_cycle_update' || c.state === 'in_grace_period').length,
-      shifts: floorCabins.filter((c) => c.state === 'partially_booked' || c.state === 'fully_booked').length,
-      maintenance: floorCabins.filter((c) => c.state === 'maintenance').length,
-      inactive: floorCabins.filter((c) => c.state === 'inactive').length,
+      available: floorCabins.filter(isCabinAvailable).length,
+      occupied: floorCabins.filter((c) => isCabinNeedsCycleUpdate(c) || (isCabinInGracePeriod(c) && !isCabinPartiallyBooked(c)) || c.bookings.some(b => b.type === 'reserved' && (b.status === 'active' || b.status === 'pending_payment'))).length,
+      shifts: floorCabins.filter((c) => isCabinPartiallyBooked(c) || cabinStates.find(cs => cs.cabin.id === c.id)?.state === 'fully_booked').length,
+      maintenance: floorCabins.filter((c) => c.status === 'maintenance').length,
+      inactive: floorCabins.filter((c) => c.status === 'inactive').length,
     };
   });
 
@@ -850,6 +903,14 @@ export default function CabinsView() {
       activeStyle: 'border-emerald-600 text-white bg-emerald-600 shadow-xs',
     },
     {
+      key: 'partially_booked',
+      label: 'Partially Booked',
+      count: partiallyBookedCount,
+      dot: 'bg-sky-400',
+      inactiveStyle: 'border-slate-200 text-slate-700 bg-white hover:bg-sky-50 hover:border-sky-200 hover:text-sky-800',
+      activeStyle: 'border-sky-600 text-white bg-sky-600 shadow-xs',
+    },
+    {
       key: 'reserved',
       label: 'Reserved',
       count: reservedCount,
@@ -881,14 +942,6 @@ export default function CabinsView() {
           },
         ]
       : []),
-    {
-      key: 'partially_booked',
-      label: 'Partially Booked',
-      count: partiallyBookedCount,
-      dot: 'bg-sky-400',
-      inactiveStyle: 'border-slate-200 text-slate-700 bg-white hover:bg-sky-50 hover:border-sky-200 hover:text-sky-800',
-      activeStyle: 'border-sky-600 text-white bg-sky-600 shadow-xs',
-    },
     ...(fullyBookedCount > 0
       ? [
           {
@@ -2135,6 +2188,7 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick, onQuickRenew, onRele
   onQuickRenew?: (bookingId: string) => void;
   onReleaseDesk?: (bookingId: string) => void;
 }) {
+  const isPartial = isCabinPartiallyBooked(cabin);
   const styles = getDisplayStyles(state);
   const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && (b.status === 'active' || b.status === 'pending_payment'));
   const activeShifts = cabin.bookings.filter((b) => (b.status === 'active' || b.status === 'pending_payment') && ['morning_shift', 'day_shift', 'night_shift'].includes(b.type));
@@ -2163,7 +2217,7 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick, onQuickRenew, onRele
             )}
           </div>
           <div className="shrink-0 flex justify-end">
-            {getStatusBadge(state)}
+            {getStatusBadge(state, isPartial)}
           </div>
         </div>
         {/* Floor label */}
@@ -2182,6 +2236,18 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick, onQuickRenew, onRele
                 ? `${state === 'in_grace_period' ? 'Grace ends' : 'Ended'}: ${new Date(primaryBooking.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`
                 : 'No end date'}
             </p>
+            {isPartial && activeShifts.length > 0 && (
+              <div className="pt-0.5 flex flex-wrap items-center gap-1">
+                {activeShifts.map((s, idx) => (
+                  <span key={idx} className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded capitalize text-[10px] font-medium">
+                    {s.type.replace('_', ' ')}
+                  </span>
+                ))}
+                <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  {3 - activeShifts.length} open
+                </span>
+              </div>
+            )}
             <div className="pt-1 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
@@ -2209,7 +2275,14 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick, onQuickRenew, onRele
         )}
         {(state === 'partially_booked' || state === 'fully_booked') && activeShifts.length > 0 && (
           <div className="mt-2 text-xs space-y-1.5">
-            <p className="font-medium text-sky-800">{activeShifts.length} shift{activeShifts.length > 1 ? 's' : ''} booked</p>
+            <div className="flex items-center justify-between">
+              <p className="font-medium text-sky-800">{activeShifts.length} shift{activeShifts.length > 1 ? 's' : ''} booked</p>
+              {state === 'partially_booked' && (
+                <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  {3 - activeShifts.length} open
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap gap-1">
               {activeShifts.map((s, idx) => (
                 <span key={idx} className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded capitalize text-[10px]">
