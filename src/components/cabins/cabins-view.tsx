@@ -48,6 +48,7 @@ import dynamic from 'next/dynamic';
 
 const AdminQrGeneratorDialog = dynamic(() => import('./admin-qr-generator-dialog'), { ssr: false });
 const CabinAttendanceTracker = dynamic(() => import('./cabin-attendance-tracker'), { ssr: false });
+import CabinOccupancyDialog from './cabin-occupancy-dialog';
 
 interface CabinBooking {
   id: string;
@@ -225,6 +226,10 @@ export default function CabinsView() {
   const [qrGeneratorOpen, setQrGeneratorOpen] = useState(false);
   const [attendanceTrackerOpen, setAttendanceTrackerOpen] = useState(false);
 
+  // Cabin Occupancy & Student Inspector states
+  const [occupancyDialogOpen, setOccupancyDialogOpen] = useState(false);
+  const [occupancyCabin, setOccupancyCabin] = useState<Cabin | null>(null);
+
   const [bookType, setBookType] = useState('morning_shift');
   const [bookStartDate, setBookStartDate] = useState(() => {
     return formatDateToYYYYMMDD(new Date());
@@ -279,7 +284,10 @@ export default function CabinsView() {
     try {
       const res = await fetch('/api/cabins');
       const json = await res.json();
-      if (json.cabins) setCabins(json.cabins);
+      if (json.cabins) {
+        setCabins(json.cabins);
+        setOccupancyCabin((prev) => (prev ? json.cabins.find((c: Cabin) => c.id === prev.id) || null : null));
+      }
       if (json.floors) setFloors(json.floors);
     } catch (err) {
       console.error('Failed to fetch cabins:', err);
@@ -625,6 +633,25 @@ export default function CabinsView() {
       toast.error('Failed to delete cabin');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCabinClick = (cabin: Cabin, state: CabinDisplayState) => {
+    if (state === 'available') {
+      setSelectedCabin(cabin);
+      setBookStudentId('');
+      setShowNewStudentForm(false);
+      setCredentialsBanner(null);
+      setBookPayNow(false);
+      setBookPayAmount('');
+      setBookReceiptNo('');
+      const now = new Date();
+      setBookStartDate(formatDateToYYYYMMDD(now));
+      setBookEndDate(formatDateToYYYYMMDD(getCalendarMonthEndDate(now)));
+      setBookDialogOpen(true);
+    } else {
+      setOccupancyCabin(cabin);
+      setOccupancyDialogOpen(true);
     }
   };
 
@@ -1191,7 +1218,7 @@ export default function CabinsView() {
                       state={state}
                       opStart={opStart}
                       opEnd={opEnd}
-                      onClick={() => openEditDialog(cabin)}
+                      onClick={() => handleCabinClick(cabin, state)}
                       onQuickRenew={handleQuickRenew}
                       onReleaseDesk={handleReleaseDesk}
                     />
@@ -1211,7 +1238,7 @@ export default function CabinsView() {
               state={state}
               opStart={opStart}
               opEnd={opEnd}
-              onClick={() => openEditDialog(cabin)}
+              onClick={() => handleCabinClick(cabin, state)}
               onQuickRenew={handleQuickRenew}
               onReleaseDesk={handleReleaseDesk}
             />
@@ -2035,6 +2062,29 @@ export default function CabinsView() {
           fetchCabins();
           setEditDialogOpen(false);
         }}
+      />
+
+      {/* Cabin Occupancy & Student Inspector Dialog */}
+      <CabinOccupancyDialog
+        open={occupancyDialogOpen}
+        onOpenChange={setOccupancyDialogOpen}
+        cabin={occupancyCabin}
+        onBookShift={(c, shiftType) => {
+          setSelectedCabin(c);
+          if (shiftType) setBookType(shiftType);
+          setBookStudentId('');
+          setShowNewStudentForm(false);
+          setCredentialsBanner(null);
+          setBookPayNow(false);
+          setBookPayAmount('');
+          setBookReceiptNo('');
+          const now = new Date();
+          setBookStartDate(formatDateToYYYYMMDD(now));
+          setBookEndDate(formatDateToYYYYMMDD(getCalendarMonthEndDate(now)));
+          setBookDialogOpen(true);
+        }}
+        onRefresh={fetchCabins}
+        isAdmin={isAdmin}
       />
 
 
