@@ -143,12 +143,8 @@ class DashboardScreen extends ConsumerWidget {
               onSelected: (value) {
                 switch (value) {
                   case 'profile':
-                    context.go(AppRoutes.profile);
-                    break;
                   case 'settings':
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Settings coming soon!')),
-                    );
+                    context.push(AppRoutes.profile);
                     break;
                   case 'logout':
                     ref.read(authNotifierProvider.notifier).logout();

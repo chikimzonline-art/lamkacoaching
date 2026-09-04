@@ -246,4 +246,85 @@ class AuthRemoteDataSource {
       );
     }
   }
+
+  /// Updates student profile contact details on `PATCH /api/student/profile`.
+  Future<UserModel> updateProfile({
+    String? phone,
+    String? email,
+    String? address,
+  }) async {
+    try {
+      final payload = <String, dynamic>{};
+      if (phone != null) payload['phone'] = phone;
+      if (email != null) payload['email'] = email;
+      if (address != null) payload['address'] = address;
+
+      final response = await _dioClient.patch<dynamic>(
+        ApiConstants.studentProfileEndpoint,
+        data: payload,
+      );
+
+      if (response.statusCode != 200) {
+        final errorMsg =
+            response.data is Map<String, dynamic>
+                ? response.data['error'] as String?
+                : null;
+        throw ServerException(
+          message: errorMsg ?? 'Failed to update profile.',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final dataMap = response.data as Map<String, dynamic>;
+      final studentJson = dataMap['student'] as Map<String, dynamic>;
+      return UserModel.fromJson(studentJson);
+    } on DioException catch (e) {
+      if (e.error is AppException) throw e.error as AppException;
+      final errorMsg =
+          e.response?.data is Map<String, dynamic>
+              ? e.response?.data['error'] as String?
+              : null;
+      throw ServerException(
+        message: errorMsg ?? e.message ?? 'Failed to update profile.',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  /// Updates student account password via `POST /api/student/change-password`.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _dioClient.post<dynamic>(
+        ApiConstants.changePasswordEndpoint,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+
+      if (response.statusCode != 200) {
+        final errorMsg =
+            response.data is Map<String, dynamic>
+                ? response.data['error'] as String?
+                : null;
+        throw ServerException(
+          message: errorMsg ?? 'Failed to update password.',
+          statusCode: response.statusCode,
+        );
+      }
+    } on DioException catch (e) {
+      if (e.error is AppException) throw e.error as AppException;
+      final errorMsg =
+          e.response?.data is Map<String, dynamic>
+              ? e.response?.data['error'] as String?
+              : null;
+      throw ServerException(
+        message: errorMsg ?? e.message ?? 'Failed to update password.',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
 }

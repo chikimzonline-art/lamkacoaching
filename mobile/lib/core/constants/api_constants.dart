@@ -39,6 +39,8 @@ class ApiConstants {
   static const String logoutEndpoint = '/api/auth/logout';
   static const String meEndpoint = '/api/auth/me';
   static const String deleteAccountEndpoint = '/api/student/delete-account';
+  static const String studentProfileEndpoint = '/api/student/profile';
+  static const String changePasswordEndpoint = '/api/student/change-password';
 
   // Feature Endpoints
   static const String adminOverviewEndpoint = '/api/admin/overview';

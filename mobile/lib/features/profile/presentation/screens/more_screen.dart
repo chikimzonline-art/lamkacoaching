@@ -46,6 +46,7 @@ class MoreScreen extends ConsumerWidget {
               // Student Profile Card
               AppCard(
                 hasGlow: true,
+                onTap: () => context.push(AppRoutes.profile),
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
@@ -113,6 +114,7 @@ class MoreScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    const Icon(Icons.chevron_right_rounded, size: 22),
                   ],
                 ),
               ),

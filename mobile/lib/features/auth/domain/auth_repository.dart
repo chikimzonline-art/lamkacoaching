@@ -31,4 +31,17 @@ abstract class AuthRepository {
 
   /// Permanently deletes the student account and all personal data from backend and local storage.
   Future<Either<Failure, void>> deleteAccount({required String password});
+
+  /// Updates student contact details (phone, email, address) on the server and updates local cache.
+  Future<Either<Failure, UserEntity>> updateProfile({
+    String? phone,
+    String? email,
+    String? address,
+  });
+
+  /// Changes the student account password.
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }

@@ -252,4 +252,44 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(message: 'Failed to delete account: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, UserEntity>> updateProfile({
+    String? phone,
+    String? email,
+    String? address,
+  }) async {
+    try {
+      final updatedModel = await remoteDataSource.updateProfile(
+        phone: phone,
+        email: email,
+        address: address,
+      );
+      final entity = updatedModel.toEntity();
+      await storageService.saveUserProfileJson(jsonEncode(updatedModel.toJson()));
+      return Right(entity);
+    } on AppException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: 'Failed to update profile: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await remoteDataSource.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: 'Failed to change password: $e'));
+    }
+  }
 }

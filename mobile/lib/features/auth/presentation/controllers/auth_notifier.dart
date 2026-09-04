@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/either.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/auth_repository.dart';
+import '../../domain/user_entity.dart';
 import '../../data/auth_repository_impl.dart';
 import 'auth_state.dart';
 
@@ -185,5 +186,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
     }
     return result;
+  }
+
+  /// Updates student profile details and refreshes active session state.
+  Future<Either<Failure, UserEntity>> updateProfile({
+    String? phone,
+    String? email,
+    String? address,
+  }) async {
+    final result = await _authRepository.updateProfile(
+      phone: phone,
+      email: email,
+      address: address,
+    );
+
+    if (result.isRight) {
+      final updatedUser = result.rightOrNull!;
+      if (state is Authenticated) {
+        final current = state as Authenticated;
+        state = Authenticated(
+          updatedUser,
+          justLoggedIn: current.justLoggedIn,
+          biometricsAvailable: current.biometricsAvailable,
+          biometricsEnrolled: current.biometricsEnrolled,
+        );
+      }
+    }
+    return result;
+  }
+
+  /// Changes the student password.
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    return await _authRepository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
   }
 }

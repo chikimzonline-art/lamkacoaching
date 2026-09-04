@@ -15,6 +15,7 @@ import '../../features/notifications/presentation/screens/notifications_hub_scre
 import '../../features/dashboard/presentation/screens/notices_screen.dart';
 import '../../features/dashboard/presentation/screens/schedule_attendance_screen.dart';
 import '../../features/profile/presentation/screens/more_screen.dart';
+import '../../features/profile/presentation/screens/account_settings_screen.dart';
 import '../../features/payments/presentation/screens/payment_history_screen.dart';
 import 'app_navigation_shell.dart';
 import 'route_names.dart';
@@ -60,7 +61,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.profile,
-        redirect: (_, __) => AppRoutes.more,
+        name: 'profile',
+        builder: (context, state) => const AccountSettingsScreen(),
       ),
       GoRoute(
         path: AppRoutes.paymentHistory,

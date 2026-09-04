@@ -42,6 +42,7 @@ class UserEntity {
   final UserRole role;
   final String? avatar;
   final String? email;
+  final String? address;
 
   const UserEntity({
     required this.id,
@@ -51,6 +52,7 @@ class UserEntity {
     required this.role,
     this.avatar,
     this.email,
+    this.address,
   });
 
   bool get isStudent => role == UserRole.student;
@@ -66,6 +68,7 @@ class UserEntity {
     UserRole? role,
     String? avatar,
     String? email,
+    String? address,
   }) {
     return UserEntity(
       id: id ?? this.id,
@@ -75,6 +78,7 @@ class UserEntity {
       role: role ?? this.role,
       avatar: avatar ?? this.avatar,
       email: email ?? this.email,
+      address: address ?? this.address,
     );
   }
 
@@ -88,7 +92,8 @@ class UserEntity {
           other.phone == phone &&
           other.role == role &&
           other.avatar == avatar &&
-          other.email == email);
+          other.email == email &&
+          other.address == address);
 
   @override
   int get hashCode =>
@@ -98,10 +103,11 @@ class UserEntity {
       phone.hashCode ^
       role.hashCode ^
       avatar.hashCode ^
-      email.hashCode;
+      email.hashCode ^
+      address.hashCode;
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, name: $name, username: $username, role: ${role.name}, email: $email, phone: $phone)';
+    return 'UserEntity(id: $id, name: $name, username: $username, role: ${role.name}, email: $email, phone: $phone, address: $address)';
   }
 }

@@ -9,6 +9,7 @@ class UserModel {
   final String role;
   final String? avatar;
   final String? email;
+  final String? address;
 
   const UserModel({
     required this.id,
@@ -18,6 +19,7 @@ class UserModel {
     required this.role,
     this.avatar,
     this.email,
+    this.address,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class UserModel {
       role: json['role']?.toString() ?? 'student',
       avatar: json['avatar']?.toString() ?? json['image']?.toString(),
       email: json['email']?.toString(),
+      address: json['address']?.toString(),
     );
   }
 
@@ -41,6 +44,7 @@ class UserModel {
       'role': role,
       'avatar': avatar,
       'email': email,
+      'address': address,
     };
   }
 
@@ -53,6 +57,7 @@ class UserModel {
       role: UserRole.fromString(role),
       avatar: avatar,
       email: email,
+      address: address,
     );
   }
 
@@ -65,6 +70,7 @@ class UserModel {
       role: entity.role.toApiValue(),
       avatar: entity.avatar,
       email: entity.email,
+      address: entity.address,
     );
   }
 
