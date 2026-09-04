@@ -16,6 +16,7 @@ import {
   Megaphone,
   Loader2,
   CheckCircle2,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -47,6 +48,7 @@ const quickActions = [
   { href: '/cabins', label: 'Book a Cabin', icon: DoorOpen },
   { href: '/register', label: 'Register for Course', icon: GraduationCap },
   { href: '/notices', label: 'View Notices', icon: Megaphone },
+  { href: '/delete-account', label: 'Delete Account', icon: Trash2 },
 ];
 
 const socialLinks = [
@@ -297,10 +299,23 @@ export default function PublicFooter() {
 
       {/* Bottom Bar */}
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-xs text-gray-500">
             Made with ❤️ in Lamka
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-gray-400">
+            <Link href="/privacy" className="hover:text-cyan-400 transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="text-gray-700 hidden sm:inline">&bull;</span>
+            <Link href="/terms" className="hover:text-cyan-400 transition-colors">
+              Terms of Service
+            </Link>
+            <span className="text-gray-700 hidden sm:inline">&bull;</span>
+            <Link href="/delete-account" className="hover:text-rose-400 transition-colors">
+              Delete Account
+            </Link>
+          </div>
           <p className="text-xs text-gray-500">
             &copy; {new Date().getFullYear()} {name}. All rights reserved.
           </p>
