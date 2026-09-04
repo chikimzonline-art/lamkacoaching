@@ -42,6 +42,7 @@ class StudentDashboardNotifier
     }
 
     final result = await _repository.getStudentDashboard(_userId);
+    if (!mounted) return;
     result.fold(
       (failure) {
         state = AsyncValue.error(failure.message, StackTrace.current);

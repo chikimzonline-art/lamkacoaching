@@ -184,35 +184,46 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         title: const Text('Account Settings'),
         centerTitle: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ==========================================
-            // 1. Profile Overview Card (Matching Web UI)
-            // ==========================================
-            _buildProfileOverviewCard(context, user, isDark),
-            const SizedBox(height: 16),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ==========================================
+                      // 1. Profile Overview Card (Matching Web UI)
+                      // ==========================================
+                      _buildProfileOverviewCard(context, user, isDark),
+                      const SizedBox(height: 16),
 
-            // ==========================================
-            // 2. Digital Student ID Card Pass Action
-            // ==========================================
-            _buildDigitalIdCardBanner(context, user, isDark),
-            const SizedBox(height: 20),
+                      // ==========================================
+                      // 2. Digital Student ID Card Pass Action
+                      // ==========================================
+                      _buildDigitalIdCardBanner(context, user, isDark),
+                      const SizedBox(height: 20),
 
-            // ==========================================
-            // 3. Personal Information Form
-            // ==========================================
-            _buildPersonalInfoCard(context, isDark),
-            const SizedBox(height: 20),
+                      // ==========================================
+                      // 3. Personal Information Form
+                      // ==========================================
+                      _buildPersonalInfoCard(context, isDark),
+                      const SizedBox(height: 20),
 
-            // ==========================================
-            // 4. Security & Password Update
-            // ==========================================
-            _buildSecurityCard(context, isDark),
-            const SizedBox(height: 32),
-          ],
+                      // ==========================================
+                      // 4. Security & Password Update
+                      // ==========================================
+                      _buildSecurityCard(context, isDark),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -370,6 +381,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                 ? () => DigitalIdPassModal.show(context, user: user)
                 : null,
             style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 32),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               visualDensity: VisualDensity.compact,
             ),

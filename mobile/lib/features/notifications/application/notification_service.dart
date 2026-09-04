@@ -16,7 +16,7 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 });
 
 class NotificationService {
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  FirebaseMessaging? _firebaseMessaging;
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
@@ -24,15 +24,23 @@ class NotificationService {
   Future<void> init() async {
     if (_isInitialized) return;
     
-    // Bypass on unsupported platforms (like Windows during dev)
+    // Bypass on unsupported platforms (like Windows/Linux during desktop dev)
     if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
       debugPrint('Push notifications not supported on desktop. Bypassing initialization.');
       _isInitialized = true;
       return;
     }
 
+    try {
+      _firebaseMessaging = FirebaseMessaging.instance;
+    } catch (e) {
+      debugPrint('Firebase not initialized: $e');
+      _isInitialized = true;
+      return;
+    }
+
     // Request permissions
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+    NotificationSettings settings = await _firebaseMessaging!.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -68,7 +76,7 @@ class NotificationService {
 
     // Get FCM Token
     try {
-      final token = await _firebaseMessaging.getToken();
+      final token = await _firebaseMessaging?.getToken();
       debugPrint('FCM Token: $token');
       // Here we would typically send this token to the backend
       // POST /api/notifications/register-device

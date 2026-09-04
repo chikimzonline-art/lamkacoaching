@@ -369,56 +369,59 @@ class MoreScreen extends ConsumerWidget {
 
               AppCard(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: Column(
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        Icons.privacy_tip_outlined,
-                        color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
-                        size: 22,
-                      ),
-                      title: Text(
-                        'Privacy Policy',
-                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => _launchWebUrl(context, 'https://www.lamkacoaching.in/privacy'),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        Icons.description_outlined,
-                        color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
-                        size: 22,
-                      ),
-                      title: Text(
-                        'Terms of Service',
-                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                      onTap: () => _launchWebUrl(context, 'https://www.lamkacoaching.in/terms'),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: AppColors.error,
-                        size: 22,
-                      ),
-                      title: Text(
-                        'Delete Account & Data',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.error,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          Icons.privacy_tip_outlined,
+                          color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
+                          size: 22,
                         ),
+                        title: Text(
+                          'Privacy Policy',
+                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                        onTap: () => _launchWebUrl(context, 'https://www.lamkacoaching.in/privacy'),
                       ),
-                      trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                      onTap: () => _showDeleteAccountDialog(context, ref),
-                    ),
-                  ],
+                      const Divider(height: 1),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          Icons.description_outlined,
+                          color: isDark ? AppColors.darkAccentTeal : AppColors.lightAccentSky,
+                          size: 22,
+                        ),
+                        title: Text(
+                          'Terms of Service',
+                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                        onTap: () => _launchWebUrl(context, 'https://www.lamkacoaching.in/terms'),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: AppColors.error,
+                          size: 22,
+                        ),
+                        title: Text(
+                          'Delete Account & Data',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.error,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                        onTap: () => _showDeleteAccountDialog(context, ref),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
