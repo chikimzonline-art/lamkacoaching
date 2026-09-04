@@ -130,23 +130,24 @@ function getDisplayStyles(state: CabinDisplayState) {
 }
 
 function getStatusBadge(state: CabinDisplayState) {
+  const baseBadgeStyle = "whitespace-normal text-center leading-tight py-0.5 px-2 max-w-[125px] text-[10px] sm:text-xs font-semibold shrink-0";
   switch (state) {
     case 'available':
-      return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">Available</Badge>;
+      return <Badge className={cn("bg-emerald-100 text-emerald-800 border-emerald-200", baseBadgeStyle)}>Available</Badge>;
     case 'reserved':
-      return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">Reserved</Badge>;
+      return <Badge className={cn("bg-red-100 text-red-800 border-red-200", baseBadgeStyle)}>Reserved</Badge>;
     case 'needs_cycle_update':
-      return <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs">Needs Cycle Update</Badge>;
+      return <Badge className={cn("bg-orange-100 text-orange-800 border-orange-200", baseBadgeStyle)}>Needs Cycle Update</Badge>;
     case 'in_grace_period':
-      return <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">In Grace Period</Badge>;
+      return <Badge className={cn("bg-amber-100 text-amber-800 border-amber-200", baseBadgeStyle)}>In Grace Period</Badge>;
     case 'partially_booked':
-      return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Partially Booked</Badge>;
+      return <Badge className={cn("bg-sky-100 text-sky-800 border-sky-200", baseBadgeStyle)}>Partially Booked</Badge>;
     case 'fully_booked':
-      return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Fully Booked</Badge>;
+      return <Badge className={cn("bg-sky-100 text-sky-800 border-sky-200", baseBadgeStyle)}>Fully Booked</Badge>;
     case 'maintenance':
-      return <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs flex items-center gap-1"><Wrench className="h-3 w-3" /> Maintenance</Badge>;
+      return <Badge className={cn("bg-amber-100 text-amber-800 border-amber-200 flex items-center justify-center gap-1", baseBadgeStyle)}><Wrench className="h-3 w-3 shrink-0" /> Maintenance</Badge>;
     case 'inactive':
-      return <Badge className="bg-gray-200 text-gray-700 border-gray-300 text-xs">Inactive</Badge>;
+      return <Badge className={cn("bg-gray-200 text-gray-700 border-gray-300", baseBadgeStyle)}>Inactive</Badge>;
     default:
       return null;
   }
@@ -1182,7 +1183,7 @@ export default function CabinsView() {
                   <h3 className="text-sm font-semibold text-gray-700">{formatFloorLabel(floorNum)}</h3>
                   <Badge variant="outline" className="text-xs text-gray-500">{floorCabins.length} cabins</Badge>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                   {floorCabins.map(({ cabin, state }) => (
                     <CabinCard
                       key={cabin.id}
@@ -1202,7 +1203,7 @@ export default function CabinsView() {
         </div>
       ) : (
         // Single floor view
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {filteredCabins.map(({ cabin, state }) => (
             <CabinCard
               key={cabin.id}
@@ -2091,27 +2092,29 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick, onQuickRenew, onRele
 
   return (
     <Card
-      className={`cursor-pointer border-2 rounded-xl transition-all duration-200 ${styles}`}
+      className={`cursor-pointer border-2 rounded-xl transition-all duration-200 overflow-hidden ${styles}`}
       onClick={onClick}
     >
       <CardContent className="p-3 sm:p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-white/80">
+        <div className="flex items-center justify-between gap-1.5 mb-2 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 shrink">
+            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-white/80 shrink-0">
               <DoorOpen className="h-4 w-4 text-cyan-600" />
             </div>
-            <span className="font-bold text-gray-900 text-lg">#{cabin.cabinNum}</span>
+            <span className="font-bold text-gray-900 text-base sm:text-lg shrink-0">#{cabin.cabinNum}</span>
             {cabin.bookings.some(b => {
               if (b.status !== 'active' || !b.endDate) return false;
               const daysLeft = (new Date(b.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
               return daysLeft >= 0 && daysLeft <= 3;
             }) && (
-              <div className="flex items-center justify-center h-5 w-5 bg-yellow-100 rounded-full" title="Booking expires in ≤ 3 days">
+              <div className="flex items-center justify-center h-5 w-5 bg-yellow-100 rounded-full shrink-0" title="Booking expires in ≤ 3 days">
                 <AlertTriangle className="h-3 w-3 text-yellow-600" />
               </div>
             )}
           </div>
-          {getStatusBadge(state)}
+          <div className="shrink-0 flex justify-end">
+            {getStatusBadge(state)}
+          </div>
         </div>
         {/* Floor label */}
         <p className="text-[11px] text-gray-400 font-medium mb-1 flex items-center gap-1">
