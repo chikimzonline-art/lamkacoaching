@@ -28,4 +28,7 @@ abstract class AuthRepository {
 
   /// Updates user preference for 1-tap biometric unlock.
   Future<void> setBiometricsEnrolled(bool enabled);
+
+  /// Permanently deletes the student account and all personal data from backend and local storage.
+  Future<Either<Failure, void>> deleteAccount({required String password});
 }

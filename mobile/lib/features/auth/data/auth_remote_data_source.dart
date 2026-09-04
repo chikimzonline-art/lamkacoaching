@@ -215,4 +215,35 @@ class AuthRemoteDataSource {
       return null;
     }
   }
+
+  /// Calls `POST /api/student/delete-account` to permanently purge the student account.
+  Future<void> deleteAccount(String password) async {
+    try {
+      final response = await _dioClient.post<dynamic>(
+        ApiConstants.deleteAccountEndpoint,
+        data: {'password': password},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        final errorMsg =
+            response.data is Map<String, dynamic>
+                ? response.data['error'] as String?
+                : null;
+        throw ServerException(
+          message: errorMsg ?? 'Failed to delete account.',
+          statusCode: response.statusCode,
+        );
+      }
+    } on DioException catch (e) {
+      if (e.error is AppException) throw e.error as AppException;
+      final errorMsg =
+          e.response?.data is Map<String, dynamic>
+              ? e.response?.data['error'] as String?
+              : null;
+      throw ServerException(
+        message: errorMsg ?? e.message ?? 'Failed to delete account.',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
 }

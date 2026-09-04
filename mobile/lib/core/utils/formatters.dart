@@ -68,4 +68,16 @@ class Formatters {
     }
     return '${minutes}m';
   }
+
+  /// Returns a contextual greeting based on the hour of day ("Good Morning", "Good Afternoon", "Good Evening").
+  static String getGreeting([DateTime? time]) {
+    final hour = (time ?? DateTime.now()).hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
 }

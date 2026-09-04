@@ -39,5 +39,14 @@ void main() {
       expect(Formatters.formatDurationMinutes(60), equals('1h'));
       expect(Formatters.formatDurationMinutes(150), equals('2h 30m'));
     });
+
+    test('getGreeting returns correct greeting based on time of day', () {
+      expect(Formatters.getGreeting(DateTime(2026, 1, 1, 5, 0)), equals('Good Morning'));
+      expect(Formatters.getGreeting(DateTime(2026, 1, 1, 11, 59)), equals('Good Morning'));
+      expect(Formatters.getGreeting(DateTime(2026, 1, 1, 12, 0)), equals('Good Afternoon'));
+      expect(Formatters.getGreeting(DateTime(2026, 1, 1, 16, 59)), equals('Good Afternoon'));
+      expect(Formatters.getGreeting(DateTime(2026, 1, 1, 17, 0)), equals('Good Evening'));
+      expect(Formatters.getGreeting(DateTime(2026, 1, 1, 23, 59)), equals('Good Evening'));
+    });
   });
 }

@@ -414,7 +414,7 @@ class MoreScreen extends ConsumerWidget {
                         ),
                       ),
                       trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                      onTap: () => _showDeleteAccountDialog(context),
+                      onTap: () => _showDeleteAccountDialog(context, ref),
                     ),
                   ],
                 ),
@@ -490,46 +490,150 @@ class MoreScreen extends ConsumerWidget {
     }
   }
 
-  void _showDeleteAccountDialog(BuildContext context) {
+  void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
+    final passwordController = TextEditingController();
+    bool obscurePassword = true;
+    bool isDeleting = false;
+    String? localError;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppDimensions.borderRadiusMd,
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 26),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Delete Account & Data',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: const RoundedRectangleBorder(
+            borderRadius: AppDimensions.borderRadiusMd,
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 26),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Delete Account & Data',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
               ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This action is irreversible. All your personal profile data, course enrollments, study space bookings, attendance logs, and notification tokens will be permanently erased.',
+                  style: TextStyle(fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: obscurePassword,
+                  enabled: !isDeleting,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    hintText: 'Enter your password',
+                    prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setDialogState(() {
+                          obscurePassword = !obscurePassword;
+                        });
+                      },
+                    ),
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                if (localError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    localError!,
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () => _launchWebUrl(context, 'https://www.lamkacoaching.in/delete-account'),
+                  child: Text(
+                    'Read full Data Safety & Deletion Policy →',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isDeleting ? null : () => Navigator.of(dialogCtx).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isDeleting
+                  ? null
+                  : () async {
+                      final pwd = passwordController.text.trim();
+                      if (pwd.isEmpty) {
+                        setDialogState(() {
+                          localError = 'Please enter your password to confirm.';
+                        });
+                        return;
+                      }
+
+                      setDialogState(() {
+                        isDeleting = true;
+                        localError = null;
+                      });
+
+                      final result = await ref
+                          .read(authNotifierProvider.notifier)
+                          .deleteAccount(pwd);
+
+                      if (result.isLeft) {
+                        setDialogState(() {
+                          isDeleting = false;
+                          localError = result.leftOrNull?.message ?? 'Failed to delete account.';
+                        });
+                      } else {
+                        if (dialogCtx.mounted) {
+                          Navigator.of(dialogCtx).pop();
+                        }
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Your account and personal data have been permanently deleted.'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: isDeleting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Permanently Delete'),
             ),
           ],
         ),
-        content: const Text(
-          'Requesting account deletion will permanently remove your student profile, attendance logs, and personal data from our systems.\n\nTo complete this request, you will be redirected to the secure verification page.',
-          style: TextStyle(fontSize: 14, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _launchWebUrl(context, 'https://www.lamkacoaching.in/delete-account');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Proceed to Delete'),
-          ),
-        ],
       ),
     );
   }

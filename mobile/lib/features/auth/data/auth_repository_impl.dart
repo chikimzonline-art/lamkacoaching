@@ -237,4 +237,19 @@ class AuthRepositoryImpl implements AuthRepository {
       await storageService.clearBiometricSession();
     }
   }
+
+  @override
+  Future<Either<Failure, void>> deleteAccount({required String password}) async {
+    try {
+      await remoteDataSource.deleteAccount(password);
+      await storageService.clearSession();
+      await storageService.clearBiometricSession();
+      await storageService.setBiometricsEnabled(false);
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: 'Failed to delete account: $e'));
+    }
+  }
 }

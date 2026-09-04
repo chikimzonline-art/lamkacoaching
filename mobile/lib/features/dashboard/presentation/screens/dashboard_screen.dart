@@ -286,7 +286,7 @@ class DashboardScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Good Morning, ${user?.name ?? "Student"} 👋',
+          '${Formatters.getGreeting()}, ${user?.name ?? "Student"} 👋',
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,

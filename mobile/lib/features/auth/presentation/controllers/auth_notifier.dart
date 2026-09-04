@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/errors/either.dart';
+import '../../../../core/errors/failures.dart';
 import '../../domain/auth_repository.dart';
 import '../../data/auth_repository_impl.dart';
 import 'auth_state.dart';
@@ -168,5 +170,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       biometricsAvailable: isBioAvailable,
       biometricsEnrolled: isBioEnrolled,
     );
+  }
+
+  /// Permanently deletes the student account and all personal data.
+  Future<Either<Failure, void>> deleteAccount(String password) async {
+    final result = await _authRepository.deleteAccount(password: password);
+    final isBioAvailable = await _authRepository.isBiometricsAvailable();
+
+    if (result.isRight) {
+      state = Unauthenticated(
+        message: 'Your account has been permanently deleted.',
+        biometricsAvailable: isBioAvailable,
+        biometricsEnrolled: false,
+      );
+    }
+    return result;
   }
 }
