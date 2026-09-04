@@ -2,6 +2,11 @@ import { requireStudent } from "@/lib/student-auth"
 import { db } from "@/lib/db"
 import { unstable_cache } from "next/cache"
 import DashboardCabinsClient from "./client"
+import {
+  isBookingCurrentlyBlocking,
+  isRegistrationFeeWaived,
+  getCalendarMonthEndDate,
+} from "@/lib/helpers/cabin-dates"
 
 function formatFloorLabel(floor: number): string {
   const suffixes: Record<number, string> = { 1: 'st', 2: 'nd', 3: 'rd' };
@@ -27,6 +32,7 @@ export default async function ExploreCabinsPage() {
               endDate: true,
               startTime: true,
               endTime: true,
+              status: true,
             },
           },
         },
@@ -60,15 +66,21 @@ export default async function ExploreCabinsPage() {
   const [
     cabins, 
     settings, 
-    pastCabinBookingsCount
+    studentPastBookings
   ] = await Promise.all([
     getCachedCabins(),
     getCachedSettings(),
-    db.booking.count({
+    db.booking.findMany({
       where: {
         studentId: student.id,
         cabinId: { not: '' }
-      }
+      },
+      select: {
+        createdAt: true,
+        endDate: true,
+        status: true,
+      },
+      orderBy: { createdAt: 'desc' },
     })
   ]);
 
@@ -77,11 +89,15 @@ export default async function ExploreCabinsPage() {
 
   // Compute availability status for each cabin
   const now = new Date();
+  const isRegistrationWaived = isRegistrationFeeWaived(studentPastBookings, now);
+  const monthEndDate = getCalendarMonthEndDate(now);
+  const isSecondHalf = now.getDate() > 15;
+
   const cabinsWithAvailability = cabins.map((cabin) => {
     const isBookedByMe = bookedCabinIds.includes(cabin.id);
 
     // If the student already has an active booking for this cabin, mark it as occupied for them
-    if (bookedCabinIds.includes(cabin.id)) {
+    if (isBookedByMe) {
       return {
         id: cabin.id,
         floor: cabin.floor,
@@ -97,39 +113,23 @@ export default async function ExploreCabinsPage() {
 
     const activeReserved = cabin.bookings.find((b) => {
       if (b.type !== 'reserved') return false;
-      const startLimit = new Date(b.startDate);
-      startLimit.setHours(0, 0, 0, 0);
-      if (startLimit > now) return false;
-      if (!b.endDate) return true;
-      const endLimit = new Date(b.endDate);
-      endLimit.setHours(23, 59, 59, 999);
-      return endLimit >= now;
+      return isBookingCurrentlyBlocking(b);
     });
-
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
     
     // Find active shift bookings for today or ongoing
     const activeShifts = cabin.bookings.filter((b) => {
       if (!['morning_shift', 'day_shift', 'night_shift'].includes(b.type)) return false;
-      const startLimit = new Date(b.startDate);
-      startLimit.setHours(0, 0, 0, 0);
-      if (startLimit > now) return false;
-      if (!b.endDate) {
-        return startLimit.getTime() <= todayStart.getTime();
-      } else {
-        const endLimit = new Date(b.endDate);
-        endLimit.setHours(23, 59, 59, 999);
-        return endLimit >= now;
-      }
+      return isBookingCurrentlyBlocking(b);
     });
+
+    const isOccupied = !!activeReserved || activeShifts.length >= 3;
 
     return {
       id: cabin.id,
       floor: cabin.floor,
       cabinNum: cabin.cabinNum,
       notes: cabin.notes,
-      isOccupied: !!activeReserved,
+      isOccupied,
       isBookedByMe: isBookedByMe,
       bookedShifts: activeShifts.map(b => b.type),
       activeShiftsToday: activeShifts.map((b) => ({
@@ -150,7 +150,6 @@ export default async function ExploreCabinsPage() {
   }));
 
   // Get pricing from settings
-
   const getSetting = (key: string, def: number) => {
     const s = settings.find((s) => s.key === key);
     return s ? parseInt(s.value, 10) : def;
@@ -164,9 +163,7 @@ export default async function ExploreCabinsPage() {
     nightShiftRate: getSetting('cabin_night_shift_rate', 800),
   };
 
-  // Check if first booking
-
-  const isFirstBooking = pastCabinBookingsCount === 0;
+  const isFirstBooking = !isRegistrationWaived;
 
   // Find if they have a pending checkout
   const rawPendingCheckout = student.bookings.find(b => b.status === "pending_payment" && b.paidAmount === 0 && b.cabinId !== '');
@@ -201,6 +198,9 @@ export default async function ExploreCabinsPage() {
     floors,
     pricing,
     isFirstBooking,
+    isRegistrationWaived,
+    isSecondHalf,
+    monthEndDate: monthEndDate.toISOString(),
     pendingCheckout,
     totalCabins: cabins.length,
     availableCabins: cabinsWithAvailability.filter((c) => !c.isOccupied).length,

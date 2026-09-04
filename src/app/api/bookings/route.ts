@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { getOverlappingBookings } from '@/lib/db/queries/bookings';
 import { requireStaffOrAdmin } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
+import { getCalendarMonthEndDate } from '@/lib/helpers/cabin-dates';
 
 // GET /api/bookings - List bookings with filters (staff/admin)
 export async function GET(request: Request) {
@@ -106,9 +107,7 @@ export async function POST(request: Request) {
         end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
       } else {
-        end = new Date(start);
-        end.setMonth(end.getMonth() + 1);
-        end.setHours(23, 59, 59, 999);
+        end = getCalendarMonthEndDate(start);
       }
 
       // Check for any active bookings on this cabin that overlap
@@ -195,6 +194,9 @@ export async function POST(request: Request) {
         req: request,
       });
 
+      revalidatePath('/cabins');
+      revalidatePath('/dashboard/cabins');
+
       return NextResponse.json({ booking, payment });
 
     } else if (action === 'update') {
@@ -212,6 +214,10 @@ export async function POST(request: Request) {
           cabin: { select: { id: true, cabinNum: true } },
         },
       });
+
+      revalidatePath('/cabins');
+      revalidatePath('/dashboard/cabins');
+
       return NextResponse.json({ booking });
 
     } else if (action === 'cancel') {
@@ -236,6 +242,9 @@ export async function POST(request: Request) {
         details: { bookingId: id, studentId: booking.studentId, cabinId: booking.cabinId },
         req: request,
       });
+
+      revalidatePath('/cabins');
+      revalidatePath('/dashboard/cabins');
 
       return NextResponse.json({ booking });
 
@@ -306,11 +315,18 @@ export async function POST(request: Request) {
         renewAmount = 1000 * 100; // fallback
       }
 
-      // Calculate new end date: current endDate + 1 month, or startDate + 1 month if no endDate
+      // Calculate new end date: align to calendar month
+      const now = new Date();
       const currentEnd = existing.endDate ? new Date(existing.endDate) : new Date(existing.startDate);
-      const newEnd = new Date(currentEnd);
-      newEnd.setMonth(newEnd.getMonth() + 1);
-      newEnd.setHours(23, 59, 59, 999);
+      let newEnd: Date;
+      if (currentEnd < now) {
+        // Bring past booking up to current calendar month end
+        newEnd = getCalendarMonthEndDate(now);
+      } else {
+        // Move to last day of next calendar month
+        const nextMonthDate = new Date(currentEnd.getFullYear(), currentEnd.getMonth() + 1, 15);
+        newEnd = getCalendarMonthEndDate(nextMonthDate);
+      }
 
       // COLLISION PROTECTION ON RENEWAL
       const overlappingBookings = await getOverlappingBookings(existing.cabinId, currentEnd, newEnd, id);
@@ -318,20 +334,22 @@ export async function POST(request: Request) {
       for (const overlap of overlappingBookings) {
         if (overlap.type === 'reserved') {
           return NextResponse.json({
-            error: 'Cannot renew: A reserved booking exists for this cabin next month.',
+            error: 'Cannot renew: A reserved booking exists for this cabin in that period.',
           }, { status: 409 });
         }
         if (existing.type === 'reserved') {
           return NextResponse.json({
-            error: 'Cannot renew reserved cabin: Another shift booking exists next month.',
+            error: 'Cannot renew reserved cabin: Another shift booking exists in that period.',
           }, { status: 409 });
         }
         if (overlap.type === existing.type) {
           return NextResponse.json({
-            error: `Cannot renew: The ${existing.type.replace('_', ' ')} is already booked by someone else next month.`,
+            error: `Cannot renew: The ${existing.type.replace('_', ' ')} is already booked by someone else in that period.`,
           }, { status: 409 });
         }
       }
+
+      const bookingPaidAddition = payNow ? Math.round(Number(payAmount || renewAmount / 100) * 100) : 0;
 
       // Update booking
       const booking = await db.booking.update({
@@ -339,6 +357,7 @@ export async function POST(request: Request) {
         data: {
           endDate: newEnd,
           totalAmount: existing.totalAmount + renewAmount,
+          paidAmount: existing.paidAmount + bookingPaidAddition,
         },
         include: {
           student: { select: { id: true, name: true, phone: true } },
@@ -347,10 +366,118 @@ export async function POST(request: Request) {
         },
       });
 
+      // If payment recorded on renewal, create Payment row
+      if (payNow && bookingPaidAddition > 0) {
+        await db.payment.create({
+          data: {
+            bookingId: booking.id,
+            studentId: existing.studentId,
+            amount: bookingPaidAddition,
+            mode: payMode || 'cash',
+            status: 'completed',
+            receivedAt: paymentDate ? new Date(paymentDate) : now,
+            notes: 'Renewal payment recorded by admin',
+            receiptNo: receiptNo || null,
+          },
+        });
+      }
+
+      await logAudit({
+        user: auth.user,
+        action: 'BOOKING_RENEWED',
+        entityType: 'Booking',
+        entityId: id,
+        description: `Renewed booking for student '${existing.student?.name}' on Cabin #${existing.cabin?.cabinNum} until ${newEnd.toISOString().split('T')[0]}`,
+        details: { bookingId: id, newEndDate: newEnd, renewAmount: renewAmount / 100 },
+        req: request,
+      });
+
+      revalidatePath('/cabins');
+      revalidatePath('/dashboard/cabins');
+
       return NextResponse.json({
         booking,
         renewedAmount: renewAmount,
         newEndDate: newEnd.toISOString(),
+      });
+
+    } else if (action === 'release_desk') {
+      if (!id) {
+        return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
+      }
+      const existing = await db.booking.findUnique({
+        where: { id },
+        include: {
+          student: { select: { id: true, name: true, phone: true } },
+          cabin: { select: { id: true, cabinNum: true } },
+        },
+      });
+      if (!existing) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+      }
+      const updated = await db.booking.update({
+        where: { id },
+        data: { status: 'expired' },
+      });
+
+      await logAudit({
+        user: auth.user,
+        action: 'BOOKING_RELEASED',
+        entityType: 'Booking',
+        entityId: id,
+        description: `Released Cabin #${existing.cabin?.cabinNum} previously held by '${existing.student?.name || 'Student'}'`,
+        details: { bookingId: id, studentId: existing.studentId, cabinId: existing.cabinId },
+        req: request,
+      });
+
+      revalidatePath('/cabins');
+      revalidatePath('/dashboard/cabins');
+
+      return NextResponse.json({ success: true, booking: updated });
+
+    } else if (action === 'bulk_sync_to_month') {
+      const now = new Date();
+      const currentMonthEnd = getCalendarMonthEndDate(now);
+
+      const olderBookings = await db.booking.findMany({
+        where: {
+          status: 'active',
+          OR: [
+            { endDate: { lt: now } },
+            { endDate: null },
+          ],
+        },
+        select: { id: true },
+      });
+
+      if (olderBookings.length === 0) {
+        return NextResponse.json({ count: 0, message: 'No older active bookings need synchronization' });
+      }
+
+      const updateResult = await db.booking.updateMany({
+        where: {
+          id: { in: olderBookings.map((b) => b.id) },
+        },
+        data: {
+          endDate: currentMonthEnd,
+        },
+      });
+
+      await logAudit({
+        user: auth.user,
+        action: 'BOOKING_BULK_SYNC',
+        entityType: 'Booking',
+        description: `Bulk synchronized ${updateResult.count} active offline bookings to end on ${currentMonthEnd.toISOString().split('T')[0]}`,
+        details: { count: updateResult.count, targetEndDate: currentMonthEnd },
+        req: request,
+      });
+
+      revalidatePath('/cabins');
+      revalidatePath('/dashboard/cabins');
+
+      return NextResponse.json({
+        count: updateResult.count,
+        message: `Successfully synchronized ${updateResult.count} active offline bookings to month-end (${currentMonthEnd.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })})`,
       });
 
     } else if (action === 'onboard_historical') {

@@ -1,4 +1,4 @@
-"use server"
+"use server";
 
 import { requireStudent } from "@/lib/student-auth"
 import { db } from "@/lib/db"
@@ -7,6 +7,11 @@ import { revalidatePath } from "next/cache"
 import { Client } from "@upstash/workflow"
 import { env } from "@/env"
 import * as Sentry from "@sentry/nextjs"
+import {
+  isBookingCurrentlyBlocking,
+  isRegistrationFeeWaived,
+  calculateCabinPricing,
+} from "@/lib/helpers/cabin-dates"
 
 import { z } from "zod"
 
@@ -53,7 +58,7 @@ export async function bookCabin(rawCabinId: string, rawBookingType: 'reserved' |
         where: { id: cabinId },
         include: {
           bookings: {
-            where: { status: "active" }
+            where: { status: { in: ['active', 'pending_payment'] } }
           }
         }
       })
@@ -64,30 +69,16 @@ export async function bookCabin(rawCabinId: string, rawBookingType: 'reserved' |
 
       // Check if cabin is occupied
       const isOccupied = cabin.bookings.some(b => {
-        // If checking against a past date for active bookings, ensure they overlap.
-        // For simplicity, any active 'reserved' booking that is currently active or future active overlaps everything.
-        const startLimit = new Date(b.startDate);
-        startLimit.setHours(0, 0, 0, 0);
-        const endLimit = b.endDate ? new Date(b.endDate) : null;
-        if (endLimit) endLimit.setHours(23, 59, 59, 999);
-
-        // If the booking ended before our start date, it doesn't overlap
-        if (endLimit && endLimit < startDate) return false;
-
-        // Check conflict types
+        if (!isBookingCurrentlyBlocking(b)) return false;
         if (b.type === 'reserved') return true;
-        if (bookingType === 'reserved') return true; // Can't reserve if there's any active booking (even shifts)
-        if (b.type === bookingType) return true; // Can't book the same shift
+        if (bookingType === 'reserved') return true;
+        if (b.type === bookingType) return true;
         return false;
       });
 
       if (isOccupied) {
         throw new Error("This cabin is not available on the selected date for this shift.")
       }
-
-      // Calculate dates and amounts
-      const endDate = new Date(startDate)
-      endDate.setMonth(endDate.getMonth() + 1) // Always 1 month duration for now
 
       // Fetch dynamic pricing
       const settings = await tx.setting.findMany({
@@ -135,15 +126,26 @@ export async function bookCabin(rawCabinId: string, rawBookingType: 'reserved' |
         endTime = '23:59';
       }
 
-      // Check if first booking
-      const pastCabinBookingsCount = await tx.booking.count({
+      // Check prior bookings for 90-day registration fee validity
+      const priorBookings = await tx.booking.findMany({
         where: {
           studentId: student.id,
-          cabinId: { not: '' }
-        }
+          cabinId: { not: '' },
+        },
+        select: {
+          createdAt: true,
+          endDate: true,
+          status: true,
+        },
       });
 
-      const totalAmount = (feePerMonth + (pastCabinBookingsCount === 0 ? registrationFee : 0)) * 100;
+      const isRegWaived = isRegistrationFeeWaived(priorBookings, startDate);
+      const pricingCalc = calculateCabinPricing({
+        startDate,
+        baseRate: feePerMonth,
+        registrationFee,
+        isRegistrationWaived: isRegWaived,
+      });
 
       return await tx.booking.create({
         data: {
@@ -151,13 +153,13 @@ export async function bookCabin(rawCabinId: string, rawBookingType: 'reserved' |
           cabinId: cabin.id,
           type: bookingType,
           startDate,
-          endDate,
+          endDate: pricingCalc.endDate,
           startTime: startTime || undefined,
           endTime: endTime || undefined,
-          totalAmount,
+          totalAmount: pricingCalc.totalAmountInPaise,
           paidAmount: 0,
           status: "pending_payment", // Defer payment
-          notes: `Booked via Student Dashboard`
+          notes: `Booked via Student Dashboard${pricingCalc.isSecondHalf ? ' (50% Mid-Month Rate)' : ''}${isRegWaived ? ' (Registration Fee Waived - 3mo Validity)' : ''}`
         }
       })
     })
@@ -166,12 +168,17 @@ export async function bookCabin(rawCabinId: string, rawBookingType: 'reserved' |
     const workflowClient = new Client({ token: env.QSTASH_TOKEN })
     const baseUrl = env.NEXTAUTH_URL || 'http://localhost:3000'
     
-    await workflowClient.trigger({
-      url: `${baseUrl}/api/workflow/cleanup-booking`,
-      body: { bookingId: newBooking.id }
-    })
+    try {
+      await workflowClient.trigger({
+        url: `${baseUrl}/api/workflow/cleanup-booking`,
+        body: { bookingId: newBooking.id }
+      })
+    } catch (workflowErr) {
+      console.warn('Could not trigger cleanup workflow:', workflowErr);
+    }
 
     revalidatePath("/dashboard/cabins")
+    revalidatePath("/cabins")
     return { success: true, bookingId: newBooking.id }
   } catch (error: any) {
     Sentry.captureException(error);
@@ -202,6 +209,8 @@ export async function cancelCabinBooking(rawBookingId: string) {
     })
 
     revalidatePath("/dashboard/history")
+    revalidatePath("/dashboard/cabins")
+    revalidatePath("/cabins")
     return { success: true }
   } catch (error: any) {
     Sentry.captureException(error);

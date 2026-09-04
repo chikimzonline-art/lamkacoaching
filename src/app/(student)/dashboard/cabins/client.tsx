@@ -63,6 +63,9 @@ interface DashboardCabinsClientProps {
     nightShiftRate: number;
   };
   isFirstBooking: boolean;
+  isRegistrationWaived?: boolean;
+  isSecondHalf?: boolean;
+  monthEndDate?: string;
   pendingCheckout?: {
     id: string;
     type: string;
@@ -92,14 +95,18 @@ function formatFloorLabel(floor: number): string {
   return `${floor}${suffix} Floor`;
 }
 
+type BookingType = 'reserved' | 'morning_shift' | 'day_shift' | 'night_shift';
+
 export default function DashboardCabinsClient({ data }: { data: DashboardCabinsClientProps }) {
-  const [selectedCabin, setSelectedCabin] = useState<string | null>(null);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [bookingType, setBookingType] = useState<'reserved' | 'morning_shift' | 'day_shift' | 'night_shift'>('reserved');
   const [activeFloor, setActiveFloor] = useState<number | 'all'>('all');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedCabin, setSelectedCabin] = useState<string | null>(null);
+  const [bookingType, setBookingType] = useState<BookingType>('reserved');
+  const [startDate, setStartDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>('');
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const router = useRouter();
 
   // Close mobile drawer on desktop resize
@@ -121,21 +128,30 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
     ? data.cabins
     : data.cabins.filter((c) => c.floor === activeFloor);
 
-  // Calculate estimated amount
-  let estimatedAmount = 0;
+  // Calculate estimated amount with mid-month 50% split and registration fee waiver
+  let baseRate = 0;
   if (bookingType === 'reserved') {
-    estimatedAmount = data.pricing.reservedRate * 100;
+    baseRate = data.pricing.reservedRate * 100;
   } else if (bookingType === 'morning_shift') {
-    estimatedAmount = data.pricing.morningShiftRate * 100;
+    baseRate = data.pricing.morningShiftRate * 100;
   } else if (bookingType === 'day_shift') {
-    estimatedAmount = data.pricing.dayShiftRate * 100;
+    baseRate = data.pricing.dayShiftRate * 100;
   } else if (bookingType === 'night_shift') {
-    estimatedAmount = data.pricing.nightShiftRate * 100;
+    baseRate = data.pricing.nightShiftRate * 100;
   }
-  
-  if (data.isFirstBooking) {
-    estimatedAmount += data.pricing.registrationFee * 100;
-  }
+
+  const selectedDateObj = new Date(startDate);
+  const isSecondHalf = selectedDateObj.getDate() > 15;
+  const deskFee = isSecondHalf ? Math.round(baseRate / 2) : baseRate;
+  const isRegistrationFeeDue = data.isRegistrationWaived !== undefined ? !data.isRegistrationWaived : data.isFirstBooking;
+  const registrationFeeCharged = isRegistrationFeeDue ? data.pricing.registrationFee * 100 : 0;
+  const estimatedAmount = deskFee + registrationFeeCharged;
+
+  const cycleEnd = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth() + 1, 0);
+  const formattedCycleEndDate = cycleEnd.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+  });
 
   const handleSelectCabin = (cabinId: string) => {
     setSelectedCabin(cabinId);
@@ -338,7 +354,7 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
         <div>
           <Label className="mb-1.5 block text-xs font-semibold text-slate-700">Duration</Label>
           <div className="flex items-center h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700">
-            1 Month (Auto-Renewable)
+            Until {formattedCycleEndDate} (Calendar Month)
           </div>
         </div>
       </div>
@@ -348,13 +364,30 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
         <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4">
           <div className="flex flex-col gap-2">
             <div className="flex justify-between text-xs text-slate-600">
-              <span>Monthly Shift Fee</span>
-              <span className="font-semibold text-slate-800">{formatCurrency(estimatedAmount - (data.isFirstBooking ? data.pricing.registrationFee * 100 : 0))}</span>
+              <div className="flex items-center gap-1.5">
+                <span>Shift Desk Fee</span>
+                {isSecondHalf && (
+                  <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    50% Mid-Month Rate
+                  </span>
+                )}
+              </div>
+              <span className="font-semibold text-slate-800">{formatCurrency(deskFee)}</span>
             </div>
-            {data.isFirstBooking && (
+            {isRegistrationFeeDue ? (
               <div className="flex justify-between text-xs text-slate-600">
                 <span>One-Time Registration Fee</span>
                 <span className="font-semibold text-slate-800">{formatCurrency(data.pricing.registrationFee * 100)}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between text-xs text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <span>One-Time Registration Fee</span>
+                  <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                    Waived (3-Mo Validity)
+                  </span>
+                </div>
+                <span className="font-semibold text-emerald-700">₹0</span>
               </div>
             )}
             <div className="border-t border-emerald-200 pt-2.5 flex items-center justify-between mt-1">
@@ -372,6 +405,14 @@ export default function DashboardCabinsClient({ data }: { data: DashboardCabinsC
           <p className="text-xs text-red-700">{error}</p>
         </div>
       )}
+
+      {/* 7-Day Renewal Grace Policy Note */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-start gap-2 text-xs text-slate-600">
+        <Clock className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+        <p>
+          <strong>Calendar-Month Cycle:</strong> Fees are paid in advance. At month-end, your desk is held exclusively for you for <strong>7 calendar days</strong> (until the 7th at 23:59) to complete your renewal.
+        </p>
+      </div>
 
       {/* 10-Minute Hold Warning */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-800">

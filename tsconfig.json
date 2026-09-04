@@ -41,6 +41,7 @@
     "examples",
     "prisma",
     "scratch",
-    "scripts"
+    "scripts",
+    "**/*.test.ts"
   ]
 }

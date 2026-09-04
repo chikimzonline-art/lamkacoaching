@@ -335,6 +335,9 @@ class StudentCabinDashboardData {
   final List<int> floors;
   final CabinPricingEntity pricing;
   final bool isFirstBooking;
+  final bool isRegistrationWaived;
+  final bool isSecondHalf;
+  final DateTime? monthEndDate;
   final PendingCheckoutEntity? pendingCheckout;
   final List<MyCabinBookingEntity> myBookings;
   final int totalCabins;
@@ -346,6 +349,9 @@ class StudentCabinDashboardData {
     required this.floors,
     required this.pricing,
     this.isFirstBooking = false,
+    this.isRegistrationWaived = false,
+    this.isSecondHalf = false,
+    this.monthEndDate,
     this.pendingCheckout,
     this.myBookings = const [],
     required this.totalCabins,
@@ -358,6 +364,9 @@ class StudentCabinDashboardData {
     final rawFloors = json['floors'] as List<dynamic>? ?? [];
     final rawMyBookings = json['myBookings'] as List<dynamic>? ?? [];
 
+    final isRegWaived = json['isRegistrationWaived'] as bool? ?? !(json['isFirstBooking'] as bool? ?? false);
+    final monthEndStr = json['monthEndDate'] as String?;
+
     return StudentCabinDashboardData(
       cabins: rawCabins
           .map((c) => CabinEntity.fromJson(c as Map<String, dynamic>))
@@ -369,7 +378,10 @@ class StudentCabinDashboardData {
       pricing: json['pricing'] != null
           ? CabinPricingEntity.fromJson(json['pricing'] as Map<String, dynamic>)
           : const CabinPricingEntity(),
-      isFirstBooking: json['isFirstBooking'] as bool? ?? false,
+      isFirstBooking: json['isFirstBooking'] as bool? ?? !isRegWaived,
+      isRegistrationWaived: isRegWaived,
+      isSecondHalf: json['isSecondHalf'] as bool? ?? (DateTime.now().day > 15),
+      monthEndDate: monthEndStr != null ? DateTime.tryParse(monthEndStr) : null,
       pendingCheckout: json['pendingCheckout'] != null
           ? PendingCheckoutEntity.fromJson(
               json['pendingCheckout'] as Map<String, dynamic>)

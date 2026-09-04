@@ -55,9 +55,12 @@ class CabinBookingBottomSheet extends ConsumerWidget {
     final startDate = checkoutState.startDate;
     final isProcessing = checkoutState.isProcessing;
 
-    final monthlyFee = pricing.rateForShift(selectedShift);
+    final isSecondHalf = startDate.day > 15;
+    final baseFee = pricing.rateForShift(selectedShift);
+    final monthlyFee = isSecondHalf ? (baseFee ~/ 2) : baseFee;
     final regFee = isFirstBooking ? pricing.registrationFee : 0;
     final totalDue = monthlyFee + regFee;
+    final monthEnd = DateTime(startDate.year, startDate.month + 1, 0);
 
     return Container(
       constraints: BoxConstraints(
@@ -284,7 +287,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                                     lastDate: DateTime.now().add(const Duration(days: 90)),
                                   );
                                   if (picked != null) {
-                                    checkoutNotifier.setStartDate(picked);
+                                    checkoutNotifier.setStartDate(picked, pricing, isFirstBooking);
                                   }
                                 },
                           child: Container(
@@ -343,11 +346,11 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                           ),
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            '1 Month (Auto-Renewable)',
+                            'Until ${DateFormat('dd MMM').format(monthEnd)} (Month End)',
                             style: TextStyle(
                               fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : const Color(0xFF334155),
                             ),
                           ),
                         ),
@@ -373,12 +376,34 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Monthly Shift Fee',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? Colors.white70 : const Color(0xFF475569),
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Shift Desk Fee',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? Colors.white70 : const Color(0xFF475569),
+                              ),
+                            ),
+                            if (isSecondHalf) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  '50% Mid-Month',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF92400E),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         Text(
                           Formatters.formatPaiseToRupees(monthlyFee),
@@ -408,6 +433,48 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Registration Fee',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD1FAE5),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'Waived (3-Mo Validity)',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF065F46),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Text(
+                            '₹0',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF059669),
                             ),
                           ),
                         ],
@@ -443,7 +510,39 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
+
+              // Calendar Month Policy & 7-Day Renewal Grace Box
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      LucideIcons.calendarClock,
+                      size: 14,
+                      color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Calendar-Month Cycle: Fees paid in advance. 7-calendar-day renewal grace period at month-end to secure your desk.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
 
               // 10-Minute Hold Warning Box
               Container(

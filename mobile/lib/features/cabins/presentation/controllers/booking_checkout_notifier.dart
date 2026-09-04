@@ -102,7 +102,7 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
       }
     }
 
-    final totalPaise = _calculateTotalPaise(shift, pricing, isFirstBooking);
+    final totalPaise = _calculateTotalPaise(shift, pricing, isFirstBooking, state.startDate);
 
     state = state.copyWith(
       selectedCabin: cabin,
@@ -114,7 +114,7 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
   }
 
   void selectShift(String shift, CabinPricingEntity pricing, bool isFirstBooking) {
-    final totalPaise = _calculateTotalPaise(shift, pricing, isFirstBooking);
+    final totalPaise = _calculateTotalPaise(shift, pricing, isFirstBooking, state.startDate);
     state = state.copyWith(
       selectedShift: shift,
       totalAmountInPaise: totalPaise,
@@ -122,16 +122,22 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
     );
   }
 
-  void setStartDate(DateTime date) {
-    state = state.copyWith(startDate: date);
+  void setStartDate(DateTime date, CabinPricingEntity pricing, bool isFirstBooking) {
+    final totalPaise = _calculateTotalPaise(state.selectedShift, pricing, isFirstBooking, date);
+    state = state.copyWith(
+      startDate: date,
+      totalAmountInPaise: totalPaise,
+    );
   }
 
-  int _calculateTotalPaise(String shift, CabinPricingEntity pricing, bool isFirstBooking) {
-    int fee = pricing.rateForShift(shift);
+  int _calculateTotalPaise(String shift, CabinPricingEntity pricing, bool isFirstBooking, DateTime date) {
+    int baseFee = pricing.rateForShift(shift);
+    // After 15th of the month: 50% desk fee
+    int deskFee = (date.day > 15) ? (baseFee ~/ 2) : baseFee;
     if (isFirstBooking) {
-      fee += pricing.registrationFee;
+      deskFee += pricing.registrationFee;
     }
-    return fee; // already in paise
+    return deskFee; // already in paise
   }
 
   /// Complete Checkout Pipeline:

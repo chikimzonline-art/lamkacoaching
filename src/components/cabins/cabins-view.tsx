@@ -37,9 +37,10 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight, History, ScanLine, QrCode, BarChart3 } from 'lucide-react';
+import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight, History, ScanLine, QrCode, BarChart3, RefreshCw, Filter, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatTime, formatCurrency } from '@/lib/helpers';
+import { isBookingInGracePeriod, isBookingPastGracePeriod, getCalendarMonthEndDate, formatDateToYYYYMMDD, parseYYYYMMDD } from '@/lib/helpers/cabin-dates';
 import { generateSecurePassword } from '@/lib/email';
 import { cn } from '@/lib/utils';
 import { HistoricalBookingDialog } from './historical-booking-dialog';
@@ -68,7 +69,7 @@ interface Cabin {
   bookings: CabinBooking[];
 }
 
-type CabinDisplayState = 'available' | 'reserved' | 'partially_booked' | 'fully_booked' | 'maintenance' | 'inactive';
+type CabinDisplayState = 'available' | 'reserved' | 'partially_booked' | 'fully_booked' | 'maintenance' | 'inactive' | 'needs_cycle_update' | 'in_grace_period';
 type FilterType = 'all' | CabinDisplayState;
 
 function getCabinDisplayState(
@@ -76,13 +77,32 @@ function getCabinDisplayState(
 ): CabinDisplayState {
   if (cabin.status === 'maintenance') return 'maintenance';
   if (cabin.status === 'inactive') return 'inactive';
-  const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && b.status === 'active');
+
+  const activeBookings = cabin.bookings.filter(
+    (b) => b.status === 'active' || b.status === 'pending_payment'
+  );
+
+  if (activeBookings.length === 0) return 'available';
+
+  // Check if any active booking has an outdated cycle (>7 days past endDate)
+  const hasOutdatedCycle = activeBookings.some((b) => isBookingPastGracePeriod(b.endDate));
+  if (hasOutdatedCycle) return 'needs_cycle_update';
+
+  // Check if any active booking is in the 7-day renewal grace period
+  const inGrace = activeBookings.some((b) => isBookingInGracePeriod(b.endDate));
+  if (inGrace) return 'in_grace_period';
+
+  const reservedBooking = activeBookings.find((b) => b.type === 'reserved');
   if (reservedBooking) return 'reserved';
 
-  const shifts = new Set(cabin.bookings.filter((b) => b.status === 'active' && ['morning_shift', 'day_shift', 'night_shift'].includes(b.type)).map(b => b.type));
+  const shifts = new Set(
+    activeBookings
+      .filter((b) => ['morning_shift', 'day_shift', 'night_shift'].includes(b.type))
+      .map((b) => b.type)
+  );
   
   if (shifts.size === 0) return 'available';
-  if (shifts.size >= 3) return 'fully_booked'; // Assuming morning, day, night are the 3 main shifts
+  if (shifts.size >= 3) return 'fully_booked';
   return 'partially_booked';
 }
 
@@ -92,6 +112,10 @@ function getDisplayStyles(state: CabinDisplayState) {
       return 'border-emerald-300 bg-emerald-50/50 hover:border-emerald-400';
     case 'reserved':
       return 'border-red-300 bg-red-50/50 hover:border-red-400';
+    case 'needs_cycle_update':
+      return 'border-orange-300 bg-orange-50/70 hover:border-orange-400';
+    case 'in_grace_period':
+      return 'border-amber-300 bg-amber-50/70 hover:border-amber-400';
     case 'partially_booked':
       return 'border-sky-300 bg-sky-50/50 hover:border-sky-400';
     case 'fully_booked':
@@ -111,6 +135,10 @@ function getStatusBadge(state: CabinDisplayState) {
       return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">Available</Badge>;
     case 'reserved':
       return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">Reserved</Badge>;
+    case 'needs_cycle_update':
+      return <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs">Needs Cycle Update</Badge>;
+    case 'in_grace_period':
+      return <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">In Grace Period</Badge>;
     case 'partially_booked':
       return <Badge className="bg-sky-100 text-sky-800 border-sky-200 text-xs">Partially Booked</Badge>;
     case 'fully_booked':
@@ -150,6 +178,7 @@ export default function CabinsView() {
   const [deleteFloorDialogOpen, setDeleteFloorDialogOpen] = useState(false);
   const [deleteFloorNum, setDeleteFloorNum] = useState<number | null>(null);
   const [deleteFloorConfirm, setDeleteFloorConfirm] = useState('');
+  const [syncing, setSyncing] = useState(false);
 
   // 2-Step Cabin Deletion states (Admin Only)
   const [deleteCabinDialogOpen, setDeleteCabinDialogOpen] = useState(false);
@@ -197,13 +226,10 @@ export default function CabinsView() {
 
   const [bookType, setBookType] = useState('morning_shift');
   const [bookStartDate, setBookStartDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    return formatDateToYYYYMMDD(new Date());
   });
   const [bookEndDate, setBookEndDate] = useState(() => {
-    const nextMonth = new Date();
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    return nextMonth.toISOString().split('T')[0];
+    return formatDateToYYYYMMDD(getCalendarMonthEndDate(new Date()));
   });
   const [bookTotalAmount, setBookTotalAmount] = useState('');
   
@@ -287,13 +313,64 @@ export default function CabinsView() {
 
   const bookStudentOptions = studentSearchRes?.students || [];
 
-  // Auto-calculate amount when type changes
+  const getShiftBaseRate = useCallback((type: string) => {
+    if (type === 'reserved') return rates.reserved;
+    if (type === 'morning_shift') return rates.morning;
+    if (type === 'day_shift') return rates.day;
+    if (type === 'night_shift') return rates.night;
+    return rates.morning;
+  }, [rates]);
+
+  // Auto-calculate amount when type, rates, or startDate changes (50% mid-month rule)
   useEffect(() => {
-    if (bookType === 'reserved') setBookTotalAmount(String(rates.reserved));
-    else if (bookType === 'morning_shift') setBookTotalAmount(String(rates.morning));
-    else if (bookType === 'day_shift') setBookTotalAmount(String(rates.day));
-    else if (bookType === 'night_shift') setBookTotalAmount(String(rates.night));
-  }, [bookType, rates]);
+    const base = getShiftBaseRate(bookType);
+    const parsedStart = bookStartDate ? parseYYYYMMDD(bookStartDate) : new Date();
+    const isSecondHalf = parsedStart.getDate() > 15;
+    const fee = isSecondHalf ? Math.round(base / 2) : base;
+    setBookTotalAmount(String(fee));
+  }, [bookType, rates, bookStartDate, getShiftBaseRate]);
+
+  const handleStartDateChange = (newDateStr: string) => {
+    setBookStartDate(newDateStr);
+    if (newDateStr) {
+      const parsedStart = parseYYYYMMDD(newDateStr);
+      const calculatedEnd = getCalendarMonthEndDate(parsedStart);
+      setBookEndDate(formatDateToYYYYMMDD(calculatedEnd));
+    }
+  };
+
+  const handleOpenBookDialog = () => {
+    const today = new Date();
+    const todayStr = formatDateToYYYYMMDD(today);
+    const endStr = formatDateToYYYYMMDD(getCalendarMonthEndDate(today));
+    setBookStartDate(todayStr);
+    setBookEndDate(endStr);
+
+    let defaultType = 'morning_shift';
+    if (selectedCabin?.bookings) {
+      const activeBookings = selectedCabin.bookings.filter(
+        b => b.status === 'active' || b.status === 'pending_payment'
+      );
+      const occupied = new Set(activeBookings.map(b => b.type));
+      if (!occupied.has('morning_shift')) defaultType = 'morning_shift';
+      else if (!occupied.has('day_shift')) defaultType = 'day_shift';
+      else if (!occupied.has('night_shift')) defaultType = 'night_shift';
+      else if (occupied.size === 0) defaultType = 'reserved';
+    }
+    setBookType(defaultType);
+
+    const base = getShiftBaseRate(defaultType);
+    const isSecondHalf = today.getDate() > 15;
+    setBookTotalAmount(String(isSecondHalf ? Math.round(base / 2) : base));
+
+    setBookStudentId('');
+    setBookStudentSearch('');
+    setShowNewStudentForm(false);
+    setBookPayNow(false);
+    setBookPayAmount('');
+    setBookReceiptNo('');
+    setBookDialogOpen(true);
+  };
 
   // Keep payment amount in sync with total when payNow is toggled
   useEffect(() => {
@@ -388,7 +465,7 @@ export default function CabinsView() {
         cabinId: selectedCabin.id,
         type: bookType,
         startDate: bookStartDate,
-        endDate: bookType !== 'reserved' ? bookEndDate : null,
+        endDate: bookEndDate || formatDateToYYYYMMDD(getCalendarMonthEndDate(parseYYYYMMDD(bookStartDate))),
         totalAmount: finalTotalAmount,
       };
 
@@ -590,6 +667,73 @@ export default function CabinsView() {
     }
   };
 
+  const handleQuickRenew = async (bookingId?: string) => {
+    if (!bookingId) return;
+    try {
+      setSubmitting(true);
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'renew', id: bookingId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to renew booking');
+      toast.success(
+        `Desk renewed until ${new Date(data.newEndDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      );
+      fetchCabins();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to renew');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReleaseDesk = async (bookingId?: string) => {
+    if (!bookingId) return;
+    if (!window.confirm('Release this desk? The booking will be marked as expired and the desk will become available for new students.')) {
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'release_desk', id: bookingId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to release desk');
+      toast.success('Desk released successfully');
+      fetchCabins();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to release desk');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkSync = async () => {
+    if (!window.confirm('Bring all older active offline bookings up to date with the current calendar month end?')) {
+      return;
+    }
+    try {
+      setSyncing(true);
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bulk_sync_to_month' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to bulk sync bookings');
+      toast.success(data.message || 'Bookings synchronized successfully');
+      fetchCabins();
+    } catch (err: any) {
+      toast.error(err.message || 'Bulk sync failed');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // Calculate cabin display states
   const cabinStates = cabins.map((c) => ({
     cabin: c,
@@ -602,6 +746,8 @@ export default function CabinsView() {
   const fullyBookedCount = cabinStates.filter((c) => c.state === 'fully_booked').length;
   const maintenanceCount = cabinStates.filter((c) => c.state === 'maintenance').length;
   const inactiveCount = cabinStates.filter((c) => c.state === 'inactive').length;
+  const needsUpdateCount = cabinStates.filter((c) => c.state === 'needs_cycle_update').length;
+  const inGraceCount = cabinStates.filter((c) => c.state === 'in_grace_period').length;
 
   // Filter cabins by floor and status
   const floorFilteredCabins = activeFloor === 'all'
@@ -625,7 +771,7 @@ export default function CabinsView() {
       label: formatFloorLabel(f),
       total: floorCabins.length,
       available: floorCabins.filter((c) => c.state === 'available').length,
-      occupied: floorCabins.filter((c) => c.state === 'reserved').length,
+      occupied: floorCabins.filter((c) => c.state === 'reserved' || c.state === 'needs_cycle_update' || c.state === 'in_grace_period').length,
       shifts: floorCabins.filter((c) => c.state === 'partially_booked' || c.state === 'fully_booked').length,
       maintenance: floorCabins.filter((c) => c.state === 'maintenance').length,
       inactive: floorCabins.filter((c) => c.state === 'inactive').length,
@@ -652,14 +798,97 @@ export default function CabinsView() {
     );
   }
 
-  const filterBadges: { key: FilterType; label: string; count: number; color: string; activeColor: string }[] = [
-    { key: 'all', label: 'All', count: cabins.length, color: 'border-cyan-200 text-cyan-600 bg-cyan-50', activeColor: 'border-cyan-500 text-cyan-900 bg-cyan-200' },
-    { key: 'available', label: 'Available', count: availableCount, color: 'border-emerald-200 text-emerald-700 bg-emerald-50', activeColor: 'border-emerald-500 text-emerald-900 bg-emerald-200' },
-    { key: 'reserved', label: 'Reserved', count: reservedCount, color: 'border-red-200 text-red-700 bg-red-50', activeColor: 'border-red-500 text-red-900 bg-red-200' },
-    { key: 'partially_booked', label: 'Partially Booked', count: partiallyBookedCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' },
-    ...(fullyBookedCount > 0 ? [{ key: 'fully_booked' as FilterType, label: 'Fully Booked', count: fullyBookedCount, color: 'border-sky-200 text-sky-700 bg-sky-50', activeColor: 'border-sky-500 text-sky-900 bg-sky-200' }] : []),
-    { key: 'maintenance', label: 'Maintenance', count: maintenanceCount, color: 'border-amber-200 text-amber-700 bg-amber-50', activeColor: 'border-amber-500 text-amber-900 bg-amber-200' },
-    { key: 'inactive', label: 'Inactive', count: inactiveCount, color: 'border-gray-200 text-gray-700 bg-gray-50', activeColor: 'border-gray-500 text-gray-900 bg-gray-200' },
+  const filterBadges: {
+    key: FilterType;
+    label: string;
+    count: number;
+    dot?: string;
+    inactiveStyle: string;
+    activeStyle: string;
+  }[] = [
+    {
+      key: 'all',
+      label: 'All',
+      count: cabins.length,
+      inactiveStyle: 'border-slate-200 text-slate-700 bg-white hover:bg-slate-100/80',
+      activeStyle: 'border-slate-900 text-white bg-slate-900 shadow-xs',
+    },
+    {
+      key: 'available',
+      label: 'Available',
+      count: availableCount,
+      dot: 'bg-emerald-500',
+      inactiveStyle: 'border-slate-200 text-slate-700 bg-white hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-800',
+      activeStyle: 'border-emerald-600 text-white bg-emerald-600 shadow-xs',
+    },
+    {
+      key: 'reserved',
+      label: 'Reserved',
+      count: reservedCount,
+      dot: 'bg-rose-500',
+      inactiveStyle: 'border-slate-200 text-slate-700 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-800',
+      activeStyle: 'border-rose-600 text-white bg-rose-600 shadow-xs',
+    },
+    ...(needsUpdateCount > 0
+      ? [
+          {
+            key: 'needs_cycle_update' as FilterType,
+            label: 'Needs Update',
+            count: needsUpdateCount,
+            dot: 'bg-amber-500 animate-pulse',
+            inactiveStyle: 'border-amber-300 text-amber-900 bg-amber-50/90 hover:bg-amber-100 hover:border-amber-400 font-semibold',
+            activeStyle: 'border-amber-600 text-white bg-amber-600 shadow-xs font-semibold',
+          },
+        ]
+      : []),
+    ...(inGraceCount > 0
+      ? [
+          {
+            key: 'in_grace_period' as FilterType,
+            label: 'In Grace',
+            count: inGraceCount,
+            dot: 'bg-blue-500',
+            inactiveStyle: 'border-blue-300 text-blue-900 bg-blue-50/90 hover:bg-blue-100 hover:border-blue-400 font-semibold',
+            activeStyle: 'border-blue-600 text-white bg-blue-600 shadow-xs font-semibold',
+          },
+        ]
+      : []),
+    {
+      key: 'partially_booked',
+      label: 'Partially Booked',
+      count: partiallyBookedCount,
+      dot: 'bg-sky-400',
+      inactiveStyle: 'border-slate-200 text-slate-700 bg-white hover:bg-sky-50 hover:border-sky-200 hover:text-sky-800',
+      activeStyle: 'border-sky-600 text-white bg-sky-600 shadow-xs',
+    },
+    ...(fullyBookedCount > 0
+      ? [
+          {
+            key: 'fully_booked' as FilterType,
+            label: 'Fully Booked',
+            count: fullyBookedCount,
+            dot: 'bg-indigo-500',
+            inactiveStyle: 'border-slate-200 text-slate-700 bg-white hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-800',
+            activeStyle: 'border-indigo-600 text-white bg-indigo-600 shadow-xs',
+          },
+        ]
+      : []),
+    {
+      key: 'maintenance',
+      label: 'Maintenance',
+      count: maintenanceCount,
+      dot: 'bg-orange-500',
+      inactiveStyle: 'border-slate-200 text-slate-600 bg-white hover:bg-orange-50 hover:border-orange-200 hover:text-orange-800',
+      activeStyle: 'border-orange-600 text-white bg-orange-600 shadow-xs',
+    },
+    {
+      key: 'inactive',
+      label: 'Inactive',
+      count: inactiveCount,
+      dot: 'bg-slate-400',
+      inactiveStyle: 'border-slate-200 text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-800',
+      activeStyle: 'border-slate-600 text-white bg-slate-600 shadow-xs',
+    },
   ];
 
   return (
@@ -779,102 +1008,162 @@ export default function CabinsView() {
         );
       })()}
 
-      {/* Toolbar: Search, Filter badges, and Add Button */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-gray-200/80 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2.5 flex-1">
-          {/* Cabin Number Search */}
-          <div className="relative w-full sm:w-52">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* 2-Tier Command Bar: Search, Quick Actions & Status Filters */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+        {/* Tier 1: Search & Action Toolbar */}
+        <div className="p-3 sm:p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Left: Cabin Search Bar */}
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Search cabin # (e.g. 5, 12)..."
               value={cabinSearch}
               onChange={(e) => setCabinSearch(e.target.value)}
-              className="pl-9 h-9 text-xs bg-slate-50 border-slate-200 focus:bg-white"
+              className="pl-9 pr-8 h-9 text-xs sm:text-sm bg-slate-50/90 border-slate-200 focus:bg-white rounded-xl shadow-2xs transition-colors"
             />
             {cabinSearch && (
               <button
                 onClick={() => setCabinSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 transition-colors cursor-pointer"
+                title="Clear search"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap gap-1.5 items-center">
-            {filterBadges.map((badge) => (
-              <button
-                key={badge.key}
-                onClick={() => setFilterState(badge.key)}
-                className={cn(
-                  'px-3 py-1.5 rounded-full border text-xs font-medium transition-all cursor-pointer',
-                  filterState === badge.key ? badge.activeColor : badge.color
-                )}
+          {/* Right: Action Buttons Toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Urgent Sync Action: Sync Desks to Month End */}
+            {isAdmin && needsUpdateCount > 0 && (
+              <Button
+                onClick={handleBulkSync}
+                disabled={syncing}
+                variant="outline"
+                size="sm"
+                className="border-amber-300 text-amber-900 bg-amber-50/90 hover:bg-amber-100 shrink-0 font-semibold text-xs h-9 rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Bulk synchronize all older active offline bookings to current calendar month end"
               >
-                {badge.label}: {badge.count}
-              </button>
-            ))}
-            {(filterState !== 'all' || cabinSearch) && (
-              <button
+                <RefreshCw className={cn("h-3.5 w-3.5 text-amber-600", syncing && "animate-spin")} />
+                <span>Sync Desks</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-200/80 text-[10px] font-bold text-amber-950">
+                  {needsUpdateCount}
+                </span>
+              </Button>
+            )}
+
+            {/* Live Attendance Tracker */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 bg-white hover:bg-emerald-50/50 shrink-0 font-medium text-xs h-9 rounded-xl shadow-2xs transition-all flex items-center gap-2 cursor-pointer"
+              onClick={() => setAttendanceTrackerOpen(true)}
+              title="View live cabin occupancy and today's attendance"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <BarChart3 className="h-3.5 w-3.5 text-slate-500" />
+              <span>Live Tracker</span>
+            </Button>
+
+            {/* Print Desk QR Codes */}
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-700 bg-white hover:bg-purple-50/50 shrink-0 font-medium text-xs h-9 rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                onClick={() => setQrGeneratorOpen(true)}
+                title="Generate printable QR code stickers for all cabin desks"
+              >
+                <QrCode className="h-3.5 w-3.5 text-slate-500" />
+                <span>Print QR Codes</span>
+              </Button>
+            )}
+
+            {/* Onboard Existing Offline Student */}
+            {isAdmin && (
+              <Button
                 onClick={() => {
-                  setFilterState('all');
-                  setCabinSearch('');
+                  setHistoricalCabin(null);
+                  setHistoricalDialogOpen(true);
                 }}
-                className="text-xs text-gray-400 hover:text-cyan-600 self-center ml-1 underline cursor-pointer"
+                variant="outline"
+                size="sm"
+                className="border-slate-200 hover:border-amber-300 text-slate-700 hover:text-amber-800 bg-white hover:bg-amber-50/50 shrink-0 font-medium text-xs h-9 rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Add an active offline student with historical dates"
               >
-                Reset filters
-              </button>
+                <History className="h-3.5 w-3.5 text-amber-600" />
+                <span>Onboard Student</span>
+              </Button>
+            )}
+
+            {/* Primary CTA: Add Cabin */}
+            {isAdmin && (
+              <Button
+                onClick={() => setAddDialogOpen(true)}
+                size="sm"
+                className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold text-xs h-9 px-3.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Cabin</span>
+              </Button>
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Tier 2: Status Filter Strip */}
+        <div className="px-3 py-2 sm:px-4 bg-slate-50/70 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 flex-1">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline-flex items-center gap-1">
+              <Filter className="h-3 w-3 text-slate-400" /> Filter:
+            </span>
+            {filterBadges.map((badge) => {
+              const isActive = filterState === badge.key;
+              return (
+                <button
+                  key={badge.key}
+                  onClick={() => setFilterState(badge.key)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg border text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 select-none',
+                    isActive ? badge.activeStyle : badge.inactiveStyle
+                  )}
+                >
+                  {badge.dot && (
+                    <span
+                      className={cn(
+                        'h-1.5 w-1.5 rounded-full shrink-0',
+                        isActive ? 'bg-white' : badge.dot
+                      )}
+                    />
+                  )}
+                  <span>{badge.label}</span>
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.2 rounded-full text-[10px] font-bold',
+                      isActive ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-600'
+                    )}
+                  >
+                    {badge.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Phase 3: Live Attendance Tracker */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 shrink-0 text-xs h-9"
-            onClick={() => setAttendanceTrackerOpen(true)}
-            title="View live cabin occupancy and today's attendance"
-          >
-            <BarChart3 className="h-4 w-4 mr-1.5" />
-            Live Tracker
-          </Button>
-
-          {/* Phase 3: Print Desk QR Codes */}
-          {isAdmin && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 shrink-0 text-xs h-9"
-              onClick={() => setQrGeneratorOpen(true)}
-              title="Generate printable QR code stickers for all cabin desks"
-            >
-              <QrCode className="h-4 w-4 mr-1.5" />
-              Print QR Codes
-            </Button>
-          )}
-
-          {isAdmin && (
-            <Button
+          {(filterState !== 'all' || cabinSearch) && (
+            <button
               onClick={() => {
-                setHistoricalCabin(null);
-                setHistoricalDialogOpen(true);
+                setFilterState('all');
+                setCabinSearch('');
               }}
-              variant="outline"
-              className="border-amber-400 text-amber-900 bg-amber-50/70 hover:bg-amber-100/80 shrink-0 font-medium text-xs sm:text-sm h-9"
+              className="text-xs text-slate-400 hover:text-red-600 font-medium transition-colors flex items-center gap-1 cursor-pointer shrink-0 ml-auto"
+              title="Clear active filters"
             >
-              <History className="h-4 w-4 mr-1.5 text-amber-600" />
-              Onboard Existing Student
-            </Button>
-          )}
-
-          {isAdmin && (
-            <Button onClick={() => setAddDialogOpen(true)} className="bg-cyan-500 hover:bg-cyan-600 text-white shrink-0 text-xs sm:text-sm h-9">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Cabin
-            </Button>
+              <RotateCcw className="h-3 w-3" />
+              <span>Reset</span>
+            </button>
           )}
         </div>
       </div>
@@ -895,7 +1184,16 @@ export default function CabinsView() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {floorCabins.map(({ cabin, state }) => (
-                    <CabinCard key={cabin.id} cabin={cabin} state={state} opStart={opStart} opEnd={opEnd} onClick={() => openEditDialog(cabin)} />
+                    <CabinCard
+                      key={cabin.id}
+                      cabin={cabin}
+                      state={state}
+                      opStart={opStart}
+                      opEnd={opEnd}
+                      onClick={() => openEditDialog(cabin)}
+                      onQuickRenew={handleQuickRenew}
+                      onReleaseDesk={handleReleaseDesk}
+                    />
                   ))}
                 </div>
               </div>
@@ -906,7 +1204,16 @@ export default function CabinsView() {
         // Single floor view
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {filteredCabins.map(({ cabin, state }) => (
-            <CabinCard key={cabin.id} cabin={cabin} state={state} opStart={opStart} opEnd={opEnd} onClick={() => openEditDialog(cabin)} />
+            <CabinCard
+              key={cabin.id}
+              cabin={cabin}
+              state={state}
+              opStart={opStart}
+              opEnd={opEnd}
+              onClick={() => openEditDialog(cabin)}
+              onQuickRenew={handleQuickRenew}
+              onReleaseDesk={handleReleaseDesk}
+            />
           ))}
         </div>
       )}
@@ -1170,7 +1477,7 @@ export default function CabinsView() {
                     </Button>
                   )}
                   <Button
-                    onClick={() => setBookDialogOpen(true)}
+                    onClick={handleOpenBookDialog}
                     className="bg-sky-500 hover:bg-sky-600 text-white mr-auto sm:mr-2"
                   >
                     <CalendarPlus className="h-4 w-4 mr-1.5" />
@@ -1411,7 +1718,14 @@ export default function CabinsView() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Monthly Fee (₹)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Monthly Fee (₹)</Label>
+                  {bookStartDate && parseYYYYMMDD(bookStartDate).getDate() > 15 && (
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      50% Mid-Month
+                    </span>
+                  )}
+                </div>
                 <Input
                   type="number"
                   placeholder="e.g. 500"
@@ -1426,25 +1740,35 @@ export default function CabinsView() {
                 <Input
                   type="date"
                   value={bookStartDate}
-                  onChange={(e) => setBookStartDate(e.target.value)}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
                 />
               </div>
-              {bookType !== 'reserved' && (
-                <div className="space-y-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
                   <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={bookEndDate}
-                    onChange={(e) => setBookEndDate(e.target.value)}
-                  />
+                  <span className="text-[10px] font-medium text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200">
+                    Month End
+                  </span>
                 </div>
-              )}
+                <Input
+                  type="date"
+                  value={bookEndDate}
+                  onChange={(e) => setBookEndDate(e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Fee Breakdown */}
             <div className="bg-cyan-50 p-3 rounded-lg border border-cyan-100 space-y-2">
               <div className="flex justify-between text-sm text-cyan-800">
-                <span>Monthly Fee (Editable)</span>
+                <span className="flex items-center gap-1.5">
+                  Monthly Fee (Editable)
+                  {bookStartDate && parseYYYYMMDD(bookStartDate).getDate() > 15 && (
+                    <span className="text-[10px] text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded font-medium">
+                      (50% Mid-Month Rate)
+                    </span>
+                  )}
+                </span>
                 <span>{formatCurrency((Number(bookTotalAmount) || 0) * 100)}</span>
               </div>
               {showNewStudentForm && (
@@ -1751,16 +2075,19 @@ export default function CabinsView() {
 }
 
 // Extracted CabinCard component
-function CabinCard({ cabin, state, opStart, opEnd, onClick }: {
+function CabinCard({ cabin, state, opStart, opEnd, onClick, onQuickRenew, onReleaseDesk }: {
   cabin: Cabin;
   state: CabinDisplayState;
   opStart: string;
   opEnd: string;
   onClick: () => void;
+  onQuickRenew?: (bookingId: string) => void;
+  onReleaseDesk?: (bookingId: string) => void;
 }) {
   const styles = getDisplayStyles(state);
-  const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && b.status === 'active');
-  const activeShifts = cabin.bookings.filter((b) => b.status === 'active' && ['morning_shift', 'day_shift', 'night_shift'].includes(b.type));
+  const reservedBooking = cabin.bookings.find((b) => b.type === 'reserved' && (b.status === 'active' || b.status === 'pending_payment'));
+  const activeShifts = cabin.bookings.filter((b) => (b.status === 'active' || b.status === 'pending_payment') && ['morning_shift', 'day_shift', 'night_shift'].includes(b.type));
+  const primaryBooking = reservedBooking || activeShifts[0];
 
   return (
     <Card
@@ -1791,6 +2118,36 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick }: {
           <Building2 className="h-3 w-3" />
           {formatFloorLabel(cabin.floor)}
         </p>
+
+        {/* Needs Cycle Update or In Grace Period View */}
+        {(state === 'needs_cycle_update' || state === 'in_grace_period') && primaryBooking && (
+          <div className="mt-2 text-xs space-y-1.5">
+            <p className="font-semibold text-orange-950 truncate">{primaryBooking.student.name}</p>
+            <p className="text-gray-500 truncate">{primaryBooking.student.phone}</p>
+            <p className="text-[10px] text-orange-700 font-medium">
+              {primaryBooking.endDate
+                ? `${state === 'in_grace_period' ? 'Grace ends' : 'Ended'}: ${new Date(primaryBooking.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`
+                : 'No end date'}
+            </p>
+            <div className="pt-1 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="h-6 px-2 text-[10px] bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded shadow-xs cursor-pointer transition-colors"
+                onClick={() => onQuickRenew && onQuickRenew(primaryBooking.id)}
+              >
+                Renew
+              </button>
+              <button
+                type="button"
+                className="h-6 px-2 text-[10px] text-red-600 border border-red-200 hover:bg-red-50 font-semibold rounded cursor-pointer transition-colors"
+                onClick={() => onReleaseDesk && onReleaseDesk(primaryBooking.id)}
+              >
+                Release
+              </button>
+            </div>
+          </div>
+        )}
+
         {state === 'reserved' && reservedBooking && (
           <div className="mt-2 text-xs">
             <p className="font-medium text-red-800 truncate">{reservedBooking.student.name}</p>

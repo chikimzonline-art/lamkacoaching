@@ -5,6 +5,13 @@ import { z } from 'zod';
 import { Client } from '@upstash/workflow';
 import { env } from '@/env';
 import * as Sentry from '@sentry/nextjs';
+import { revalidatePath } from 'next/cache';
+import {
+  isBookingCurrentlyBlocking,
+  isRegistrationFeeWaived,
+  calculateCabinPricing,
+  getCalendarMonthEndDate,
+} from '@/lib/helpers/cabin-dates';
 
 function formatFloorLabel(floor: number): string {
   const suffixes: Record<number, string> = { 1: 'st', 2: 'nd', 3: 'rd' };
@@ -35,7 +42,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Student record not found' }, { status: 404 });
     }
 
-    const [cabins, settings, pastCabinBookingsCount] = await Promise.all([
+    const [cabins, settings, studentPastBookings] = await Promise.all([
       db.cabin.findMany({
         where: { status: 'active' },
         orderBy: [{ floor: 'asc' }, { cabinNum: 'asc' }],
@@ -50,6 +57,7 @@ export async function GET() {
               startTime: true,
               endTime: true,
               studentId: true,
+              status: true,
             },
           },
         },
@@ -67,11 +75,17 @@ export async function GET() {
           },
         },
       }),
-      db.booking.count({
+      db.booking.findMany({
         where: {
           studentId: student.id,
           cabinId: { not: '' },
         },
+        select: {
+          createdAt: true,
+          endDate: true,
+          status: true,
+        },
+        orderBy: { createdAt: 'desc' },
       }),
     ]);
 
@@ -93,8 +107,9 @@ export async function GET() {
       .map((b) => b.cabinId);
 
     const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
+    const isRegistrationWaived = isRegistrationFeeWaived(studentPastBookings, now);
+    const monthEndDate = getCalendarMonthEndDate(now);
+    const isSecondHalf = now.getDate() > 15;
 
     const cabinsWithAvailability = cabins.map((cabin) => {
       const isBookedByMe = bookedCabinIds.includes(cabin.id);
@@ -115,35 +130,22 @@ export async function GET() {
 
       const activeReserved = cabin.bookings.find((b) => {
         if (b.type !== 'reserved') return false;
-        const startLimit = new Date(b.startDate);
-        startLimit.setHours(0, 0, 0, 0);
-        if (startLimit > now) return false;
-        if (!b.endDate) return true;
-        const endLimit = new Date(b.endDate);
-        endLimit.setHours(23, 59, 59, 999);
-        return endLimit >= now;
+        return isBookingCurrentlyBlocking(b);
       });
 
       const activeShifts = cabin.bookings.filter((b) => {
         if (!['morning_shift', 'day_shift', 'night_shift'].includes(b.type)) return false;
-        const startLimit = new Date(b.startDate);
-        startLimit.setHours(0, 0, 0, 0);
-        if (startLimit > now) return false;
-        if (!b.endDate) {
-          return startLimit.getTime() <= todayStart.getTime();
-        } else {
-          const endLimit = new Date(b.endDate);
-          endLimit.setHours(23, 59, 59, 999);
-          return endLimit >= now;
-        }
+        return isBookingCurrentlyBlocking(b);
       });
+
+      const isOccupied = !!activeReserved || activeShifts.length >= 3;
 
       return {
         id: cabin.id,
         floor: cabin.floor,
         cabinNum: cabin.cabinNum,
         notes: cabin.notes,
-        isOccupied: !!activeReserved,
+        isOccupied,
         isBookedByMe: false,
         bookedShifts: activeShifts.map((b) => b.type),
         activeShiftsToday: activeShifts.map((b) => ({
@@ -162,7 +164,7 @@ export async function GET() {
       cabins: cabinsWithAvailability.filter((c) => c.floor === floorNum),
     }));
 
-    const isFirstBooking = pastCabinBookingsCount === 0;
+    const isFirstBooking = !isRegistrationWaived;
 
     const rawPendingCheckout = student.bookings.find(
       (b) => b.status === 'pending_payment' && b.paidAmount === 0 && b.cabinId !== ''
@@ -214,6 +216,9 @@ export async function GET() {
       floors,
       pricing,
       isFirstBooking,
+      isRegistrationWaived,
+      isSecondHalf,
+      monthEndDate,
       pendingCheckout,
       myBookings,
       totalCabins: cabins.length,
@@ -289,13 +294,7 @@ export async function POST(request: Request) {
       }
 
       const isOccupied = cabin.bookings.some((b) => {
-        const startLimit = new Date(b.startDate);
-        startLimit.setHours(0, 0, 0, 0);
-        const endLimit = b.endDate ? new Date(b.endDate) : null;
-        if (endLimit) endLimit.setHours(23, 59, 59, 999);
-
-        if (endLimit && endLimit < startDate) return false;
-
+        if (!isBookingCurrentlyBlocking(b)) return false;
         if (b.type === 'reserved') return true;
         if (bookingType === 'reserved') return true;
         if (b.type === bookingType) return true;
@@ -305,9 +304,6 @@ export async function POST(request: Request) {
       if (isOccupied) {
         throw new Error('This cabin is not available on the selected date for this shift.');
       }
-
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + 1);
 
       const settings = await tx.setting.findMany({
         where: {
@@ -354,14 +350,28 @@ export async function POST(request: Request) {
         endTime = '23:59';
       }
 
-      const pastCabinBookingsCount = await tx.booking.count({
+      const priorBookings = await tx.booking.findMany({
         where: {
           studentId: student.id,
           cabinId: { not: '' },
         },
+        select: {
+          createdAt: true,
+          endDate: true,
+          status: true,
+        },
       });
 
-      const totalAmount = (feePerMonth + (pastCabinBookingsCount === 0 ? registrationFee : 0)) * 100;
+      const isRegWaived = isRegistrationFeeWaived(priorBookings, startDate);
+      const pricingCalculation = calculateCabinPricing({
+        startDate,
+        baseRate: feePerMonth,
+        registrationFee,
+        isRegistrationWaived: isRegWaived,
+      });
+
+      const endDate = pricingCalculation.endDate;
+      const totalAmountPaise = pricingCalculation.totalAmountInPaise;
 
       return await tx.booking.create({
         data: {
@@ -372,13 +382,17 @@ export async function POST(request: Request) {
           endDate,
           startTime: startTime || undefined,
           endTime: endTime || undefined,
-          totalAmount,
+          totalAmount: totalAmountPaise,
           paidAmount: 0,
           status: 'pending_payment',
-          notes: 'Booked via Native Mobile Client',
+          notes: `Booked via Native Mobile Client${pricingCalculation.isSecondHalf ? ' (50% Mid-Month Rate)' : ''}${isRegWaived ? ' (Registration Fee Waived - 3mo Validity)' : ''}`,
         },
       });
     });
+
+    // Invalidate cache immediately so availability updates everywhere
+    revalidatePath('/dashboard/cabins');
+    revalidatePath('/cabins');
 
     // Trigger Upstash 10-minute hold cleanup workflow if token is configured
     try {
@@ -439,6 +453,9 @@ export async function DELETE(request: Request) {
     await db.booking.delete({
       where: { id: bookingId },
     });
+
+    revalidatePath('/dashboard/cabins');
+    revalidatePath('/cabins');
 
     return NextResponse.json({ success: true, message: 'Reservation cancelled successfully.' });
   } catch (error: any) {

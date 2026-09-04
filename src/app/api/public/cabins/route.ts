@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAllActiveCabinsWithBookings } from '@/lib/db/queries/cabins';
+import { isBookingCurrentlyBlocking } from '@/lib/helpers/cabin-dates';
 
 // GET /api/public/cabins - Public: list available cabins grouped by floor
 export async function GET() {
@@ -8,42 +9,25 @@ export async function GET() {
     const cabins = await getAllActiveCabinsWithBookings();
 
     // Compute availability status for each cabin
-    const now = new Date();
     const cabinsWithAvailability = cabins.map((cabin) => {
       const activeReserved = cabin.bookings.find((b) => {
         if (b.type !== 'reserved') return false;
-        const startLimit = new Date(b.startDate);
-        startLimit.setHours(0, 0, 0, 0);
-        if (startLimit > now) return false;
-        if (!b.endDate) return true;
-        const endLimit = new Date(b.endDate);
-        endLimit.setHours(23, 59, 59, 999);
-        return endLimit >= now;
+        return isBookingCurrentlyBlocking(b);
       });
 
-      const todayStart = new Date(now);
-      todayStart.setHours(0, 0, 0, 0);
-      
       const activeShifts = cabin.bookings.filter((b) => {
         if (!['morning_shift', 'day_shift', 'night_shift'].includes(b.type)) return false;
-        const startLimit = new Date(b.startDate);
-        startLimit.setHours(0, 0, 0, 0);
-        if (startLimit > now) return false;
-        if (!b.endDate) {
-          return startLimit.getTime() === todayStart.getTime();
-        } else {
-          const endLimit = new Date(b.endDate);
-          endLimit.setHours(23, 59, 59, 999);
-          return endLimit >= now;
-        }
+        return isBookingCurrentlyBlocking(b);
       });
+
+      const isOccupied = !!activeReserved || activeShifts.length >= 3;
 
       return {
         id: cabin.id,
         floor: cabin.floor,
         cabinNum: cabin.cabinNum,
         notes: cabin.notes,
-        isOccupied: !!activeReserved,
+        isOccupied,
         activeShiftsToday: activeShifts.map((b) => ({
           type: b.type,
           startTime: b.startTime,
