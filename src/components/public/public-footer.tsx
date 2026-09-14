@@ -116,8 +116,12 @@ export default function PublicFooter() {
           {/* About + Social + Newsletter */}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-cyan-500 to-sky-500 text-white shadow-md shadow-cyan-500/20">
-                <BookOpen className="h-5 w-5" />
+              <div className="h-9 w-9 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 p-1 flex items-center justify-center shadow-md shadow-black/20 shrink-0">
+                <img
+                  src="/logo.png"
+                  alt="Lamka Coaching Center Logo"
+                  className="h-full w-full object-contain"
+                />
               </div>
               <span className="font-bold text-white text-lg">{name}</span>
             </div>

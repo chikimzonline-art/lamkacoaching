@@ -26,7 +26,10 @@ export const viewport: Viewport = {
   themeColor: "#050B44",
 };
 
+const siteUrl = process.env.NEXTAUTH_URL || "https://lamkacoaching.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Lamka Coaching Center - Competitive Exams & Computer Training",
     template: "%s | Lamka Coaching Center",
@@ -36,11 +39,36 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Lamka Coaching Center - Center of Excellence",
     description: "Expert coaching for competitive exams, professional computer training, and dedicated study spaces.",
-    type: "website",
+    url: siteUrl,
+    siteName: "Lamka Coaching Center",
     locale: "en_IN",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Lamka Coaching Center - Center of Excellence",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Lamka Coaching Center - Center of Excellence",
+    description: "Expert coaching for competitive exams, professional computer training, and dedicated study spaces.",
+    images: ["/og-image.png"],
   },
   icons: {
-    icon: "/logo.svg",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
   },
 };
 

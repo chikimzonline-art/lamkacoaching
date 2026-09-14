@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 export function SiteLogo({ size = 'default', variant = 'dark', className }: { size?: 'default' | 'small' | 'mobile'; variant?: 'dark' | 'light'; className?: string }) {
   const settings = useSettings();
-  const logoUrl = settings?.logo_url || null;
+  const logoUrl = settings?.logo_url || '/logo.png';
   const businessName = settings?.business_name || 'Lamka Coaching';
 
   const nameParts = businessName.split(' ');
