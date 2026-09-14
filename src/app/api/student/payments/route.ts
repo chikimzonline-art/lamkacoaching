@@ -13,6 +13,7 @@ export async function GET() {
     const enrollments = await db.enrollment.findMany({
       where: {
         studentId: user.id,
+        status: { in: ['pending_payment', 'active'] },
       },
       include: {
         course: { select: { id: true, name: true, department: { select: { name: true } } } },
@@ -20,7 +21,7 @@ export async function GET() {
     });
 
     const pendingEnrollments = enrollments.filter(
-      (e) => e.status === 'pending_payment' || e.totalFee - e.paidAmount > 0
+      (e) => (e.status === 'pending_payment' || e.status === 'active') && e.totalFee - e.paidAmount > 0
     ).map(e => ({
       id: e.id,
       type: 'enrollment',
@@ -37,6 +38,7 @@ export async function GET() {
     const bookings = await db.booking.findMany({
       where: {
         studentId: user.id,
+        status: { in: ['pending_payment', 'active'] },
       },
       include: {
         cabin: { select: { id: true, cabinNum: true, floor: true } },
@@ -44,7 +46,7 @@ export async function GET() {
     });
 
     const pendingBookings = bookings.filter(
-      (b) => (b.totalAmount - b.paidAmount > 0)
+      (b) => (b.status === 'pending_payment' || b.status === 'active') && (b.totalAmount - b.paidAmount > 0)
     ).map(b => ({
       id: b.id,
       type: 'booking',

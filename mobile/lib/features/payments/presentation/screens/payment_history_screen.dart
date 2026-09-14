@@ -10,6 +10,9 @@ import '../../services/receipt_generator_service.dart';
 import '../controllers/payments_controller.dart';
 import '../../domain/billing_entity.dart';
 import '../../../auth/presentation/controllers/auth_notifier.dart';
+import '../../../cabins/data/cabins_repository_impl.dart';
+import '../../../cabins/presentation/controllers/cabins_notifier.dart';
+import '../../../courses/data/courses_repository_impl.dart';
 import '../widgets/due_payment_bottom_sheet.dart';
 
 class PaymentHistoryScreen extends ConsumerStatefulWidget {
@@ -55,6 +58,62 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleCancelDue(BuildContext context, PendingDueEntity due) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Cancel Pending Item?'),
+        content: Text(
+          'Are you sure you want to cancel the pending reservation for ${due.itemName}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Cancel Reservation'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      if (due.type == 'booking' || due.type == 'cabin') {
+        await ref.read(cabinsRepositoryProvider).cancelPendingBooking(due.id);
+        await ref.read(cabinsNotifierProvider.notifier).loadCabins();
+      } else if (due.type == 'enrollment' || due.type == 'course') {
+        await ref.read(coursesRepositoryProvider).cancelEnrollmentDraft(due.id);
+      }
+
+      await ref.read(paymentsControllerProvider.notifier).refresh();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pending item cancelled successfully'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildPendingDuesSection(
@@ -171,11 +230,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                 children: [
                   if (due.paidAmount == 0) ...[
                     OutlinedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Cancellation coming soon')),
-                        );
-                      },
+                      onPressed: () => _handleCancelDue(context, due),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.error,
                         side: const BorderSide(color: AppColors.error),
