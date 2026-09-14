@@ -140,7 +140,7 @@ class _MyBookingCardState extends ConsumerState<_MyBookingCard> {
 
       final order = await paymentsRepo.createRenewalOrder(bookingId: b.id);
 
-      await razorpay.openCheckout(
+      final result = await razorpay.openCheckout(
         orderId: order.orderId,
         amountInPaise: order.amount,
         name: 'Lamka Coaching Center',
@@ -155,6 +155,15 @@ class _MyBookingCardState extends ConsumerState<_MyBookingCard> {
         customerPhone: user?.phone ?? '',
         customerEmail: user?.email,
         keyId: order.keyId,
+      );
+
+      // Verify payment with server to extend validity and record transaction
+      await paymentsRepo.verifyPayment(
+        orderId: result.orderId ?? order.orderId,
+        paymentId: result.paymentId,
+        signature: result.signature,
+        type: 'cabin_renewal',
+        bookingId: b.id,
       );
 
       if (mounted) {

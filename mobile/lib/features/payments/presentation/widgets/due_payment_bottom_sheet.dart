@@ -120,7 +120,17 @@ class _DuePaymentBottomSheetState extends ConsumerState<DuePaymentBottomSheet> {
         keyId: order.keyId,
       );
 
-      // 3. Payment succeeded! Refresh billing summary & notify
+      // 3. Verify Payment with server to credit account and update records
+      await repo.verifyPayment(
+        orderId: result.orderId ?? order.orderId,
+        paymentId: result.paymentId,
+        signature: result.signature,
+        type: orderType,
+        itemId: widget.due.itemId,
+        bookingId: widget.due.type == 'booking' ? widget.due.id : null,
+      );
+
+      // 4. Payment succeeded and verified! Refresh billing summary & notify
       if (mounted) {
         Navigator.of(context).pop();
         await ref.read(paymentsControllerProvider.notifier).refresh();

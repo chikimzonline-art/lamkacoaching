@@ -142,7 +142,16 @@ class _CourseEnrollmentCheckoutSheetState
         keyId: order.keyId,
       );
 
-      // 4. Payment Succeeded!
+      // 4. Verify Payment with server to confirm enrollment
+      await paymentsRepo.verifyPayment(
+        orderId: result.orderId ?? order.orderId,
+        paymentId: result.paymentId,
+        signature: result.signature,
+        type: 'course',
+        itemId: widget.course.id,
+      );
+
+      // 5. Payment Succeeded!
       if (mounted) {
         final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop(true);

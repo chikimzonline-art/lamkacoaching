@@ -124,8 +124,21 @@ class RazorpayService {
     // On Mobile Platforms (Android / iOS): Open native Razorpay SDK checkout
     _checkoutCompleter = Completer<PaymentSuccessResult>();
 
+    final effectiveKey = (keyId != null && keyId.isNotEmpty)
+        ? keyId
+        : ApiConstants.razorpayKey;
+
+    if (effectiveKey.isEmpty) {
+      debugPrint('[Razorpay SDK] Error: Missing Razorpay Key ID from server');
+      throw const PaymentException(
+        code: -1,
+        message:
+            'Payment gateway configuration is missing from the server. Please contact support.',
+      );
+    }
+
     final options = <String, dynamic>{
-      'key': (keyId != null && keyId.isNotEmpty) ? keyId : ApiConstants.razorpayKey,
+      'key': effectiveKey,
       'amount': amountInPaise,
       'name': name,
       'description': description,

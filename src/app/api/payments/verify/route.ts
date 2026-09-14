@@ -168,6 +168,106 @@ export async function POST(req: Request) {
       });
     }
 
+    // 4. Handle Cabin Renewal Verification
+    if (type === 'cabin_renewal') {
+      const targetBookingId = bookingId || itemId;
+      if (!targetBookingId) {
+        return NextResponse.json({ error: 'Missing bookingId for renewal' }, { status: 400 });
+      }
+
+      const booking = await db.booking.findUnique({
+        where: { id: targetBookingId },
+      });
+
+      if (!booking) {
+        return NextResponse.json({ error: 'Booking record not found' }, { status: 404 });
+      }
+
+      if (booking.studentId !== resolvedStudentId && user.role !== 'admin' && user.role !== 'staff') {
+        return NextResponse.json({ error: 'Unauthorized to renew this booking' }, { status: 403 });
+      }
+
+      const existingPayment = await db.payment.findFirst({
+        where: { transactionId: paymentId },
+      });
+
+      if (existingPayment) {
+        return NextResponse.json({
+          success: true,
+          message: 'Payment already processed',
+          bookingId: booking.id,
+          paymentId: existingPayment.id,
+        });
+      }
+
+      // Calculate new end date (+1 month)
+      const currentEnd = booking.endDate ? new Date(booking.endDate) : new Date(booking.startDate);
+      const newEnd = new Date(currentEnd);
+      newEnd.setMonth(newEnd.getMonth() + 1);
+      newEnd.setHours(23, 59, 59, 999);
+
+      // Determine renewal fee in paise
+      const settings = await db.setting.findMany({
+        where: {
+          key: {
+            in: [
+              'cabin_reserved_rate',
+              'cabin_morning_shift_rate',
+              'cabin_day_shift_rate',
+              'cabin_night_shift_rate',
+            ],
+          },
+        },
+      });
+
+      const getSetting = (key: string, def: number) => {
+        const s = settings.find((s) => s.key === key);
+        return s ? parseInt(s.value, 10) : def;
+      };
+
+      let renewRate = 0;
+      if (booking.type === 'reserved') renewRate = getSetting('cabin_reserved_rate', 1100);
+      else if (booking.type === 'morning_shift') renewRate = getSetting('cabin_morning_shift_rate', 500);
+      else if (booking.type === 'day_shift') renewRate = getSetting('cabin_day_shift_rate', 800);
+      else if (booking.type === 'night_shift') renewRate = getSetting('cabin_night_shift_rate', 800);
+
+      const renewalAmountPaise = renewRate * 100;
+
+      await db.$transaction([
+        db.payment.create({
+          data: {
+            bookingId: booking.id,
+            studentId: resolvedStudentId,
+            amount: renewalAmountPaise,
+            mode: 'razorpay',
+            transactionId: paymentId,
+            notes: `Verified via Client ${isMock ? '(Developer Mock)' : '(Razorpay Renewal)'}`,
+            status: 'completed',
+            receivedAt: new Date(),
+          },
+        }),
+        db.booking.update({
+          where: { id: booking.id },
+          data: {
+            paidAmount: { increment: renewalAmountPaise },
+            totalAmount: { increment: renewalAmountPaise },
+            endDate: newEnd,
+            status: 'active',
+          },
+        }),
+      ]);
+
+      revalidatePath('/dashboard/cabins');
+      revalidatePath('/cabins');
+
+      return NextResponse.json({
+        success: true,
+        message: 'Cabin booking renewed successfully for +1 month',
+        bookingId: booking.id,
+        paymentId,
+      });
+    }
+
     return NextResponse.json({ error: 'Unsupported payment type' }, { status: 400 });
   } catch (error: any) {
     console.error('[PaymentVerify] Error verifying payment:', error);

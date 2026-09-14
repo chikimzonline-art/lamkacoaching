@@ -28,11 +28,8 @@ class ApiConstants {
   static const Duration receiveTimeout = Duration(seconds: 30);
   static const Duration sendTimeout = Duration(seconds: 30);
 
-  // Razorpay Public Client Key
-  static const String razorpayKey = String.fromEnvironment(
-    'RAZORPAY_KEY',
-    defaultValue: 'rzp_test_TOLklKfn3cRx4x',
-  );
+  // Razorpay Public Client Key (Optional developer override; otherwise provided by server order response)
+  static const String razorpayKey = String.fromEnvironment('RAZORPAY_KEY');
 
   // Authentication & NextAuth Session Endpoints
   static const String csrfEndpoint = '/api/auth/csrf';
