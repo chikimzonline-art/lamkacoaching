@@ -64,14 +64,25 @@ export default function BookingsView() {
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [pendingCount, setPendingCount] = useState<number>(0);
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   // Master-Detail Management Dialog
-  const [selectedBookingForManage, setSelectedBookingForManage] = useState<Booking | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
+
+  // Derive selected booking directly from in-memory bookings array
+  const selectedBookingForManage = useMemo(
+    () => (selectedBookingId ? bookings.find((b) => b.id === selectedBookingId) || null : null),
+    [bookings, selectedBookingId]
+  );
+
+  // Derive pending approvals count from in-memory bookings array
+  const pendingCount = useMemo(
+    () => bookings.filter((b) => b.status === 'pending').length,
+    [bookings]
+  );
 
   // Payment dialog (for existing bookings)
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -139,34 +150,15 @@ export default function BookingsView() {
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (typeFilter !== 'all') params.set('type', typeFilter);
-      if (statusFilter !== 'all') params.set('status', statusFilter);
-      if (dateFilter) params.set('date', dateFilter.toISOString().split('T')[0]);
-      const res = await fetch(`/api/bookings?${params.toString()}`);
+      const res = await fetch('/api/bookings');
       const json = await res.json();
       if (json.bookings) {
         setBookings(json.bookings);
-        // If a booking is currently opened in manage dialog, update its live reference
-        if (selectedBookingForManage) {
-          const updated = json.bookings.find((b: Booking) => b.id === selectedBookingForManage.id);
-          if (updated) setSelectedBookingForManage(updated);
-        }
       }
     } catch (err) {
       console.error('Failed to fetch bookings:', err);
     } finally {
       setLoading(false);
-    }
-  }, [typeFilter, statusFilter, dateFilter, selectedBookingForManage]);
-
-  const fetchPendingCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/bookings?status=pending');
-      const json = await res.json();
-      setPendingCount(json.bookings?.length || 0);
-    } catch {
-      // ignore
     }
   }, []);
 
@@ -177,8 +169,7 @@ export default function BookingsView() {
 
   useEffect(() => {
     fetchBookings();
-    fetchPendingCount();
-  }, [fetchBookings, fetchPendingCount]);
+  }, [fetchBookings]);
 
   const handleApproveBooking = async (booking: Booking) => {
     try {
@@ -194,7 +185,6 @@ export default function BookingsView() {
       }
       toast.success('Booking approved successfully');
       fetchBookings();
-      fetchPendingCount();
     } catch {
       toast.error('Failed to approve booking');
     }
@@ -215,7 +205,6 @@ export default function BookingsView() {
       }
       toast.success('Booking rejected');
       fetchBookings();
-      fetchPendingCount();
     } catch {
       toast.error('Failed to reject booking');
     }
@@ -366,15 +355,43 @@ export default function BookingsView() {
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        b.student.name.toLowerCase().includes(q) ||
-        b.student.phone.toLowerCase().includes(q) ||
-        String(b.cabin.cabinNum).includes(q)
-      );
+      // 1. Shift type filter
+      if (typeFilter !== 'all' && b.type !== typeFilter) return false;
+
+      // 2. Status filter
+      if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+
+      // 3. Date filter (IST-aligned comparison)
+      if (dateFilter) {
+        const filterDateStr = dateFilter.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const startStr = new Date(b.startDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        if (b.type === 'reserved') {
+          const endStr = b.endDate
+            ? new Date(b.endDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+            : null;
+          if (startStr > filterDateStr) return false;
+          if (endStr && endStr < filterDateStr) return false;
+        } else {
+          if (startStr !== filterDateStr) return false;
+        }
+      }
+
+      // 4. Search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const studentName = b.student?.name?.toLowerCase() || '';
+        const studentPhone = b.student?.phone?.toLowerCase() || '';
+        const cabinNum = String(b.cabin?.cabinNum || '');
+        return (
+          studentName.includes(q) ||
+          studentPhone.includes(q) ||
+          cabinNum.includes(q)
+        );
+      }
+
+      return true;
     });
-  }, [bookings, searchQuery]);
+  }, [bookings, typeFilter, statusFilter, dateFilter, searchQuery]);
 
   // KPI Metrics calculation
   const stats = useMemo(() => {
@@ -394,7 +411,7 @@ export default function BookingsView() {
   }, [bookings]);
 
   const handleOpenManage = (booking: Booking) => {
-    setSelectedBookingForManage(booking);
+    setSelectedBookingId(booking.id);
     setManageDialogOpen(true);
   };
 
@@ -919,7 +936,10 @@ export default function BookingsView() {
       {/* Master-Detail Booking Management Dialog */}
       <BookingManagementDialog
         open={manageDialogOpen}
-        onOpenChange={setManageDialogOpen}
+        onOpenChange={(open) => {
+          setManageDialogOpen(open);
+          if (!open) setSelectedBookingId(null);
+        }}
         booking={selectedBookingForManage}
         cabins={cabins}
         onUpdate={fetchBookings}
