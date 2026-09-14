@@ -4,6 +4,7 @@ import '../../data/cabins_repository_impl.dart';
 import '../../domain/cabin_entity.dart';
 import '../../domain/cabins_repository.dart';
 import '../../../payments/data/payments_repository.dart';
+import '../../../payments/domain/payment_entity.dart';
 import '../../../payments/services/razorpay_service.dart';
 
 enum CheckoutStatus {
@@ -24,6 +25,7 @@ class BookingCheckoutState {
   final String? createdBookingId;
   final String? paymentId;
   final int totalAmountInPaise;
+  final bool isCancelled;
 
   const BookingCheckoutState({
     this.selectedCabin,
@@ -34,6 +36,7 @@ class BookingCheckoutState {
     this.createdBookingId,
     this.paymentId,
     this.totalAmountInPaise = 0,
+    this.isCancelled = false,
   });
 
   bool get isProcessing =>
@@ -50,6 +53,7 @@ class BookingCheckoutState {
     String? createdBookingId,
     String? paymentId,
     int? totalAmountInPaise,
+    bool? isCancelled,
     bool clearError = false,
   }) {
     return BookingCheckoutState(
@@ -61,6 +65,7 @@ class BookingCheckoutState {
       createdBookingId: createdBookingId ?? this.createdBookingId,
       paymentId: paymentId ?? this.paymentId,
       totalAmountInPaise: totalAmountInPaise ?? this.totalAmountInPaise,
+      isCancelled: isCancelled ?? (clearError ? false : this.isCancelled),
     );
   }
 }
@@ -249,9 +254,12 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
         }
       }
 
+      final isCancelled = (e is PaymentException && e.isCancelled);
+
       state = state.copyWith(
-        status: CheckoutStatus.error,
-        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        status: isCancelled ? CheckoutStatus.idle : CheckoutStatus.error,
+        errorMessage: isCancelled ? null : e.toString().replaceAll('Exception: ', ''),
+        isCancelled: isCancelled,
       );
 
       return false;

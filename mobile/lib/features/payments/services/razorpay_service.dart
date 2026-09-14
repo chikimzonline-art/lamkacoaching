@@ -46,10 +46,33 @@ class RazorpayService {
   void _handlePaymentError(PaymentFailureResponse response) {
     debugPrint('[Razorpay SDK] Payment Failure: [${response.code}] ${response.message}');
     if (_checkoutCompleter != null && !_checkoutCompleter!.isCompleted) {
+      final code = response.code ?? -1;
+      final rawMsg = response.message?.trim() ?? '';
+      final isUndefinedOrEmpty = rawMsg.isEmpty ||
+          rawMsg.toLowerCase() == 'undefined' ||
+          rawMsg.toLowerCase() == 'null';
+
+      final bool isCancelled = (code == Razorpay.PAYMENT_CANCELLED) ||
+          (isUndefinedOrEmpty && code != Razorpay.NETWORK_ERROR);
+
+      String cleanMessage;
+      if (isCancelled) {
+        cleanMessage = 'Payment was cancelled.';
+      } else if (code == Razorpay.NETWORK_ERROR) {
+        cleanMessage = 'Network connection lost. Please check your internet and try again.';
+      } else if (code == Razorpay.INVALID_OPTIONS) {
+        cleanMessage = 'Invalid payment configuration. Please try again.';
+      } else if (!isUndefinedOrEmpty) {
+        cleanMessage = rawMsg;
+      } else {
+        cleanMessage = 'Payment could not be completed. Please try again.';
+      }
+
       _checkoutCompleter!.completeError(
         PaymentException(
-          code: response.code ?? -1,
-          message: response.message ?? 'Payment cancelled or failed',
+          code: code,
+          message: cleanMessage,
+          isCancelled: isCancelled,
         ),
       );
     }

@@ -8,6 +8,7 @@ import '../../../auth/presentation/controllers/auth_notifier.dart';
 import '../../../auth/presentation/controllers/auth_state.dart';
 import '../../../dashboard/presentation/controllers/student_dashboard_controller.dart';
 import '../../../payments/data/payments_repository.dart';
+import '../../../payments/domain/payment_entity.dart';
 import '../../../payments/services/razorpay_service.dart';
 import '../../data/courses_repository_impl.dart';
 import '../../domain/course_entity.dart';
@@ -169,10 +170,20 @@ class _CourseEnrollmentCheckoutSheetState
       }
 
       if (mounted) {
+        final isCancelled = (e is PaymentException && e.isCancelled);
         setState(() {
-          _error = e.toString().replaceAll('Exception: ', '');
+          _error = isCancelled ? null : e.toString().replaceAll('Exception: ', '');
           _isLoading = false;
         });
+        if (isCancelled) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment cancelled'),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }

@@ -171,8 +171,9 @@ class _MyBookingCardState extends ConsumerState<_MyBookingCard> {
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text(e.message),
+            content: Text(e.isCancelled ? 'Payment cancelled' : e.message),
             behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
           ),
         );
       }

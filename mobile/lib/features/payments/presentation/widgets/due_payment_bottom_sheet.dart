@@ -8,6 +8,7 @@ import '../../../auth/presentation/controllers/auth_notifier.dart';
 import '../../../auth/presentation/controllers/auth_state.dart';
 import '../../data/payments_repository.dart';
 import '../../domain/billing_entity.dart';
+import '../../domain/payment_entity.dart';
 import '../../services/razorpay_service.dart';
 import '../controllers/payments_controller.dart';
 
@@ -137,10 +138,20 @@ class _DuePaymentBottomSheetState extends ConsumerState<DuePaymentBottomSheet> {
     } catch (e) {
       debugPrint('[DuePayment] Error: $e');
       if (mounted) {
+        final isCancelled = (e is PaymentException && e.isCancelled);
         setState(() {
-          _error = e.toString().replaceAll('Exception: ', '');
+          _error = isCancelled ? null : e.toString().replaceAll('Exception: ', '');
           _isLoading = false;
         });
+        if (isCancelled) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment cancelled'),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }

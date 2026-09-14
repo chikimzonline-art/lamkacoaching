@@ -48,10 +48,12 @@ class PaymentFailureResult {
 class PaymentException implements Exception {
   final int code;
   final String message;
+  final bool isCancelled;
 
   const PaymentException({
     required this.code,
     required this.message,
+    this.isCancelled = false,
   });
 
   @override

@@ -622,11 +622,20 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                               Navigator.of(context).pop();
                               onBookingSuccess();
                             } else {
-                              final error = ref.read(bookingCheckoutNotifierProvider).errorMessage;
-                              if (error != null && error.isNotEmpty) {
+                              final checkoutState = ref.read(bookingCheckoutNotifierProvider);
+                              if (checkoutState.isCancelled) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Payment cancelled'),
+                                    duration: Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              } else if (checkoutState.errorMessage != null &&
+                                  checkoutState.errorMessage!.isNotEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(error),
+                                    content: Text(checkoutState.errorMessage!),
                                     backgroundColor: const Color(0xFFDC2626),
                                     behavior: SnackBarBehavior.floating,
                                   ),
