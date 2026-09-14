@@ -77,4 +77,33 @@ class PaymentsRepository {
     final data = response.data as Map<String, dynamic>;
     return BillingSummaryEntity.fromJson(data);
   }
+
+  /// Verifies a payment with the Next.js backend to mark bookings active and store payment records
+  Future<bool> verifyPayment({
+    required String orderId,
+    required String paymentId,
+    String? signature,
+    required String type,
+    String? itemId,
+    String? bookingId,
+  }) async {
+    final response = await _client.post(
+      ApiConstants.verifyPaymentEndpoint,
+      data: {
+        'orderId': orderId,
+        'paymentId': paymentId,
+        if (signature != null) 'signature': signature,
+        'type': type,
+        if (itemId != null) 'itemId': itemId,
+        if (bookingId != null) 'bookingId': bookingId,
+      },
+    );
+
+    final data = response.data as Map<String, dynamic>;
+    if (data['success'] == true) {
+      return true;
+    }
+
+    throw Exception(data['error'] ?? 'Payment verification failed');
+  }
 }

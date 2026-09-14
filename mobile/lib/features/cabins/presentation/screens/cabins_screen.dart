@@ -177,13 +177,14 @@ class _CabinsScreenState extends ConsumerState<CabinsScreen>
                           );
                           ref
                               .read(bookingCheckoutNotifierProvider.notifier)
-                              .selectCabin(cabin, data.pricing, data.isFirstBooking);
+                              .selectCabin(cabin, data.pricing, data.isFirstBooking, pending.type);
 
                           CabinBookingBottomSheet.show(
                             context,
                             cabin: cabin,
                             pricing: data.pricing,
                             isFirstBooking: data.isFirstBooking,
+                            existingBookingId: pending.id,
                             onBookingSuccess: () {
                               notifier.loadCabins();
                               BookingSuccessDialog.show(

@@ -13,6 +13,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
   final CabinEntity cabin;
   final CabinPricingEntity pricing;
   final bool isFirstBooking;
+  final String? existingBookingId;
   final VoidCallback onBookingSuccess;
 
   const CabinBookingBottomSheet({
@@ -20,6 +21,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
     required this.cabin,
     required this.pricing,
     required this.isFirstBooking,
+    this.existingBookingId,
     required this.onBookingSuccess,
   });
 
@@ -28,6 +30,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
     required CabinEntity cabin,
     required CabinPricingEntity pricing,
     required bool isFirstBooking,
+    String? existingBookingId,
     required VoidCallback onBookingSuccess,
   }) {
     return showModalBottomSheet(
@@ -38,6 +41,7 @@ class CabinBookingBottomSheet extends ConsumerWidget {
         cabin: cabin,
         pricing: pricing,
         isFirstBooking: isFirstBooking,
+        existingBookingId: existingBookingId,
         onBookingSuccess: onBookingSuccess,
       ),
     );
@@ -605,15 +609,30 @@ class CabinBookingBottomSheet extends ConsumerWidget {
                       : () async {
                           final user = (authState is Authenticated) ? authState.user : null;
                           final success = await checkoutNotifier.proceedToPayment(
+                            cabin: cabin,
+                            existingBookingId: existingBookingId,
                             studentId: user?.id ?? 'student_guest',
                             studentName: user?.name ?? 'Student',
                             studentPhone: user?.phone ?? '',
                             studentEmail: user?.email,
                           );
 
-                          if (success && context.mounted) {
-                            Navigator.of(context).pop();
-                            onBookingSuccess();
+                          if (context.mounted) {
+                            if (success) {
+                              Navigator.of(context).pop();
+                              onBookingSuccess();
+                            } else {
+                              final error = ref.read(bookingCheckoutNotifierProvider).errorMessage;
+                              if (error != null && error.isNotEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(error),
+                                    backgroundColor: const Color(0xFFDC2626),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            }
                           }
                         },
                   style: ElevatedButton.styleFrom(

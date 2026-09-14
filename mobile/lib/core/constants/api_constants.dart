@@ -8,6 +8,10 @@ class ApiConstants {
 
   // Determine local vs staging vs production environment
   static String get baseUrl {
+    const customUrl = String.fromEnvironment('BASE_URL');
+    if (customUrl.isNotEmpty) {
+      return customUrl;
+    }
     if (kReleaseMode) {
       return 'https://www.lamkacoaching.in';
     }
@@ -50,6 +54,7 @@ class ApiConstants {
   static const String cabinBookingsEndpoint = '/api/cabins/bookings';
   static const String bookingsEndpoint = '/api/bookings';
   static const String createPaymentOrderEndpoint = '/api/payments/create-order';
+  static const String verifyPaymentEndpoint = '/api/payments/verify';
   static const String renewBookingOrderEndpoint = '/api/student/bookings/renew-order';
   static const String coursesEndpoint = '/api/courses';
   static const String publicCoursesEndpoint = '/api/public/courses';

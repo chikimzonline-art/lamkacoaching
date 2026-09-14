@@ -65,7 +65,7 @@ class BookingCheckoutState {
   }
 }
 
-final bookingCheckoutNotifierProvider = StateNotifierProvider.autoDispose<
+final bookingCheckoutNotifierProvider = StateNotifierProvider<
     BookingCheckoutNotifier, BookingCheckoutState>((ref) {
   final cabinsRepo = ref.watch(cabinsRepositoryProvider);
   final paymentsRepo = ref.watch(paymentsRepositoryProvider);
@@ -89,11 +89,18 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
     required this.razorpayService,
   }) : super(BookingCheckoutState(startDate: DateTime.now()));
 
-  void selectCabin(CabinEntity cabin, CabinPricingEntity pricing, bool isFirstBooking) {
-    // Default to first available shift
-    String shift = 'reserved';
-    if (cabin.isShiftBooked('reserved')) {
-      if (!cabin.isShiftBooked('morning_shift')) {
+  void selectCabin(
+    CabinEntity cabin,
+    CabinPricingEntity pricing,
+    bool isFirstBooking, [
+    String? preferredShift,
+  ]) {
+    // Default to preferred shift if available, otherwise first available shift
+    String shift = preferredShift ?? 'reserved';
+    if (cabin.isShiftBooked(shift)) {
+      if (!cabin.isShiftBooked('reserved')) {
+        shift = 'reserved';
+      } else if (!cabin.isShiftBooked('morning_shift')) {
         shift = 'morning_shift';
       } else if (!cabin.isShiftBooked('day_shift')) {
         shift = 'day_shift';
@@ -141,41 +148,53 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
   }
 
   /// Complete Checkout Pipeline:
-  /// 1. Reserve temporary booking (10-min hold)
+  /// 1. Reserve temporary booking (10-min hold) if not already reserved
   /// 2. Generate Razorpay Order ID from backend
   /// 3. Open Razorpay Checkout (Native / Desktop Mock)
-  /// 4. Discard draft on failure or return success
+  /// 4. Verify payment with backend to activate booking immediately
+  /// 5. Discard draft on failure or return success
   Future<bool> proceedToPayment({
+    required CabinEntity cabin,
+    String? existingBookingId,
     required String studentId,
     required String studentName,
     required String studentPhone,
     String? studentEmail,
   }) async {
-    final cabin = state.selectedCabin;
-    if (cabin == null) return false;
-
-    String? createdBookingId;
-    state = state.copyWith(status: CheckoutStatus.reserving, clearError: true);
+    String? createdBookingId = existingBookingId;
+    state = state.copyWith(
+      selectedCabin: cabin,
+      status: CheckoutStatus.reserving,
+      clearError: true,
+    );
 
     try {
-      // Step 1: Create pending booking record
-      final dateStr = state.startDate.toIso8601String().split('T')[0];
-      final res = await cabinsRepository.reserveCabin(
-        cabinId: cabin.id,
-        bookingType: state.selectedShift,
-        startDate: dateStr,
-      );
+      int amountPaise = state.totalAmountInPaise;
 
-      createdBookingId = res.bookingId;
+      // Step 1: Create pending booking record ONLY IF not already reserved
+      if (createdBookingId == null) {
+        final dateStr = state.startDate.toIso8601String().split('T')[0];
+        final res = await cabinsRepository.reserveCabin(
+          cabinId: cabin.id,
+          bookingType: state.selectedShift,
+          startDate: dateStr,
+        );
+
+        createdBookingId = res.bookingId;
+        if (res.totalAmount > 0) {
+          amountPaise = res.totalAmount;
+        }
+      }
+
       state = state.copyWith(
         createdBookingId: createdBookingId,
-        totalAmountInPaise: res.totalAmount,
+        totalAmountInPaise: amountPaise,
         status: CheckoutStatus.creatingPaymentOrder,
       );
 
       // Step 2: Create Razorpay Order from Next.js server
       final order = await paymentsRepository.createOrder(
-        amountInPaise: res.totalAmount > 0 ? res.totalAmount : state.totalAmountInPaise,
+        amountInPaise: amountPaise,
         type: 'cabin',
         itemId: cabin.id,
         studentId: studentId,
@@ -184,7 +203,7 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
 
       state = state.copyWith(status: CheckoutStatus.launchingRazorpay);
 
-      // Step 3: Launch Razorpay SDK / Windows Mock
+      // Step 3: Launch Razorpay SDK / Windows & Linux Mock
       final paymentResult = await razorpayService.openCheckout(
         orderId: order.orderId,
         amountInPaise: order.amount,
@@ -202,6 +221,16 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
         keyId: order.keyId,
       );
 
+      // Step 4: Verify payment with server to activate booking immediately
+      await paymentsRepository.verifyPayment(
+        orderId: order.orderId,
+        paymentId: paymentResult.paymentId,
+        signature: paymentResult.signature,
+        type: 'cabin',
+        itemId: cabin.id,
+        bookingId: createdBookingId,
+      );
+
       state = state.copyWith(
         status: CheckoutStatus.success,
         paymentId: paymentResult.paymentId,
@@ -211,8 +240,8 @@ class BookingCheckoutNotifier extends StateNotifier<BookingCheckoutState> {
     } catch (e) {
       debugPrint('[BookingCheckout] Checkout pipeline error: $e');
 
-      // Cleanup 10-minute hold if payment cancelled or failed
-      if (createdBookingId != null) {
+      // Cleanup 10-minute hold only if we just created it in this attempt
+      if (createdBookingId != null && existingBookingId == null) {
         try {
           await cabinsRepository.cancelPendingBooking(createdBookingId);
         } catch (cleanupErr) {
