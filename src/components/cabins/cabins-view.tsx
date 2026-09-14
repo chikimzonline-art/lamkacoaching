@@ -37,7 +37,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight, History, ScanLine, QrCode, BarChart3, RefreshCw, Filter, RotateCcw } from 'lucide-react';
+import { Plus, DoorOpen, Wrench, X, Building2, Layers, Trash2, AlertTriangle, CalendarPlus, UserPlus, Check, ChevronsUpDown, Search, Key, Copy, Banknote, ChevronLeft, ChevronRight, History, ScanLine, QrCode, BarChart3, RefreshCw, Filter, RotateCcw, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatTime, formatCurrency } from '@/lib/helpers';
 import { isBookingInGracePeriod, isBookingPastGracePeriod, getCalendarMonthEndDate, formatDateToYYYYMMDD, parseYYYYMMDD } from '@/lib/helpers/cabin-dates';
@@ -225,6 +225,7 @@ export default function CabinsView() {
   const [deleteFloorNum, setDeleteFloorNum] = useState<number | null>(null);
   const [deleteFloorConfirm, setDeleteFloorConfirm] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
 
   // 2-Step Cabin Deletion states (Admin Only)
   const [deleteCabinDialogOpen, setDeleteCabinDialogOpen] = useState(false);
@@ -785,7 +786,7 @@ export default function CabinsView() {
   };
 
   const handleBulkSync = async () => {
-    if (!window.confirm('Bring all older active offline bookings up to date with the current calendar month end?')) {
+    if (!window.confirm('Bring all older active offline bookings up to date with the current calendar month end? This will extend their booking period and bill any newly elapsed months into pending dues.')) {
       return;
     }
     try {
@@ -803,6 +804,28 @@ export default function CabinsView() {
       toast.error(err.message || 'Bulk sync failed');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleReconcileBalances = async () => {
+    if (!window.confirm('Reconcile all active booking balances? This will calculate elapsed calendar months up to month-end, verify against recorded payments, and ensure unpaid months (such as August & September) accurately reflect as pending dues.')) {
+      return;
+    }
+    try {
+      setReconciling(true);
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reconcile_existing_balances' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reconcile balances');
+      toast.success(data.message || 'Balances reconciled successfully');
+      fetchCabins();
+    } catch (err: any) {
+      toast.error(err.message || 'Reconciliation failed');
+    } finally {
+      setReconciling(false);
     }
   };
 
@@ -1130,6 +1153,21 @@ export default function CabinsView() {
                 <span className="px-1.5 py-0.2 rounded-full bg-amber-200/80 text-[10px] font-bold text-amber-950">
                   {needsUpdateCount}
                 </span>
+              </Button>
+            )}
+
+            {/* Reconcile Dues & Standardize Month-End Dates */}
+            {isAdmin && (
+              <Button
+                onClick={handleReconcileBalances}
+                disabled={reconciling}
+                variant="outline"
+                size="sm"
+                className="border-sky-300 text-sky-900 bg-sky-50/90 hover:bg-sky-100 shrink-0 font-semibold text-xs h-9 rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Reconcile active booking balances and standardize month-end dates"
+              >
+                <Calculator className={cn("h-3.5 w-3.5 text-sky-600", reconciling && "animate-spin")} />
+                <span>Reconcile Dues</span>
               </Button>
             )}
 
@@ -2233,7 +2271,7 @@ function CabinCard({ cabin, state, opStart, opEnd, onClick, onQuickRenew, onRele
             <p className="text-gray-500 truncate">{primaryBooking.student.phone}</p>
             <p className="text-[10px] text-orange-700 font-medium">
               {primaryBooking.endDate
-                ? `${state === 'in_grace_period' ? 'Grace ends' : 'Ended'}: ${new Date(primaryBooking.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`
+                ? `${state === 'in_grace_period' ? 'Grace ends' : 'Ended'}: ${new Date(primaryBooking.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })}`
                 : 'No end date'}
             </p>
             {isPartial && activeShifts.length > 0 && (

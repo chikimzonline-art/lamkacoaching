@@ -19,12 +19,13 @@ export type BookingCycleStatus =
  * For Sept 4, 2026 -> Sept 30, 2026 23:59:59.999.
  */
 export function getCalendarMonthEndDate(startDate: Date): Date {
-  const year = startDate.getFullYear();
-  const month = startDate.getMonth(); // 0-indexed
-  // Day 0 of next month is the last day of this month
-  const lastDay = new Date(year, month + 1, 0);
-  lastDay.setHours(23, 59, 59, 999);
-  return lastDay;
+  // Ensure we calculate for Asia/Kolkata (India Standard Time: UTC+5:30)
+  const offsetMs = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(startDate.getTime() + offsetMs);
+  const year = istDate.getUTCFullYear();
+  const month = istDate.getUTCMonth();
+  // In IST, 23:59:59.999 corresponds to 18:29:59.999 in UTC
+  return new Date(Date.UTC(year, month + 1, 0, 18, 29, 59, 999));
 }
 
 /**

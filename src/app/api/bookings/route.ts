@@ -447,37 +447,211 @@ export async function POST(request: Request) {
             { endDate: null },
           ],
         },
-        select: { id: true },
+        include: {
+          payments: true,
+        },
       });
 
       if (olderBookings.length === 0) {
         return NextResponse.json({ count: 0, message: 'No older active bookings need synchronization' });
       }
 
-      const updateResult = await db.booking.updateMany({
+      const settings = await db.setting.findMany({
         where: {
-          id: { in: olderBookings.map((b) => b.id) },
-        },
-        data: {
-          endDate: currentMonthEnd,
+          key: {
+            in: [
+              'monthly_rate',
+              'shift_morning_rate',
+              'shift_day_rate',
+              'shift_night_rate',
+              'cabin_reserved_rate',
+              'cabin_morning_shift_rate',
+              'cabin_day_shift_rate',
+              'cabin_night_shift_rate',
+            ],
+          },
         },
       });
+
+      const getMonthlyRatePaise = (type: string) => {
+        const getVal = (primary: string, secondary: string, fallback: number) => {
+          const s = settings.find((x) => x.key === primary || x.key === secondary);
+          return s ? parseInt(s.value, 10) : fallback;
+        };
+        if (type === 'morning_shift') return getVal('cabin_morning_shift_rate', 'shift_morning_rate', 500) * 100;
+        if (type === 'day_shift') return getVal('cabin_day_shift_rate', 'shift_day_rate', 800) * 100;
+        if (type === 'night_shift') return getVal('cabin_night_shift_rate', 'shift_night_rate', 800) * 100;
+        return getVal('cabin_reserved_rate', 'monthly_rate', 1100) * 100;
+      };
+
+      let updatedCount = 0;
+      let totalBilledAdded = 0;
+
+      await db.$transaction(async (tx) => {
+        for (const booking of olderBookings) {
+          const prevEnd = booking.endDate ? new Date(booking.endDate) : new Date(booking.startDate);
+          const prevYear = prevEnd.getUTCFullYear();
+          const prevMonth = prevEnd.getUTCMonth();
+          const targetYear = currentMonthEnd.getUTCFullYear();
+          const targetMonth = currentMonthEnd.getUTCMonth();
+
+          const additionalMonths = Math.max(0, (targetYear - prevYear) * 12 + (targetMonth - prevMonth));
+          const monthlyRate = getMonthlyRatePaise(booking.type);
+          const additionalAmount = additionalMonths * monthlyRate;
+
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              endDate: currentMonthEnd,
+              totalAmount: booking.totalAmount + additionalAmount,
+            },
+          });
+
+          updatedCount++;
+          totalBilledAdded += additionalAmount;
+        }
+      }, { timeout: 60000, maxWait: 10000 });
 
       await logAudit({
         user: auth.user,
         action: 'BOOKING_BULK_SYNC',
         entityType: 'Booking',
-        description: `Bulk synchronized ${updateResult.count} active offline bookings to end on ${currentMonthEnd.toISOString().split('T')[0]}`,
-        details: { count: updateResult.count, targetEndDate: currentMonthEnd },
+        description: `Bulk synchronized ${updatedCount} active offline bookings to end on ${currentMonthEnd.toISOString().split('T')[0]} (added ₹${totalBilledAdded / 100} in billed dues)`,
+        details: { count: updatedCount, totalBilledAdded, targetEndDate: currentMonthEnd },
         req: request,
       });
 
       revalidatePath('/cabins');
       revalidatePath('/dashboard/cabins');
+      revalidatePath('/admin');
 
       return NextResponse.json({
-        count: updateResult.count,
-        message: `Successfully synchronized ${updateResult.count} active offline bookings to month-end (${currentMonthEnd.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })})`,
+        count: updatedCount,
+        totalBilledAdded: totalBilledAdded / 100,
+        message: `Successfully synchronized ${updatedCount} active offline bookings to month-end (${currentMonthEnd.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}). Added ₹${totalBilledAdded / 100} in pending dues.`,
+      });
+
+    } else if (action === 'reconcile_existing_balances') {
+      const now = new Date();
+      const currentMonthEnd = getCalendarMonthEndDate(now);
+
+      const activeBookings = await db.booking.findMany({
+        where: { status: 'active' },
+        include: { payments: true, student: true, cabin: true },
+      });
+
+      const settings = await db.setting.findMany({
+        where: {
+          key: {
+            in: [
+              'monthly_rate',
+              'shift_morning_rate',
+              'shift_day_rate',
+              'shift_night_rate',
+              'cabin_reserved_rate',
+              'cabin_morning_shift_rate',
+              'cabin_day_shift_rate',
+              'cabin_night_shift_rate',
+            ],
+          },
+        },
+      });
+
+      const getMonthlyRatePaise = (type: string) => {
+        const getVal = (primary: string, secondary: string, fallback: number) => {
+          const s = settings.find((x) => x.key === primary || x.key === secondary);
+          return s ? parseInt(s.value, 10) : fallback;
+        };
+        if (type === 'morning_shift') return getVal('cabin_morning_shift_rate', 'shift_morning_rate', 500) * 100;
+        if (type === 'day_shift') return getVal('cabin_day_shift_rate', 'shift_day_rate', 800) * 100;
+        if (type === 'night_shift') return getVal('cabin_night_shift_rate', 'shift_night_rate', 800) * 100;
+        return getVal('cabin_reserved_rate', 'monthly_rate', 1100) * 100;
+      };
+
+      let reconciledCount = 0;
+      let totalPendingCreated = 0;
+      const details: Array<{
+        cabinNum: number;
+        student: string;
+        unpaidMonths: number;
+        pendingPaise: number;
+      }> = [];
+
+      await db.$transaction(async (tx) => {
+        for (const b of activeBookings) {
+          if (!b.startDate) continue;
+
+          let effectiveEnd = b.endDate ? new Date(b.endDate) : currentMonthEnd;
+
+          // Standardize dates ending on Oct 1-3 to Sept 30 (calendar-month end)
+          if (
+            effectiveEnd.getUTCFullYear() === 2026 &&
+            effectiveEnd.getUTCMonth() === 9 && // October
+            effectiveEnd.getUTCDate() <= 3
+          ) {
+            effectiveEnd = currentMonthEnd;
+          }
+
+          const start = new Date(b.startDate);
+          const startYear = start.getUTCFullYear();
+          const startMonth = start.getUTCMonth();
+          const endYear = effectiveEnd.getUTCFullYear();
+          const endMonth = effectiveEnd.getUTCMonth();
+
+          const totalMonths = Math.max(1, (endYear - startYear) * 12 + (endMonth - startMonth) + 1);
+          const actualPaid = b.payments.reduce((s, p) => s + p.amount, 0);
+          const paidMonthsCount = b.payments.length;
+          const monthlyRate = getMonthlyRatePaise(b.type);
+
+          const unpaidMonths = Math.max(0, totalMonths - paidMonthsCount);
+          const expectedTotalAmount = actualPaid + (unpaidMonths * monthlyRate);
+
+          const isModified = b.totalAmount !== expectedTotalAmount ||
+            b.paidAmount !== actualPaid ||
+            (b.endDate?.toISOString() !== effectiveEnd.toISOString());
+
+          if (isModified) {
+            await tx.booking.update({
+              where: { id: b.id },
+              data: {
+                endDate: effectiveEnd,
+                paidAmount: actualPaid,
+                totalAmount: expectedTotalAmount,
+              },
+            });
+
+            reconciledCount++;
+            const pendingAmount = expectedTotalAmount - actualPaid;
+            totalPendingCreated += pendingAmount;
+            details.push({
+              cabinNum: b.cabin?.cabinNum,
+              student: b.student?.name,
+              unpaidMonths,
+              pendingPaise: pendingAmount,
+            });
+          }
+        }
+      }, { timeout: 60000, maxWait: 10000 });
+
+      await logAudit({
+        user: auth.user,
+        action: 'BOOKINGS_RECONCILED',
+        entityType: 'Booking',
+        description: `Reconciled ${reconciledCount} active booking balances and standardized calendar month end dates (created ₹${totalPendingCreated / 100} in pending dues)`,
+        details: { reconciledCount, totalPendingCreated, sample: details.slice(0, 10) },
+        req: request,
+      });
+
+      revalidatePath('/cabins');
+      revalidatePath('/dashboard/cabins');
+      revalidatePath('/admin');
+
+      return NextResponse.json({
+        success: true,
+        reconciledCount,
+        totalPendingAmount: totalPendingCreated / 100,
+        message: `Successfully reconciled ${reconciledCount} bookings. ₹${totalPendingCreated / 100} in pending dues is now correctly reflected.`,
+        details,
       });
 
     } else if (action === 'onboard_historical') {

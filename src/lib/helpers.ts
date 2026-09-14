@@ -12,6 +12,7 @@ export function toRupees(paise: number): number {
 
 export function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -29,6 +30,7 @@ export function formatTime(time: string): string {
 
 export function formatDateTime(date: Date | string): string {
   return new Date(date).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
