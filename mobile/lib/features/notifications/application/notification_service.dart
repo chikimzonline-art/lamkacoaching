@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/network/dio_client.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -54,7 +56,7 @@ class NotificationService {
 
     // Set up local notifications for foreground display
     const AndroidInitializationSettings androidInitSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
     const InitializationSettings initSettings =
         InitializationSettings(android: androidInitSettings);
 
@@ -85,6 +87,32 @@ class NotificationService {
     }
 
     _isInitialized = true;
+  }
+
+  /// Registers the device's FCM push notification token with the Next.js backend.
+  Future<void> registerDeviceToken(DioClient dioClient) async {
+    // Bypass on unsupported platforms
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) return;
+
+    try {
+      final token = await _firebaseMessaging?.getToken();
+      if (token == null || token.isEmpty) {
+        debugPrint('[NotificationService] No FCM token available to register');
+        return;
+      }
+
+      debugPrint('[NotificationService] Registering FCM token with backend: $token');
+      await dioClient.post(
+        ApiConstants.registerDeviceEndpoint,
+        data: {
+          'fcmToken': token,
+          'platform': Platform.isIOS ? 'ios' : 'android',
+        },
+      );
+      debugPrint('[NotificationService] FCM token successfully registered with backend.');
+    } catch (e) {
+      debugPrint('[NotificationService] Failed to register device token with backend: $e');
+    }
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {

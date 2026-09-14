@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/either.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/network/dio_client.dart';
+import '../../../notifications/application/notification_service.dart';
 import '../../domain/auth_repository.dart';
 import '../../domain/user_entity.dart';
 import '../../data/auth_repository_impl.dart';
@@ -11,15 +13,33 @@ import 'auth_state.dart';
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repository);
+  final notificationService = ref.watch(notificationServiceProvider);
+  final dioClient = ref.watch(dioClientProvider);
+  return AuthNotifier(
+    repository,
+    notificationService: notificationService,
+    dioClient: dioClient,
+  );
 });
 
 /// Riverpod StateNotifier controlling authentication, session state, and biometrics.
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
+  final NotificationService? notificationService;
+  final DioClient? dioClient;
 
-  AuthNotifier(this._authRepository) : super(const AuthInitial()) {
+  AuthNotifier(
+    this._authRepository, {
+    this.notificationService,
+    this.dioClient,
+  }) : super(const AuthInitial()) {
     checkAuthStatus();
+  }
+
+  void _syncDeviceToken() {
+    if (notificationService != null && dioClient != null) {
+      notificationService!.registerDeviceToken(dioClient!);
+    }
   }
 
   /// Checks local secure storage and cached session upon app launch.
@@ -38,6 +58,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           biometricsAvailable: isBioAvailable,
           biometricsEnrolled: isBioEnrolled,
         );
+        _syncDeviceToken();
         return;
       }
 
@@ -83,6 +104,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       biometricsAvailable: isBioAvailable,
       biometricsEnrolled: isBioEnrolled,
     );
+    _syncDeviceToken();
     return true;
   }
 
@@ -126,6 +148,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       biometricsAvailable: isBioAvailable,
       biometricsEnrolled: isBioEnrolled,
     );
+    _syncDeviceToken();
     return true;
   }
 
