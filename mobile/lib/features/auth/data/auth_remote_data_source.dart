@@ -327,4 +327,18 @@ class AuthRemoteDataSource {
       );
     }
   }
+
+  /// Calls `POST /api/auth/logout` to revoke server session cookies and optionally unregister FCM device token.
+  Future<void> logout({String? fcmToken}) async {
+    try {
+      await _dioClient.post<dynamic>(
+        ApiConstants.logoutEndpoint,
+        data: {
+          if (fcmToken != null && fcmToken.isNotEmpty) 'fcmToken': fcmToken,
+        },
+      );
+    } catch (_) {
+      // Best-effort: allow local logout to proceed even if offline or network error
+    }
+  }
 }

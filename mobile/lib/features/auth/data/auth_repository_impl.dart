@@ -167,6 +167,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> logout() async {
     try {
+      // 1. Revoke session cookies and unregister push token on server
+      await remoteDataSource.logout();
+
+      // 2. Clear local storage session
       await storageService.clearSession();
       return const Right(null);
     } catch (e) {
