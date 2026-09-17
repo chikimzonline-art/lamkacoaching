@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/either.dart';
@@ -36,10 +38,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     checkAuthStatus();
   }
 
-  void _syncDeviceToken() {
+  void _syncUserContext(String userId) {
     if (notificationService != null && dioClient != null) {
       notificationService!.registerDeviceToken(dioClient!);
     }
+    try {
+      unawaited(FirebaseCrashlytics.instance.setUserIdentifier(userId));
+    } catch (_) {}
   }
 
   /// Checks local secure storage and cached session upon app launch.
@@ -58,7 +63,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           biometricsAvailable: isBioAvailable,
           biometricsEnrolled: isBioEnrolled,
         );
-        _syncDeviceToken();
+        _syncUserContext(cachedUser.id);
         return;
       }
 
@@ -104,7 +109,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       biometricsAvailable: isBioAvailable,
       biometricsEnrolled: isBioEnrolled,
     );
-    _syncDeviceToken();
+    _syncUserContext(user.id);
     return true;
   }
 
@@ -148,7 +153,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       biometricsAvailable: isBioAvailable,
       biometricsEnrolled: isBioEnrolled,
     );
-    _syncDeviceToken();
+    _syncUserContext(user.id);
     return true;
   }
 
@@ -185,6 +190,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Logs out of the current session and clears all stored tokens.
   Future<void> logout() async {
     state = const Authenticating(statusMessage: 'Signing out...');
+    try {
+      await FirebaseCrashlytics.instance.setUserIdentifier('');
+    } catch (_) {}
     await _authRepository.logout();
 
     final isBioAvailable = await _authRepository.isBiometricsAvailable();
@@ -202,6 +210,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final isBioAvailable = await _authRepository.isBiometricsAvailable();
 
     if (result.isRight) {
+      try {
+        await FirebaseCrashlytics.instance.setUserIdentifier('');
+      } catch (_) {}
       state = Unauthenticated(
         message: 'Your account has been permanently deleted.',
         biometricsAvailable: isBioAvailable,

@@ -34,4 +34,12 @@
 # Flutter Play Store Deferred Components (optional, unused)
 -dontwarn com.google.android.play.core.**
 
+# Firebase Crashlytics
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception
+-dontwarn com.google.firebase.crashlytics.**
+-keep class com.google.firebase.crashlytics.** { *; }
+-keep class io.flutter.plugins.firebase.crashlytics.** { *; }
+
+
 

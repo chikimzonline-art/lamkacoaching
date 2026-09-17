@@ -75,3 +75,8 @@ mobile/build
 mobile/build/
 mobile/.dart_tool/
 mobile/.flutter-plugins*
+
+# Device-specific build symlink & agent storage rules
+/AGENTS.md
+/.agents/rules/
+/scripts/setup-automount.sh
