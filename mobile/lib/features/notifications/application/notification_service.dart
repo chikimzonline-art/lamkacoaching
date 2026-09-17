@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -56,7 +57,7 @@ class NotificationService {
 
     // Set up local notifications for foreground display
     const AndroidInitializationSettings androidInitSettings =
-        AndroidInitializationSettings('@mipmap/launcher_icon');
+        AndroidInitializationSettings('@drawable/ic_notification');
     const InitializationSettings initSettings =
         InitializationSettings(android: androidInitSettings);
 
@@ -120,8 +121,12 @@ class NotificationService {
         AndroidNotificationDetails(
       'lamka_channel',
       'Lamka Coaching Alerts',
+      channelDescription:
+          'Important notices, course schedules, and cabin booking reminders',
       importance: Importance.max,
       priority: Priority.high,
+      icon: '@drawable/ic_notification',
+      color: Color(0xFF059669),
       showWhen: true,
     );
     const NotificationDetails platformChannelSpecifics =

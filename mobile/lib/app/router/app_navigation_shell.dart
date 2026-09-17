@@ -37,6 +37,7 @@ class AppNavigationShell extends StatelessWidget {
         : AppColors.lightTextTertiary;
 
     final currentIndex = navigationShell.currentIndex;
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       body: navigationShell,
@@ -80,8 +81,8 @@ class AppNavigationShell extends StatelessWidget {
         notchMargin: 6.0,
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         elevation: 8,
-        padding: EdgeInsets.zero,
-        height: 64,
+        padding: EdgeInsets.only(bottom: bottomPadding),
+        height: 64 + bottomPadding,
         child: Row(
           children: [
             // Left pair: Home & Courses
