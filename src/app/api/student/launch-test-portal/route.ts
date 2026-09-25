@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     hasActiveAccess,
     passTier: hasActiveAccess ? "LAMKA_PASS_PRO" : "FREE",
     passExpiry: maxExpiry ? maxExpiry.toISOString() : null,
-    targetUrl: "/dashboard",
+    targetUrl: "/",
   };
 
   // 6. Sign JWT with HMAC-SHA256 (expires in 2 minutes)
