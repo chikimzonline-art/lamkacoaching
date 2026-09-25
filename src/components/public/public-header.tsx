@@ -10,6 +10,7 @@ import {
   LogIn,
   LogOut,
   GraduationCap,
+  Trophy,
   DoorOpen,
   Monitor,
   Info,

@@ -21,9 +21,11 @@ export const env = createEnv({
     QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
     UPSTASH_REDIS_REST_URL: z.string().url(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+    SSO_SHARED_SECRET: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_RAZORPAY_KEY_ID: z.string().min(1),
+    NEXT_PUBLIC_TEST_PORTAL_URL: z.string().url().optional(),
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
@@ -45,6 +47,8 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    SSO_SHARED_SECRET: process.env.SSO_SHARED_SECRET,
+    NEXT_PUBLIC_TEST_PORTAL_URL: process.env.NEXT_PUBLIC_TEST_PORTAL_URL,
   },
   emptyStringAsUndefined: true,
 });

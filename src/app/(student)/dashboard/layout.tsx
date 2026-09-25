@@ -16,7 +16,8 @@ import {
   Bell, 
   Calendar, 
   HelpCircle, 
-  GraduationCap, 
+  GraduationCap,
+  Trophy, 
   Grid,
   Clock,
   ScanLine,
@@ -60,6 +61,7 @@ import { cn } from "@/lib/utils";
 const desktopNavItems = [
   { title: "Home", href: "/dashboard", icon: Home },
   { title: "My Enrollment & Booking", href: "/dashboard/my-learning", icon: BookOpen },
+  { title: "Mock Test Portal", href: "/api/student/launch-test-portal", icon: Trophy },
   { title: "Explore Courses", href: "/dashboard/courses", icon: GraduationCap },
   { title: "Explore Study Cabin", href: "/dashboard/cabins", icon: Building2 },
   { title: "Attendance Log", href: "/dashboard/attendance", icon: Clock },
@@ -71,6 +73,7 @@ const desktopNavItems = [
 
 const mobileMoreNavItems = [
   { title: "My Learning", href: "/dashboard/my-learning", icon: BookOpen, description: "Your active enrollments & cabin bookings" },
+  { title: "Mock Test Portal", href: "/api/student/launch-test-portal", icon: Trophy, description: "CBT mock tests & exam portal" },
   { title: "Attendance Log", href: "/dashboard/attendance", icon: Clock, description: "Check-in logs and total study hours" },
   { title: "Schedule", href: "/dashboard/schedule", icon: Calendar, description: "Upcoming classes and test timings" },
   { title: "History & Billing", href: "/dashboard/history", icon: CreditCard, description: "Payment history and pending dues" },
@@ -113,10 +116,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                        <Link href={item.href}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
+                        {item.href.startsWith("/api/") ? (
+                          <a href={item.href} target="_blank" rel="noopener noreferrer">
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </a>
+                        ) : (
+                          <Link href={item.href}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -310,7 +320,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {mobileMoreNavItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 const Icon = item.icon;
-                return (
+                return item.href.startsWith("/api/") ? (
+                  <a
+                    key={item.title}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMoreMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all",
+                      isActive
+                        ? "bg-slate-100/80 border-slate-300 font-medium text-primary shadow-xs"
+                        : "bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "p-2.5 rounded-xl flex items-center justify-center",
+                      isActive ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
+                    )}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                      <p className="text-xs text-slate-500 truncate">{item.description}</p>
+                    </div>
+                  </a>
+                ) : (
                   <Link
                     key={item.title}
                     href={item.href}
